@@ -10627,7 +10627,7 @@ function switchSettlementMainTab(tab) {
 // 기술컨설팅 현장 리스트 전체를 정산관리로 동기화
 async function syncAllConsultingListToSettlement() {
   // 현장 리스트 로드
-  loadConsultingListData();
+  await loadConsultingListData();
   // 정산 데이터 로드
   await loadConsultingData();
   
@@ -10665,7 +10665,31 @@ async function syncAllConsultingListToSettlement() {
   consultingListData.forEach(item => {
     syncConsultingToSettlement(item);
   });
-  
+
+  // 동기화 후 중복 한번 더 제거 (현장명+낙찰금액 기준)
+  const finalSeen = new Map();
+  const finalData = [];
+  consultingData.forEach(item => {
+    const key = `${(item.site || '').replace(/\s/g, '')}_${item.bidAmount || 0}`;
+    if (finalSeen.has(key)) {
+      const existingIdx = finalSeen.get(key);
+      const existing = finalData[existingIdx];
+      // PDF 복원 데이터(profit/settlement 있는 쪽) 우선
+      const existingHasPdf = existing.settlement > 0 || existing.profit > 0;
+      const newHasPdf = item.settlement > 0 || item.profit > 0;
+      if (newHasPdf && !existingHasPdf) {
+        if (item.listId || existing.listId) item.listId = item.listId || existing.listId;
+        finalData[existingIdx] = item;
+      } else {
+        if (!existing.listId && item.listId) existing.listId = item.listId;
+      }
+    } else {
+      finalSeen.set(key, finalData.length);
+      finalData.push(item);
+    }
+  });
+  consultingData = finalData;
+
   // 저장
   saveConsultingDataToStorage();
 }
@@ -11381,10 +11405,24 @@ async function syncConsultingToSettlement(item) {
   
   // listId로 먼저 찾기
   let existIdx = consultingData.findIndex(d => d.listId === item.id);
-  
+
   // 못 찾으면 현장명+년도+금액으로 찾기 (같은 아파트 다른 공사 구분)
   if (existIdx === -1) {
     existIdx = consultingData.findIndex(d => d.site === item.site && d.year === item.year && d.bidAmount === item.bidAmount);
+  }
+
+  // 못 찾으면 현장명+금액으로 찾기 (년도가 다를 수 있음)
+  if (existIdx === -1) {
+    existIdx = consultingData.findIndex(d => d.site === item.site && d.bidAmount === item.bidAmount);
+  }
+
+  // 못 찾으면 현장명 포함 매칭 + 금액으로 찾기
+  if (existIdx === -1) {
+    const siteNorm = (item.site || '').replace(/\s/g, '');
+    existIdx = consultingData.findIndex(d => {
+      const dNorm = (d.site || '').replace(/\s/g, '');
+      return (dNorm.includes(siteNorm) || siteNorm.includes(dNorm)) && d.bidAmount === item.bidAmount;
+    });
   }
   
   console.log('syncConsultingToSettlement - site:', item.site, 'bidAmount:', item.bidAmount, 'existIdx:', existIdx);
