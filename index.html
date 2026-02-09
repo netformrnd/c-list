@@ -8721,6 +8721,27 @@ async function loadConsultingData() {
         fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
       }
     }
+
+    // 회사경비 자동 보정: companyExp가 0이고 bidAmount가 있으면 낙찰금액의 10% 적용
+    let needSave = false;
+    consultingData.forEach(item => {
+      if ((!item.companyExp || item.companyExp === 0) && item.bidAmount > 0) {
+        item.companyExp = Math.round(item.bidAmount * 0.1);
+        needSave = true;
+      }
+      // profit, settlement 재계산
+      const totalExpense = (item.execAmount || 0) + (item.companyExp || 0) + (item.otherExp || 0);
+      item.totalExpense = totalExpense;
+      item.profit = (item.bidAmount || 0) - totalExpense;
+      item.profitRate = item.bidAmount > 0 ? (item.profit / item.bidAmount * 100).toFixed(1) : '0.0';
+      item.settlement = item.profit > 0 ? Math.round(item.profit * 0.15) : 0;
+      item.companyProfit = item.profit - item.settlement;
+    });
+    if (needSave) {
+      console.log('[컨설팅] 회사경비 자동 보정 적용 (낙찰금액 10%)');
+      localStorage.setItem('consultingData', JSON.stringify(consultingData));
+      fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
+    }
   } catch(e) {
     console.error('기술컨설팅 데이터 로드 실패:', e);
     consultingData = [];
