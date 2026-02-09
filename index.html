@@ -8733,7 +8733,7 @@ async function openConfirmationModal() {
   settlementData = generateSettlementFromCurrentData();
   
   // 기술컨설팅 데이터 로드
-  loadConsultingData();
+  await loadConsultingData();
   
   // 기본 탭 설정
   currentConfirmationType = 'construction';
@@ -8774,12 +8774,12 @@ function switchConfirmationTab(tab) {
   renderConfirmationPreview();
 }
 
-function populateConfirmationManagerSelect() {
+async function populateConfirmationManagerSelect() {
   // 공사정산 데이터
   const constructionData = settlementData.length > 0 ? settlementData : generateSettlementFromCurrentData();
-  
+
   // 기술컨설팅 데이터
-  loadConsultingData();
+  await loadConsultingData();
   
   // 모든 담당자 수집
   const managersFromConstruction = constructionData.map(item => item.manager).filter(m => m && m !== '기타');
@@ -9072,8 +9072,8 @@ function renderConstructionConfirmationPreview() {
 }
 
 // 기술컨설팅 확인서 미리보기
-function renderConsultingConfirmationPreview() {
-  loadConsultingData();
+async function renderConsultingConfirmationPreview() {
+  await loadConsultingData();
   
   const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
   const managerFilter = document.getElementById('confirmationManagerSelect')?.value || '';
@@ -9287,12 +9287,12 @@ function renderConsultingConfirmationPreview() {
 }
 
 // 통합 확인서 미리보기
-function renderIntegratedConfirmationPreview() {
+async function renderIntegratedConfirmationPreview() {
   // 공사정산 데이터
   const { data: constructionData, managerFilter, settledFilter } = getFilteredConfirmationData();
-  
+
   // 기술컨설팅 데이터
-  loadConsultingData();
+  await loadConsultingData();
   const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
   
   let consultingFiltered = [...consultingData];
@@ -9796,8 +9796,8 @@ function downloadConfirmationPDF() {
 }
 
 // 기술컨설팅 확인서 HTML 생성
-function generateConsultingConfirmationHTML() {
-  loadConsultingData();
+async function generateConsultingConfirmationHTML() {
+  await loadConsultingData();
   
   const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
   const managerFilter = document.getElementById('confirmationManagerSelect')?.value || '';
@@ -9981,10 +9981,10 @@ function generateConsultingConfirmationHTML() {
 }
 
 // 통합 확인서 HTML 생성
-function generateIntegratedConfirmationHTML() {
+async function generateIntegratedConfirmationHTML() {
   const { data: constructionData, managerFilter, settledFilter } = getFilteredConfirmationData();
-  
-  loadConsultingData();
+
+  await loadConsultingData();
   const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
   
   let consultingFiltered = [...consultingData];
@@ -10204,7 +10204,7 @@ function generateIntegratedConfirmationHTML() {
   return html;
 }
 
-function sendConfirmationEmail() {
+async function sendConfirmationEmail() {
   const managerFilter = document.getElementById('confirmationManagerSelect')?.value || '';
   const managerName = managerFilter || '전체 담당자';
   const managerEmail = managerEmails[managerFilter] || '';
@@ -10229,7 +10229,7 @@ function sendConfirmationEmail() {
   let typeText = '';
   
   if (currentConfirmationType === 'consulting') {
-    loadConsultingData();
+    await loadConsultingData();
     const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
     const settledFilter = document.getElementById('confirmationSettledSelect')?.value || '';
     
@@ -10258,10 +10258,10 @@ function sendConfirmationEmail() {
     });
     
     // 기술컨설팅
-    loadConsultingData();
+    await loadConsultingData();
     const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
     const settledFilter = document.getElementById('confirmationSettledSelect')?.value || '';
-    
+
     let consultingFiltered = [...consultingData];
     if (yearFilter && yearFilter !== '2024+2025') {
       consultingFiltered = consultingFiltered.filter(item => item.year === yearFilter);
@@ -10322,7 +10322,7 @@ ${typeText}정산 내역 확인을 요청드립니다.
 // (consultingData, filteredConsultingData, loadConsultingData는 담당자 확인서 모달 섹션에서 선언됨)
 
 // 기술컨설팅 데이터 저장
-function saveConsultingData() {
+async function saveConsultingData() {
   console.log('=== saveConsultingData 함수 호출됨 ===');
   
   const editId = document.getElementById('consultingEditId').value;
@@ -10356,8 +10356,8 @@ function saveConsultingData() {
   const companyProfit = profit - settlement;
   
   // 최신 데이터 로드
-  loadConsultingData();
-  
+  await loadConsultingData();
+
   // editId로 먼저 찾기 (수정 시)
   let idx = -1;
   if (editId) {
@@ -10513,11 +10513,11 @@ function switchSettlementMainTab(tab) {
 }
 
 // 기술컨설팅 현장 리스트 전체를 정산관리로 동기화
-function syncAllConsultingListToSettlement() {
+async function syncAllConsultingListToSettlement() {
   // 현장 리스트 로드
   loadConsultingListData();
   // 정산 데이터 로드
-  loadConsultingData();
+  await loadConsultingData();
   
   // 먼저 중복 데이터 정리 (현장명+년도 기준)
   // listId가 있는 것(현장 리스트에서 온 것)을 우선 유지
@@ -10552,9 +10552,9 @@ function syncAllConsultingListToSettlement() {
 }
 
 // 기술컨설팅 등록 모달 열기
-function openConsultingAddModal(editId = null) {
+async function openConsultingAddModal(editId = null) {
   // 최신 데이터 로드
-  loadConsultingData();
+  await loadConsultingData();
   
   console.log('=== 수정 모달 열기 ===');
   console.log('요청된 editId:', editId);
@@ -10669,9 +10669,9 @@ function filterConsultingData() {
 }
 
 // 기술컨설팅 테이블 렌더링
-function renderConsultingTable() {
+async function renderConsultingTable() {
   // 최신 데이터 로드
-  loadConsultingData();
+  await loadConsultingData();
   
   // 필터 적용
   const yearFilter = document.getElementById('consultingYearFilter').value;
@@ -11256,9 +11256,9 @@ function saveConsultingItem() {
 }
 
 // 정산관리 기술컨설팅과 동기화
-function syncConsultingToSettlement(item) {
+async function syncConsultingToSettlement(item) {
   // 최신 데이터 로드
-  loadConsultingData();
+  await loadConsultingData();
   
   // listId로 먼저 찾기
   let existIdx = consultingData.findIndex(d => d.listId === item.id);
