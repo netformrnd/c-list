@@ -8799,7 +8799,7 @@ async function loadConsultingData() {
           }
         }
         item.totalExpense = (item.execAmount || 0) + (item.companyExp || 0) + (item.otherExp || 0);
-        if (match.manager && !item.manager) {
+        if (match.manager) {
           item.manager = match.manager;
         }
         restoredCount++;
@@ -11390,7 +11390,7 @@ async function syncConsultingToSettlement(item) {
   console.log('syncConsultingToSettlement - site:', item.site, 'bidAmount:', item.bidAmount, 'existIdx:', existIdx);
   
   if (existIdx !== -1) {
-    // 기존 데이터 업데이트
+    // 기존 데이터 업데이트 (PDF 복원 데이터 보존)
     const existing = consultingData[existIdx];
     existing.listId = item.id;
     existing.year = item.year;
@@ -11399,15 +11399,20 @@ async function syncConsultingToSettlement(item) {
     existing.project = item.project;
     existing.bidAmount = item.bidAmount;
     existing.execAmount = item.execAmount;
-    existing.manager = item.manager;
-    
-    // 계산
-    existing.totalExpense = existing.execAmount + (existing.companyExp || 0) + (existing.otherExp || 0);
-    existing.profit = existing.bidAmount - existing.totalExpense;
-    existing.profitRate = existing.bidAmount > 0 ? (existing.profit / existing.bidAmount * 100).toFixed(1) : '0.0';
-    existing.settlement = existing.profit > 0 ? Math.round(existing.profit * 0.15) : 0;
-    existing.companyProfit = existing.profit - existing.settlement;
-    
+    // manager는 PDF 복원 데이터가 있으면 보존, 없으면 listData에서 가져옴
+    if (!existing.manager && item.manager) {
+      existing.manager = item.manager;
+    }
+
+    // PDF 복원된 profit/settlement이 있으면 보존, 없으면 재계산
+    if (existing.profit === undefined || existing.profit === null) {
+      existing.totalExpense = existing.execAmount + (existing.companyExp || 0) + (existing.otherExp || 0);
+      existing.profit = existing.bidAmount - existing.totalExpense;
+      existing.profitRate = existing.bidAmount > 0 ? (existing.profit / existing.bidAmount * 100).toFixed(1) : '0.0';
+      existing.settlement = existing.profit > 0 ? Math.round(existing.profit * 0.15) : 0;
+      existing.companyProfit = existing.profit - existing.settlement;
+    }
+
     consultingData[existIdx] = existing;
   } else {
     // 신규 추가
