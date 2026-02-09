@@ -8298,16 +8298,26 @@ function generateSettlementFromCurrentData() {
         
         totalExpense += material + labor + otherExpense;
 
-        // 매출액 (정산서 기준) - settlementSalesAmount 우선, 없으면 정산서 공사내역에서 합산
+        // 매출액 (정산서 기준) - 여러 소스에서 확인
         let salesAmount = 0;
+        // 1순위: settlementSalesAmount (새 필드)
         if (detail.settlementSalesAmount) {
           salesAmount = parseNumber(detail.settlementSalesAmount);
-        } else if (detail.settlementWorks && detail.settlementWorks.length > 0) {
+        }
+        // 2순위: 정산서 공사내역의 sales 합산
+        if (!salesAmount && detail.settlementWorks && detail.settlementWorks.length > 0) {
           detail.settlementWorks.forEach(w => {
             salesAmount += parseNumber(w.sales);
           });
         }
-        // 매출액이 0이면 계약금액 사용
+        // 3순위: settlementSales (기존 필드 - 숫자인 경우만 사용, 담당자이름 제외)
+        if (!salesAmount && detail.settlementSales) {
+          const parsed = parseNumber(detail.settlementSales);
+          if (parsed > 10000) {  // 10000 이상이면 금액으로 판단 (담당자이름은 0 반환)
+            salesAmount = parsed;
+          }
+        }
+        // 4순위: 계약금액 사용
         if (!salesAmount) salesAmount = amount;
         profit = salesAmount - totalExpense;
       } else {
@@ -10529,11 +10539,18 @@ async function syncAllConsultingListToSettlement() {
     if (seen.has(key)) {
       const existingIdx = seen.get(key);
       const existing = cleanedData[existingIdx];
-      // 기존 것에 listId가 없고, 현재 것에 listId가 있으면 대체
-      if (!existing.listId && item.listId) {
+      // 중복 시 더 많은 데이터(회사경비 등)를 가진 쪽을 유지
+      const existingScore = (existing.companyExp || 0) + (existing.otherExp || 0) + (existing.listId ? 1 : 0);
+      const newScore = (item.companyExp || 0) + (item.otherExp || 0) + (item.listId ? 1 : 0);
+      if (newScore > existingScore) {
+        // 새 것이 더 완전한 데이터면 교체하되, 기존의 회사경비 등 보존
+        if (!item.companyExp && existing.companyExp) item.companyExp = existing.companyExp;
+        if (!item.otherExp && existing.otherExp) item.otherExp = existing.otherExp;
         cleanedData[existingIdx] = item;
+      } else {
+        // 기존 것 유지하되, listId 등 보완
+        if (!existing.listId && item.listId) existing.listId = item.listId;
       }
-      // 그 외에는 기존 것 유지 (중복 무시)
     } else {
       seen.set(key, cleanedData.length);
       cleanedData.push(item);
