@@ -8722,7 +8722,97 @@ async function loadConsultingData() {
       }
     }
 
-    // profit/settlement이 없는 항목만 재계산 (기존 저장된 값 보존)
+    // PDF 기준 데이터 복원 (2026.01.30 정산 현황 보고서 기준)
+    const pdfCorrectData = [
+      // 황윤선 컨설팅 8건
+      { site: '정릉중앙하이츠빌2단지', bidAmount: 73520000, profit: 18068000, settlement: 2710200, manager: '황윤선' },
+      { site: '소하동양', bidAmount: 65800000, profit: 13520000, settlement: 2028000, manager: '황윤선' },
+      { site: '창동동아그린', bidAmount: 5000000, profit: 0, settlement: 0, manager: '황윤선' },
+      { site: '서강쌍용예가', bidAmount: 43400000, profit: 7160000, settlement: 1074000, manager: '황윤선' },
+      { site: '홍성미성', bidAmount: 98500000, profit: 13381500, settlement: 2007225, manager: '황윤선' },
+      { site: '신성둔촌미소지움1차', bidAmount: 17900000, profit: 4094000, settlement: 614100, manager: '황윤선' },
+      { site: '초원마을 대원', bidAmount: 244900000, profit: 51610000, settlement: 7741500, manager: '황윤선' },
+      { site: '정릉중앙하이츠빌2단지', bidAmount: 35600000, profit: 6040000, settlement: 906000, manager: '황윤선' },
+      // 이필선 컨설팅 9건
+      { site: '파크뷰타워', bidAmount: 362400000, profit: 39970000, settlement: 5995500, manager: '이필선' },
+      { site: '마곡청구', bidAmount: 90600000, profit: 18440000, settlement: 2766000, manager: '이필선' },
+      { site: '옥천장야주공1단지', bidAmount: 44400000, profit: 20430000, settlement: 3064500, manager: '이필선' },
+      { site: '남대전e편한세상', bidAmount: 415000000, profit: 55200000, settlement: 8280000, manager: '이필선' },
+      { site: '블로동부', bidAmount: 39700000, profit: 1730000, settlement: 259500, manager: '이필선' },
+      { site: '상록수현대2차', bidAmount: 44800000, profit: 4520000, settlement: 678000, manager: '이필선' },
+      { site: '신우', bidAmount: 29400000, profit: 0, settlement: 0, manager: '이필선' },
+      { site: '어울림하트', bidAmount: 397751211, profit: 12976090, settlement: 1946414, manager: '이필선' },
+      { site: '한강파크뷰 우방아이유쉘', bidAmount: 413900000, profit: 44160570, settlement: 6624086, manager: '이필선' },
+      // 한인규 컨설팅 6건
+      { site: '속초부영3단지', bidAmount: 7000000, profit: 1300000, settlement: 195000, manager: '한인규' },
+      { site: '연희성원', bidAmount: 4600000, profit: 640000, settlement: 96000, manager: '한인규' },
+      { site: '정읍우미타운', bidAmount: 191200000, profit: 57280000, settlement: 8592000, manager: '한인규' },
+      { site: '연희동성원', bidAmount: 46600000, profit: 11840000, settlement: 1776000, manager: '한인규' },
+      { site: '염창대림', bidAmount: 700000, profit: 130000, settlement: 19500, manager: '한인규' },
+      { site: '속초부영3단지', bidAmount: 9900000, profit: 2710000, settlement: 406500, manager: '한인규' },
+      // 정정훈 컨설팅 1건
+      { site: '가양우방', bidAmount: 4500000, profit: 545000, settlement: 81750, manager: '정정훈' },
+      // 김성민 컨설팅 1건
+      { site: '금호동롯데', bidAmount: 2000000, profit: 1195000, settlement: 179250, manager: '김성민' }
+    ];
+
+    // PDF 데이터로 매칭하여 profit, settlement 복원
+    let restoredCount = 0;
+    const usedPdfIndices = new Set(); // 이미 매칭된 PDF 항목 추적
+    consultingData.forEach(item => {
+      const siteName = (item.site || '').trim();
+      const bid = item.bidAmount || 0;
+
+      // 사이트명과 낙찰금액으로 매칭 (이미 사용된 PDF 항목 제외)
+      let matchIdx = -1;
+      const match = pdfCorrectData.find((pdf, idx) => {
+        if (usedPdfIndices.has(idx)) return false;
+        const pdfSite = pdf.site.trim();
+        const siteNorm = siteName.replace(/\s/g, '');
+        const pdfNorm = pdfSite.replace(/\s/g, '');
+        // 정확한 매칭 또는 포함 매칭
+        const siteMatch = siteName === pdfSite ||
+                          siteNorm === pdfNorm ||
+                          siteName.includes(pdfSite) ||
+                          pdfSite.includes(siteName) ||
+                          siteNorm.includes(pdfNorm) ||
+                          pdfNorm.includes(siteNorm);
+        // 낙찰금액 매칭 (완전 일치 또는 1% 이내 차이)
+        const bidMatch = bid === pdf.bidAmount ||
+                         (bid > 0 && pdf.bidAmount > 0 && Math.abs(bid - pdf.bidAmount) / pdf.bidAmount < 0.01);
+        if (siteMatch && bidMatch) { matchIdx = idx; return true; }
+        return false;
+      });
+
+      if (match && matchIdx >= 0) {
+        usedPdfIndices.add(matchIdx);
+        item.profit = match.profit;
+        item.settlement = match.settlement;
+        item.profitRate = item.bidAmount > 0 ? (match.profit / item.bidAmount * 100).toFixed(1) : '0.0';
+        item.companyProfit = match.profit - match.settlement;
+        // companyExp 역산: profit = bidAmount - execAmount - companyExp - otherExp
+        // companyExp = bidAmount - execAmount - otherExp - profit
+        if (match.profit > 0) {
+          const calcCompanyExp = (item.bidAmount || 0) - (item.execAmount || 0) - (item.otherExp || 0) - match.profit;
+          if (calcCompanyExp > 0) {
+            item.companyExp = calcCompanyExp;
+          }
+        }
+        item.totalExpense = (item.execAmount || 0) + (item.companyExp || 0) + (item.otherExp || 0);
+        if (match.manager && !item.manager) {
+          item.manager = match.manager;
+        }
+        restoredCount++;
+      }
+    });
+
+    if (restoredCount > 0) {
+      console.log(`PDF 기준 데이터 복원 완료: ${restoredCount}건`);
+      localStorage.setItem('consultingData', JSON.stringify(consultingData));
+      fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
+    }
+
+    // profit/settlement이 없는 항목만 재계산 (PDF 매칭 안된 항목)
     consultingData.forEach(item => {
       if (item.profit === undefined || item.profit === null) {
         const totalExpense = (item.execAmount || 0) + (item.companyExp || 0) + (item.otherExp || 0);
