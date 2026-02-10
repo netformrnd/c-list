@@ -4759,21 +4759,50 @@ function loadFieldSettlementData(manager) {
   const data = allData[currentYear] || [];
   const item = data[idx];
   if (!item || !manager) return false;
-  
+
   const key = `${currentYear}_${item.no}`;
-  
+
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
+
+    // 저장된 데이터의 금액이 비정상인지 체크 (parseFloat 버그로 만원단위 잘림 감지)
+    let corrupted = false;
+    if (saved.labors && saved.labors.length > 0) {
+      // 투입내역의 실제 노무비와 비교
+      let actualLaborTotal = 0;
+      document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+        const typeSelect = tr.querySelector('td:nth-child(1) select');
+        const inputs = tr.querySelectorAll('input');
+        const type = typeSelect?.value || '자재비';
+        if (type === '노무비') actualLaborTotal += parseAmt(inputs[1]?.value);
+      });
+      const savedLaborTotal = saved.labors.reduce((s, l) => s + (l.amount || 0), 0);
+      if (actualLaborTotal > 10000 && savedLaborTotal > 0 && savedLaborTotal < actualLaborTotal / 100) {
+        corrupted = true;
+        console.log('[현장소장] 저장된 데이터 금액 이상 감지 - 재초기화:', savedLaborTotal, 'vs', actualLaborTotal);
+      }
+    }
+
+    if (corrupted) {
+      // 금액 손상 → 재초기화 (비고/사진은 유지)
+      initFieldSettlementData();
+      fieldSettlementData.memo = saved.memo || '';
+      fieldSettlementData.photos = saved.photos || [];
+      document.getElementById('fieldMemo').value = fieldSettlementData.memo;
+      renderFieldPhotoPreview();
+      return true;
+    }
+
     fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works || []));
     fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials || []));
     fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors || []));
     fieldSettlementData.memo = saved.memo || '';
     fieldSettlementData.photos = saved.photos || [];
-    
+
     // UI에 반영
     document.getElementById('fieldMemo').value = fieldSettlementData.memo;
     renderFieldPhotoPreview();
-    
+
     return true;
   }
   return false;
@@ -4841,32 +4870,32 @@ function openFieldSettlementModal() {
   fieldSettlementData.works = [];
   const projectName = document.getElementById('detail_project_input').value || item.name || '';
   
-  // 노무비에서 매출액 계산
+  // 노무비에서 매출액 계산 (parseAmt로 쉼표 포함 금액 파싱)
   let laborTotal = 0;
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     if (type === '노무비') laborTotal += amount;
   });
-  
+
   fieldSettlementData.works.push({
     content: projectName,
     sales: laborTotal,
     purchase: 0
   });
-  
-  // 노무비 내역 가져오기
+
+  // 노무비 내역 가져오기 (parseAmt로 쉼표 포함 금액 파싱)
   fieldSettlementData.labors = [];
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if (type === '노무비' && (amount > 0 || content)) {
       fieldSettlementData.labors.push({
         content: content,
@@ -5517,14 +5546,32 @@ function openSalesSettlementModal() {
   
   // 저장된 데이터 불러오기
   const key = `${currentYear}_${item.no}`;
-  if (salesSettlementByManager[key]) {
-    salesSettlementData = JSON.parse(JSON.stringify(salesSettlementByManager[key]));
+  const savedSales = salesSettlementByManager[key];
+  // 저장된 데이터의 금액이 비정상인지 체크 (parseFloat 버그로 만원단위 잘림 감지)
+  // 계약금액과 비교하여 1000분의1 미만이면 잘못된 데이터로 판단
+  const contractAmtCheck = parseAmt(document.getElementById('detail_amount_input').value);
+  let savedDataCorrupted = false;
+  if (savedSales && savedSales.works && savedSales.works[0]) {
+    const savedWorkSales = savedSales.works[0].sales || 0;
+    if (contractAmtCheck > 10000 && savedWorkSales > 0 && savedWorkSales < contractAmtCheck / 100) {
+      savedDataCorrupted = true;
+      console.log('[영업담당자] 저장된 데이터 금액 이상 감지 - 재초기화:', savedWorkSales, 'vs', contractAmtCheck);
+    }
+  }
+  if (savedSales && !savedDataCorrupted) {
+    salesSettlementData = JSON.parse(JSON.stringify(savedSales));
     document.getElementById('salesMemo').value = salesSettlementData.memo || '';
     document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
   } else {
-    // 기본 데이터 초기화
+    // 기본 데이터 초기화 (저장된 데이터 없거나 금액 손상)
     initSalesSettlementData();
-    document.getElementById('sales_exclude').checked = false;
+    if (savedSales) {
+      // 비고, 제외 등 기존 설정은 유지
+      salesSettlementData.memo = savedSales.memo || '';
+      salesSettlementData.excluded = savedSales.excluded || false;
+      document.getElementById('salesMemo').value = salesSettlementData.memo;
+    }
+    document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
   }
   
   // 테이블 렌더링
