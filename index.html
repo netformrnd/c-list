@@ -887,13 +887,13 @@ tr.selected { background: var(--primary-light); }
 </div>
 
 <!-- 정산 관리 모달 -->
-<div class="modal" id="settlementModal">
-  <div class="modal-content" style="max-width:1400px;max-height:90vh;overflow-y:auto;">
-    <div class="modal-header" style="background:var(--gray-100);color:var(--gray-700);">
+<div class="modal" id="settlementModal" style="padding:0;">
+  <div class="modal-content" style="max-width:100%;width:100%;height:100vh;max-height:100vh;border-radius:0;display:flex;flex-direction:column;">
+    <div class="modal-header" style="background:var(--gray-100);color:var(--gray-700);flex-shrink:0;">
       <div class="modal-title">💰 정산 관리</div>
       <button class="modal-close" onclick="closeSettlementModal()">×</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
       <!-- 정산관리 탭 -->
       <div class="settlement-main-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid #ddd;">
         <button class="settlement-main-tab active" onclick="switchSettlementMainTab('construction')" id="tabConstruction" style="padding:0.75rem 1.5rem;border:none;background:#1976d2;color:white;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;margin-right:4px;">
