@@ -1108,13 +1108,14 @@ tr.selected { background: var(--primary-light); }
       </div><!-- consultingSection 끝 -->
       
     </div>
-    <div class="modal-footer">
+    <div class="modal-footer" style="flex-wrap:wrap;gap:0.5rem;">
       <button class="btn btn-outline" onclick="closeSettlementModal()">닫기</button>
       <button class="btn" onclick="openEmailManageModal()" style="background:#607d8b;color:white;">⚙️ 이메일 관리</button>
       <button class="btn btn-warning" onclick="openConfirmationModal()" style="background:#ff9800;color:white;">📄 담당자 확인서</button>
       <button class="btn btn-primary" onclick="openReportModal('본사')">📋 본사 보고서</button>
       <button class="btn" onclick="openReportModal('외주')" style="background:#9c27b0;color:white;">📋 외주 보고서</button>
       <button class="btn btn-success" onclick="downloadSettlementExcel()">📥 엑셀 다운로드</button>
+      <button class="btn" onclick="batchSettlement()" style="background:#c62828;color:white;margin-left:auto;font-weight:700;">🔒 일괄정산 실행</button>
     </div>
   </div>
 </div>
@@ -9177,6 +9178,158 @@ function updateSettlementStatus(year, no, status) {
   event.target.style.color = txtColor;
   
   showToast(`${year}년 NO.${no} → ${status}`, 'success');
+}
+
+// ========== 일괄정산 실행 ==========
+async function batchSettlement() {
+  // 현재 필터된 데이터 확인
+  const yearFilter = document.getElementById('settlementYearFilter').value;
+  const managerFilter = document.getElementById('settlementManagerFilter').value;
+  const settledFilter = document.getElementById('settlementSettledFilter').value;
+
+  // 정산 대상: 현재 화면에 보이는 미정산 항목 중 총괄표 데이터 있는 것만
+  let targetData = settlementData.length > 0 ? [...settlementData] : generateSettlementFromCurrentData();
+
+  // 필터 적용 (현재 화면과 동일)
+  if (yearFilter) {
+    if (yearFilter === '2024+2025') {
+      targetData = targetData.filter(item => {
+        const is24 = String(item.year).includes('24');
+        const is25 = String(item.year).includes('25');
+        if (is24) return item.settled !== '정산완료';
+        return is25;
+      });
+    } else if (yearFilter === '2026-1H' || yearFilter === '2026-2H') {
+      targetData = targetData.filter(item => String(item.year).includes('26'));
+    } else {
+      targetData = targetData.filter(item => String(item.year).includes(yearFilter.substring(2)));
+    }
+  }
+  if (managerFilter) {
+    targetData = targetData.filter(item => item.manager === managerFilter);
+  }
+
+  // 미정산 항목만 대상 (이미 정산완료는 제외)
+  const unsettledItems = targetData.filter(item =>
+    item.settled !== '정산완료' &&
+    !item.isExcluded &&
+    !item.excludedByUser &&
+    item.hasDetailData &&
+    item.profit !== 0
+  );
+
+  if (unsettledItems.length === 0) {
+    showToast('정산 대상 항목이 없습니다.', 'error');
+    return;
+  }
+
+  // 합계 계산
+  let totalSettlementAmt = 0;
+  unsettledItems.forEach(item => {
+    totalSettlementAmt += Math.round(item.realSettlement || 0);
+  });
+
+  // 확인 대화상자
+  const confirmMsg = `📋 일괄정산 실행\n\n` +
+    `대상: ${unsettledItems.length}건 (미정산 + 총괄표 있는 현장)\n` +
+    `정산금액(15%) 합계: ${totalSettlementAmt.toLocaleString()}원\n\n` +
+    `다음 작업을 수행합니다:\n` +
+    `1. 각 현장 총괄표에 "영업정산" 항목으로 정산금액 입력\n` +
+    `2. 미정산 → 정산완료로 상태 변경\n\n` +
+    `진행하시겠습니까?`;
+
+  if (!confirm(confirmMsg)) return;
+
+  // detailData 로드 확인
+  if (!detailData || Object.keys(detailData).length === 0) {
+    await loadDetailData();
+  }
+
+  let successCount = 0;
+  let failCount = 0;
+  const results = [];
+
+  for (const item of unsettledItems) {
+    try {
+      const fullYear = '20' + item.year;
+      const key = `${fullYear}_${item.no}`;
+      const detail = detailData[key];
+
+      if (!detail) {
+        failCount++;
+        results.push(`❌ ${item.year}년 NO.${item.no} ${item.site} - 총괄표 없음`);
+        continue;
+      }
+
+      const settlementAmt = Math.round(item.realSettlement || 0);
+
+      // 1. 총괄표 투입내역(expenses)에 "영업정산" 항목 추가
+      if (!detail.expenses) detail.expenses = [];
+
+      // 기존 영업정산 항목이 있으면 제거 (중복 방지)
+      detail.expenses = detail.expenses.filter(exp =>
+        !(exp.type === '기타경비' && exp.content && exp.content.includes('영업정산'))
+      );
+
+      // 새 영업정산 항목 추가
+      const today = new Date().toISOString().split('T')[0];
+      detail.expenses.push({
+        type: '기타경비',
+        date: today,
+        amount: String(settlementAmt),
+        content: '영업정산(15%)',
+        payDate: ''
+      });
+
+      // detailData 저장
+      detailData[key] = detail;
+
+      // 2. 정산 상태를 '정산완료'로 변경
+      const statusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+      const statusKey = `${item.year}_${item.no}`;
+      statusData[statusKey] = '정산완료';
+      localStorage.setItem('settlementStatusData', JSON.stringify(statusData));
+
+      // settlementData 메모리에도 반영
+      const memItem = settlementData.find(d => String(d.year) === String(item.year) && String(d.no) === String(item.no));
+      if (memItem) {
+        memItem.settled = '정산완료';
+      }
+
+      successCount++;
+      results.push(`✅ ${item.year}년 NO.${item.no} ${(item.site || '').substring(0, 12)} → ${settlementAmt.toLocaleString()}원`);
+    } catch (e) {
+      failCount++;
+      results.push(`❌ ${item.year}년 NO.${item.no} ${item.site} - 오류: ${e.message}`);
+    }
+  }
+
+  // Firebase에 일괄 저장
+  try {
+    await saveDetailDataToStorage();
+    console.log('총괄표 일괄 저장 완료');
+  } catch(e) {
+    console.error('총괄표 저장 실패:', e);
+  }
+
+  // 정산 상태 Firebase 저장
+  const finalStatusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+  fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatusData);
+
+  // 결과 표시
+  const resultMsg = `🔒 일괄정산 완료\n\n` +
+    `성공: ${successCount}건 / 실패: ${failCount}건\n` +
+    `정산금액 합계: ${totalSettlementAmt.toLocaleString()}원\n\n` +
+    `상세:\n${results.join('\n')}`;
+
+  alert(resultMsg);
+
+  // 화면 갱신
+  settlementData = generateSettlementFromCurrentData();
+  await loadSettlementStatusFromStorage();
+  renderSettlementTable(settlementData);
+
+  showToast(`일괄정산 완료: ${successCount}건 처리`, 'success');
 }
 
 // 정산 상태 저장 (일괄 저장용)
