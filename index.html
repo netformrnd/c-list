@@ -4624,7 +4624,7 @@ function printSettlementForField() {
   const siteName = document.getElementById('detail_site_input').value || item.site || '';
   const projectName = document.getElementById('detail_project_input').value || item.name || '';
   const periodInput = document.getElementById('detail_period_input').value || '';
-  const contractAmt = parseFloat(document.getElementById('detail_amount_input').value) || item.amount || 0;
+  const contractAmt = parseAmt(document.getElementById('detail_amount_input').value) || item.amount || 0;
   const salesPerson = document.getElementById('settlement_sales').value;
   const fieldPerson = document.getElementById('settlement_field').value;
   const siteManager = document.getElementById('detail_site_manager').value;
@@ -5311,7 +5311,7 @@ function renderFieldWorkTable() {
 
 // 매출액 변경 시 합계 업데이트
 function updateFieldWorkSales(idx, value) {
-  fieldSettlementData.works[idx].sales = parseFloat(value) || 0;
+  fieldSettlementData.works[idx].sales = parseAmt(value);
   updateFieldTotals();
 }
 
@@ -5345,7 +5345,7 @@ function removeFieldMaterial(idx) {
 
 function updateFieldMaterial(idx, field, value) {
   if (field === 'amount') {
-    fieldSettlementData.materials[idx][field] = parseFloat(value) || 0;
+    fieldSettlementData.materials[idx][field] = parseAmt(value);
   } else {
     fieldSettlementData.materials[idx][field] = value;
   }
@@ -5382,7 +5382,7 @@ function removeFieldLabor(idx) {
 
 function updateFieldLabor(idx, field, value) {
   if (field === 'amount') {
-    fieldSettlementData.labors[idx][field] = parseFloat(value) || 0;
+    fieldSettlementData.labors[idx][field] = parseAmt(value);
   } else {
     fieldSettlementData.labors[idx][field] = value;
   }
@@ -5786,7 +5786,7 @@ function renderSalesWorkTable() {
 }
 
 function updateSalesWorkSales(idx, value) {
-  salesSettlementData.works[idx].sales = parseFloat(value) || 0;
+  salesSettlementData.works[idx].sales = parseAmt(value);
   updateSalesTotals();
 }
 
@@ -5827,7 +5827,7 @@ function removeSalesExpense(idx) {
 }
 
 function updateSalesExpense(idx, value) {
-  salesSettlementData.expenses[idx].amount = parseFloat(value) || 0;
+  salesSettlementData.expenses[idx].amount = parseAmt(value);
   updateSalesTotals();
 }
 
@@ -7302,32 +7302,32 @@ function downloadSummaryExcel() {
   const siteName = document.getElementById('detail_site_input').value || item?.site || '';
   const projectName = document.getElementById('detail_project_input').value || item?.name || '';
   const period = document.getElementById('detail_period_input').value || '';
-  const amount = parseFloat(document.getElementById('detail_amount_input').value) || item?.amount || 0;
+  const amount = parseAmt(document.getElementById('detail_amount_input').value) || item?.amount || 0;
   const siteManager = document.getElementById('detail_site_manager').value || '';
   const hqManager = document.getElementById('detail_hq_manager').value || '';
   const fieldManager = document.getElementById('detail_field_manager').value || '';
-  
+
   // 수금내역 수집
   const contractDate = document.getElementById('収contract_date').value;
-  const contractAmt = parseFloat(document.getElementById('収contract_amt').value) || 0;
+  const contractAmt = parseAmt(document.getElementById('収contract_amt').value);
   const contractNote = document.getElementById('収contract_note').value;
   const interimDate = document.getElementById('収interim_date').value;
-  const interimAmt = parseFloat(document.getElementById('収interim_amt').value) || 0;
+  const interimAmt = parseAmt(document.getElementById('収interim_amt').value);
   const interimNote = document.getElementById('収interim_note').value;
   const interim2Date = document.getElementById('収interim2_date').value;
-  const interim2Amt = parseFloat(document.getElementById('収interim2_amt').value) || 0;
+  const interim2Amt = parseAmt(document.getElementById('収interim2_amt').value);
   const interim2Note = document.getElementById('収interim2_note').value;
   const balanceDate = document.getElementById('収balance_date').value;
-  const balanceAmt = parseFloat(document.getElementById('収balance_amt').value) || 0;
+  const balanceAmt = parseAmt(document.getElementById('収balance_amt').value);
   const balanceNote = document.getElementById('収balance_note').value;
   const etcDate = document.getElementById('収etc_date').value;
-  const etcAmt = parseFloat(document.getElementById('収etc_amt').value) || 0;
+  const etcAmt = parseAmt(document.getElementById('収etc_amt').value);
   const etcNote = document.getElementById('収etc_note').value;
   const etc2Date = document.getElementById('収etc2_date').value;
-  const etc2Amt = parseFloat(document.getElementById('収etc2_amt').value) || 0;
+  const etc2Amt = parseAmt(document.getElementById('収etc2_amt').value);
   const etc2Note = document.getElementById('収etc2_note').value;
   const adjustDate = document.getElementById('収adjust_date').value;
-  const adjustAmt = parseFloat(document.getElementById('収adjust_amt').value) || 0;
+  const adjustAmt = parseAmt(document.getElementById('収adjust_amt').value);
   const adjustNote = document.getElementById('収adjust_note').value;
   
   // 투입내역 수집
@@ -7339,10 +7339,10 @@ function downloadSummaryExcel() {
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
     const date = inputs[0]?.value || '';
-    const amountVal = parseFloat(inputs[1]?.value) || 0;
+    const amountVal = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if (amountVal > 0 || content) {
       const itemData = { date, amount: amountVal, content, payDate };
       if (type === '자재비') { materials.push(itemData); materialTotal += amountVal; }
@@ -11517,12 +11517,12 @@ async function saveConsultingData() {
   const type = document.getElementById('consultingType').value;
   const site = document.getElementById('consultingSite').value.trim();
   const project = document.getElementById('consultingProject').value.trim();
-  const bidAmount = parseFloat(document.getElementById('consultingBidAmount').value) || 0;
-  const execAmount = parseFloat(document.getElementById('consultingExecAmount').value) || 0;
-  const companyExp = parseFloat(document.getElementById('consultingCompanyExp').value) || 0;
-  const otherExp = parseFloat(document.getElementById('consultingOtherExp').value) || 0;
+  const bidAmount = parseAmt(document.getElementById('consultingBidAmount').value);
+  const execAmount = parseAmt(document.getElementById('consultingExecAmount').value);
+  const companyExp = parseAmt(document.getElementById('consultingCompanyExp').value);
+  const otherExp = parseAmt(document.getElementById('consultingOtherExp').value);
   const manager = document.getElementById('consultingManager').value;
-  
+
   console.log('editId:', editId);
   console.log('site:', site, 'year:', year);
   
@@ -11835,10 +11835,10 @@ function closeConsultingAddModal() {
 
 // 계산 미리보기
 function calcConsultingPreview() {
-  const bidAmount = parseFloat(document.getElementById('consultingBidAmount').value) || 0;
-  const execAmount = parseFloat(document.getElementById('consultingExecAmount').value) || 0;
-  const companyExp = parseFloat(document.getElementById('consultingCompanyExp').value) || 0;
-  const otherExp = parseFloat(document.getElementById('consultingOtherExp').value) || 0;
+  const bidAmount = parseAmt(document.getElementById('consultingBidAmount').value);
+  const execAmount = parseAmt(document.getElementById('consultingExecAmount').value);
+  const companyExp = parseAmt(document.getElementById('consultingCompanyExp').value);
+  const otherExp = parseAmt(document.getElementById('consultingOtherExp').value);
   
   const totalExpense = execAmount + companyExp + otherExp;
   const profit = bidAmount - totalExpense;
@@ -12439,8 +12439,8 @@ function saveConsultingItem() {
     consulting: document.getElementById('consultingItemConsulting').value,
     site: site,
     project: document.getElementById('consultingItemProject').value.trim(),
-    bidAmount: parseFloat(document.getElementById('consultingItemBidAmount').value) || 0,
-    execAmount: parseFloat(document.getElementById('consultingItemExecAmount').value) || 0,
+    bidAmount: parseAmt(document.getElementById('consultingItemBidAmount').value),
+    execAmount: parseAmt(document.getElementById('consultingItemExecAmount').value),
     manager: manager,
     company: document.getElementById('consultingItemCompany').value.trim(),
     companyManager: document.getElementById('consultingItemCompanyManager').value.trim(),
