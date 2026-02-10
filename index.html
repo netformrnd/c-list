@@ -4172,42 +4172,42 @@ function printSettlement() {
   const siteManager = document.getElementById('detail_site_manager').value;
   const hqManager = document.getElementById('detail_hq_manager').value;
   
-  // 수금내역 수집 (비고 포함)
+  // 수금내역 수집 (비고 포함) - parseAmt로 쉼표 포함 금액 파싱
   const contractDate = document.getElementById('収contract_date').value;
-  const contractPayAmt = document.getElementById('収contract_amt').value;
+  const contractPayAmt = parseAmt(document.getElementById('収contract_amt').value);
   const contractNote = document.getElementById('収contract_note').value || '';
   const interimDate = document.getElementById('収interim_date').value;
-  const interimPayAmt = document.getElementById('収interim_amt').value;
+  const interimPayAmt = parseAmt(document.getElementById('収interim_amt').value);
   const interimNote = document.getElementById('収interim_note').value || '';
   const interim2Date = document.getElementById('収interim2_date').value;
-  const interim2PayAmt = document.getElementById('収interim2_amt').value;
+  const interim2PayAmt = parseAmt(document.getElementById('収interim2_amt').value);
   const interim2Note = document.getElementById('収interim2_note').value || '';
   const balanceDate = document.getElementById('収balance_date').value;
-  const balancePayAmt = document.getElementById('収balance_amt').value;
+  const balancePayAmt = parseAmt(document.getElementById('収balance_amt').value);
   const balanceNote = document.getElementById('収balance_note').value || '';
   const etcDate = document.getElementById('収etc_date').value;
-  const etcPayAmt = document.getElementById('収etc_amt').value;
+  const etcPayAmt = parseAmt(document.getElementById('収etc_amt').value);
   const etcNote = document.getElementById('収etc_note').value || '';
   const etc2Date = document.getElementById('収etc2_date').value;
-  const etc2PayAmt = document.getElementById('収etc2_amt').value;
+  const etc2PayAmt = parseAmt(document.getElementById('収etc2_amt').value);
   const etc2Note = document.getElementById('収etc2_note').value || '';
   const adjustDate = document.getElementById('収adjust_date').value;
-  const adjustPayAmt = document.getElementById('収adjust_amt').value;
+  const adjustPayAmt = parseAmt(document.getElementById('収adjust_amt').value);
   const adjustNote = document.getElementById('収adjust_note').value || '';
-  
-  // 투입내역 세부 수집 (총괄표에서)
+
+  // 투입내역 세부 수집 (총괄표에서) - parseAmt로 쉼표 포함 금액 파싱
   let materialItems = [], laborItems = [], otherItems = [];
   let materialTotal = 0, laborTotal = 0, otherTotal = 0;
-  
+
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
     const date = inputs[0]?.value || '';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if (amount > 0 || content) {
       const itemData = { date, amount, content, payDate };
       if (type === '자재비') { materialItems.push(itemData); materialTotal += amount; }
@@ -4215,9 +4215,9 @@ function printSettlement() {
       else if (type === '기타경비') { otherItems.push(itemData); otherTotal += amount; }
     }
   });
-  
+
   const expenseTotal = materialTotal + laborTotal + otherTotal;
-  const balance = parseFloat(contractAmt) - expenseTotal;
+  const balance = parseAmt(contractAmt) - expenseTotal;
   
   // 자재비 세부 행 생성
   let materialRows = '';
@@ -4362,13 +4362,13 @@ function printSettlement() {
             <td class="text-right">${fmt(contractPayAmt)}</td>
             <td>${contractNote}</td>
           </tr>
-          ${(parseFloat(interimPayAmt) || interimDate) ? `<tr>
+          ${(interimPayAmt || interimDate) ? `<tr>
             <td class="text-center">중도금</td>
             <td class="text-center">${interimDate ? formatDate(interimDate) : '-'}</td>
             <td class="text-right">${fmt(interimPayAmt)}</td>
             <td>${interimNote}</td>
           </tr>` : ''}
-          ${(parseFloat(interim2PayAmt) || interim2Date) ? `<tr>
+          ${(interim2PayAmt || interim2Date) ? `<tr>
             <td class="text-center">중도금2차</td>
             <td class="text-center">${interim2Date ? formatDate(interim2Date) : '-'}</td>
             <td class="text-right">${fmt(interim2PayAmt)}</td>
@@ -4380,19 +4380,19 @@ function printSettlement() {
             <td class="text-right">${fmt(balancePayAmt)}</td>
             <td>${balanceNote}</td>
           </tr>
-          ${(parseFloat(etcPayAmt) || etcDate) ? `<tr>
+          ${(etcPayAmt || etcDate) ? `<tr>
             <td class="text-center">기타입금</td>
             <td class="text-center">${etcDate ? formatDate(etcDate) : '-'}</td>
             <td class="text-right">${fmt(etcPayAmt)}</td>
             <td>${etcNote}</td>
           </tr>` : ''}
-          ${(parseFloat(etc2PayAmt) || etc2Date) ? `<tr>
+          ${(etc2PayAmt || etc2Date) ? `<tr>
             <td class="text-center">기타입금2</td>
             <td class="text-center">${etc2Date ? formatDate(etc2Date) : '-'}</td>
             <td class="text-right">${fmt(etc2PayAmt)}</td>
             <td>${etc2Note}</td>
           </tr>` : ''}
-          ${(parseFloat(adjustPayAmt) || adjustDate) ? `<tr>
+          ${(adjustPayAmt || adjustDate) ? `<tr>
             <td class="text-center">금액조정</td>
             <td class="text-center">${adjustDate ? formatDate(adjustDate) : '-'}</td>
             <td class="text-right">${fmt(adjustPayAmt)}</td>
@@ -4400,7 +4400,7 @@ function printSettlement() {
           </tr>` : ''}
           <tr class="total-row">
             <td colspan="2" class="text-center"><strong>합계</strong></td>
-            <td class="text-right"><strong>${fmt((parseFloat(contractPayAmt)||0) + (parseFloat(interimPayAmt)||0) + (parseFloat(interim2PayAmt)||0) + (parseFloat(balancePayAmt)||0) + (parseFloat(etcPayAmt)||0) + (parseFloat(etc2PayAmt)||0) + (parseFloat(adjustPayAmt)||0))}</strong></td>
+            <td class="text-right"><strong>${fmt(contractPayAmt + interimPayAmt + interim2PayAmt + balancePayAmt + etcPayAmt + etc2PayAmt + adjustPayAmt)}</strong></td>
             <td></td>
           </tr>
         </tbody>
@@ -4483,22 +4483,22 @@ function printSettlementForField() {
   const hqManager = document.getElementById('detail_hq_manager').value;
   
   // 금액조정 확인
-  const adjustAmt = parseFloat(document.getElementById('収adjust_amt').value) || 0;
+  const adjustAmt = parseAmt(document.getElementById('収adjust_amt').value);
   const adjustedContractAmt = contractAmt + adjustAmt;
-  
-  // 투입내역 세부 수집 (노무비 중심)
+
+  // 투입내역 세부 수집 (노무비 중심) - parseAmt로 쉼표 포함 금액 파싱
   let laborItems = [];
   let laborTotal = 0;
-  
+
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
     const date = inputs[0]?.value || '';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if ((amount > 0 || content) && type === '노무비') {
       laborItems.push({ date, amount, content, payDate });
       laborTotal += amount;
