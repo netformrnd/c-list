@@ -4960,36 +4960,36 @@ function initFieldSettlementData() {
   const idx = document.getElementById('detailIndex').value;
   const data = allData[currentYear] || [];
   const item = data[idx];
-  
+
   const projectName = document.getElementById('detail_project_input').value || item?.name || '';
-  
-  // 자재비, 노무비 합계 계산
+
+  // 자재비, 노무비 합계 계산 (parseAmt로 쉼표 포함 금액 파싱)
   let materialTotal = 0;
   let laborTotal = 0;
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     if (type === '자재비') materialTotal += amount;
     if (type === '노무비') laborTotal += amount;
   });
-  
+
   fieldSettlementData.works = [{
     content: projectName,
     sales: materialTotal + laborTotal,  // 매출액 = 자재비 + 노무비 합계로 초기값
     purchase: 0
   }];
-  
+
   // 자재비 내역 가져오기
   fieldSettlementData.materials = [];
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
-    
+
     if (type === '자재비' && (amount > 0 || content)) {
       fieldSettlementData.materials.push({
         content: content,
@@ -4998,17 +4998,17 @@ function initFieldSettlementData() {
       });
     }
   });
-  
+
   // 노무비 내역 가져오기
   fieldSettlementData.labors = [];
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if (type === '노무비' && (amount > 0 || content)) {
       fieldSettlementData.labors.push({
         content: content,
@@ -5541,25 +5541,25 @@ function closeSalesSettlementModal() {
 
 function initSalesSettlementData() {
   const projectName = document.getElementById('detail_project_input').value || '';
-  
-  // 매출액 = 계약금액
-  const contractAmt = parseFloat(document.getElementById('detail_amount_input').value) || 0;
-  
+
+  // 매출액 = 계약금액 (parseAmt로 쉼표 포함 금액 파싱)
+  const contractAmt = parseAmt(document.getElementById('detail_amount_input').value);
+
   salesSettlementData.works = [{
     content: projectName,
     sales: contractAmt
   }];
-  
-  // 매입내역 = 투입내역에서 가져오기
+
+  // 매입내역 = 투입내역에서 가져오기 (parseAmt로 쉼표 포함 금액 파싱)
   salesSettlementData.expenses = [];
   document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
     const typeSelect = tr.querySelector('td:nth-child(1) select');
     const inputs = tr.querySelectorAll('input');
     const type = typeSelect?.value || '자재비';
-    const amount = parseFloat(inputs[1]?.value) || 0;
+    const amount = parseAmt(inputs[1]?.value);
     const content = inputs[2]?.value || '';
     const payDate = inputs[3]?.value || '';
-    
+
     if (amount > 0 || content) {
       salesSettlementData.expenses.push({
         type: type,
