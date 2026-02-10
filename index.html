@@ -2448,6 +2448,8 @@ let filteredData = null;
 const HQ_MANAGERS = ['황윤선', '김성민', '이필선', '한준엽', '정정훈', '조재연', '한인규'];
 // 정산 제외 담당자 (본사 정산 대상 아님)
 const EXCLUDE_MANAGERS = ['기타', '박연진', '이승우'];
+// 일괄정산 제외 담당자 (미정산 유지 - 별도 관리)
+const BATCH_EXCLUDE_MANAGERS = ['이승우', '황윤선'];
 // 외주 담당자 (또는 기타(외) 등)
 const EXT_MANAGERS = ['기타(외)'];
 
@@ -9209,11 +9211,12 @@ async function batchSettlement() {
     targetData = targetData.filter(item => item.manager === managerFilter);
   }
 
-  // 미정산 항목만 대상 (이미 정산완료는 제외)
+  // 미정산 항목만 대상 (이미 정산완료, 일괄정산 제외 담당자 제외)
   const unsettledItems = targetData.filter(item =>
     item.settled !== '정산완료' &&
     !item.isExcluded &&
     !item.excludedByUser &&
+    !BATCH_EXCLUDE_MANAGERS.includes(item.manager) &&
     item.hasDetailData &&
     item.profit !== 0
   );
