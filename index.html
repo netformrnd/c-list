@@ -7488,7 +7488,22 @@ function downloadSummaryExcel() {
   ['A12', 'A13', 'B13', 'C13', 'E12', 'E13', 'F13', 'G13', 'H13'].forEach(cell => {
     if (ws1[cell]) ws1[cell].s = headerStyle;
   });
-  
+
+  // 수금내역/투입내역 데이터 행 스타일 적용 (금액 셀에 콤마 포맷)
+  for (let r = 14; r <= rowIdx; r++) {
+    ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].forEach(col => {
+      const cellAddr = col + r;
+      if (ws1[cellAddr]) {
+        // 금액 컬럼: B(수금금액), G(투입금액)
+        if (col === 'B' || col === 'G') {
+          ws1[cellAddr].s = numStyle;
+        } else {
+          ws1[cellAddr].s = cellStyle;
+        }
+      }
+    });
+  }
+
   // 컬럼 너비 설정
   ws1['!cols'] = [
     { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 3 },
