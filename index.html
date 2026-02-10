@@ -2980,7 +2980,13 @@ const RED_CELL_INFO = {"2020-2021": {}, "2022": {}, "2023": {}, "2024": {"20": {
 const CANCELLED_INFO = {
   "2022": ["85", "86"],
   "2023": ["5", "12"],
-  "2024": ["58"]
+  "2024": ["58"],
+  "2025": ["44", "93", "95"]  // 한준엽: 성수신성아파트(44), 창전현대홈타운아파트(93), 나주1차대방노블랜드(95) 정산 제외
+};
+
+// 공사금액 보정 (엑셀 데이터와 실제 정산 금액 차이 보정)
+const AMOUNT_CORRECTION = {
+  "2025_42": 47860000  // 한준엽 행신벽산아파트: 52,100,000 → 47,860,000
 };
 
 // 엑셀에 입금일이 없지만 실제 입금완료된 건 (수동 처리)
@@ -3179,17 +3185,9 @@ function fmtInput(v) { const n = parseAmt(v); if (!n && n !== 0) return ''; if (
 function onAmtInput(el) { const raw = el.value.replace(/,/g, ''); const pos = el.selectionStart; const beforeLen = el.value.length; if (raw === '' || raw === '-') return; const n = parseFloat(raw); if (isNaN(n)) return; el.value = fmtInput(n); const afterLen = el.value.length; el.selectionStart = el.selectionEnd = pos + (afterLen - beforeLen); }
 function onAmtBlur(el) { el.value = fmtInput(el.value); }
 function fmtShort(v) { if (!v) return '0원'; const b = v/100000000; if (b >= 1) return b.toFixed(1)+'억'; const m = v/10000; if (m >= 1) return Math.round(m).toLocaleString()+'만원'; return v.toLocaleString()+'원'; }
-function fmtAmount(v) { 
-  if (!v || v === 0) return '0원'; 
-  const b = v/100000000; 
-  if (b >= 1) {
-    const remainder = (v % 100000000) / 10000;
-    if (remainder >= 1) return b.toFixed(0) + '억 ' + Math.round(remainder).toLocaleString() + '만원';
-    return b.toFixed(1) + '억원';
-  }
-  const m = v/10000; 
-  if (m >= 1) return Math.round(m).toLocaleString() + '만원'; 
-  return v.toLocaleString() + '원'; 
+function fmtAmount(v) {
+  if (!v || v === 0) return '0원';
+  return Math.round(v).toLocaleString('ko-KR') + '원';
 }
 function showToast(msg, type) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast ' + type + ' show'; setTimeout(() => t.classList.remove('show'), 3000); }
 
@@ -5754,7 +5752,24 @@ function printSalesSettlement() {
   const salesManager = document.getElementById('sales_manager').value;
   const fieldManager = document.getElementById('sales_field_manager').value;
   const memo = document.getElementById('salesMemo').value || '';
-  
+
+  // 수금내역 수집 (총괄표 필드에서)
+  const contractDate = document.getElementById('収contract_date')?.value || '';
+  const contractPayAmt = parseAmt(document.getElementById('収contract_amt')?.value) || 0;
+  const interimDate = document.getElementById('収interim_date')?.value || '';
+  const interimPayAmt = parseAmt(document.getElementById('収interim_amt')?.value) || 0;
+  const interim2Date = document.getElementById('収interim2_date')?.value || '';
+  const interim2PayAmt = parseAmt(document.getElementById('収interim2_amt')?.value) || 0;
+  const balanceDate = document.getElementById('収balance_date')?.value || '';
+  const balancePayAmt = parseAmt(document.getElementById('収balance_amt')?.value) || 0;
+  const etcDate = document.getElementById('収etc_date')?.value || '';
+  const etcPayAmt = parseAmt(document.getElementById('収etc_amt')?.value) || 0;
+  const etc2Date = document.getElementById('収etc2_date')?.value || '';
+  const etc2PayAmt = parseAmt(document.getElementById('収etc2_amt')?.value) || 0;
+  const adjustDate = document.getElementById('収adjust_date')?.value || '';
+  const adjustPayAmt = parseAmt(document.getElementById('収adjust_amt')?.value) || 0;
+  const paymentTotal = contractPayAmt + interimPayAmt + interim2PayAmt + balancePayAmt + etcPayAmt + etc2PayAmt + adjustPayAmt;
+
   // 매출액
   let salesTotal = 0;
   salesSettlementData.works.forEach(w => salesTotal += w.sales || 0);
@@ -5896,6 +5911,61 @@ function printSalesSettlement() {
         </tbody>
       </table>
       
+      <!-- 수금내역 -->
+      ${paymentTotal > 0 ? `
+      <div class="section-title">📥 수금내역</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:80px;">구분</th>
+            <th style="width:100px;">일자</th>
+            <th>금액</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${contractPayAmt ? `<tr>
+            <td class="text-center">계약금</td>
+            <td class="text-center">${contractDate ? formatDate(contractDate) : '-'}</td>
+            <td class="text-right">${fmt(contractPayAmt)}</td>
+          </tr>` : ''}
+          ${interimPayAmt ? `<tr>
+            <td class="text-center">중도금</td>
+            <td class="text-center">${interimDate ? formatDate(interimDate) : '-'}</td>
+            <td class="text-right">${fmt(interimPayAmt)}</td>
+          </tr>` : ''}
+          ${interim2PayAmt ? `<tr>
+            <td class="text-center">중도금2차</td>
+            <td class="text-center">${interim2Date ? formatDate(interim2Date) : '-'}</td>
+            <td class="text-right">${fmt(interim2PayAmt)}</td>
+          </tr>` : ''}
+          ${balancePayAmt ? `<tr>
+            <td class="text-center">잔금</td>
+            <td class="text-center">${balanceDate ? formatDate(balanceDate) : '-'}</td>
+            <td class="text-right">${fmt(balancePayAmt)}</td>
+          </tr>` : ''}
+          ${etcPayAmt ? `<tr>
+            <td class="text-center">기타입금</td>
+            <td class="text-center">${etcDate ? formatDate(etcDate) : '-'}</td>
+            <td class="text-right">${fmt(etcPayAmt)}</td>
+          </tr>` : ''}
+          ${etc2PayAmt ? `<tr>
+            <td class="text-center">기타입금2</td>
+            <td class="text-center">${etc2Date ? formatDate(etc2Date) : '-'}</td>
+            <td class="text-right">${fmt(etc2PayAmt)}</td>
+          </tr>` : ''}
+          ${adjustPayAmt ? `<tr>
+            <td class="text-center">금액조정</td>
+            <td class="text-center">${adjustDate ? formatDate(adjustDate) : '-'}</td>
+            <td class="text-right">${fmt(adjustPayAmt)}</td>
+          </tr>` : ''}
+          <tr class="total-row">
+            <td colspan="2" class="text-center"><strong>합계</strong></td>
+            <td class="text-right"><strong>${fmt(paymentTotal)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      ` : ''}
+
       <!-- 정산 요약 -->
       <div class="summary-box">
         <div class="summary-title">💰 정산 요약</div>
@@ -8224,8 +8294,10 @@ function generateSettlementFromCurrentData() {
       const isCancelled = cancelledList.includes(noKey) || (item.site && item.site.includes('해지'));
       return !isCancelled;
     }).forEach(item => {
-      const amount = item.amount || 0;
-      
+      // 공사금액 보정 적용
+      const correctionKey = `${year}_${item.no}`;
+      const amount = AMOUNT_CORRECTION[correctionKey] || item.amount || 0;
+
       // 총괄표 데이터에서 실제 정산 정보 가져오기
       const key = `${year}_${item.no}`;
       const detail = detailData[key];
@@ -8416,7 +8488,7 @@ function generateSettlementFromCurrentData() {
         realSettlement: realSettlement,
         companyProfit: companyProfit,
         manager: manager,
-        settled: savedSettled || (detailStatus === 'paid' ? '정산완료' : '미정산'),
+        settled: savedSettled || (year === '2025' || year === '2026' ? '미정산' : (detailStatus === 'paid' ? '정산완료' : '미정산')),
         hasDetailData: hasDetailData,  // 총괄표 데이터 유무
         isExcluded: EXCLUDE_MANAGERS.includes(manager) || isExcludedByUser,  // 정산 제외 대상
         excludedByUser: isExcludedByUser  // 사용자가 직접 제외한 경우
