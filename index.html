@@ -216,6 +216,18 @@ tr.selected { background: var(--primary-light); }
 .btn-admin { background: var(--gray-600); color: white; padding: 0.625rem 1rem; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; font-family: inherit; transition: all 0.2s; }
 .btn-admin:hover { background: var(--gray-700); }
 
+/* 담당자 로그인 섹션 */
+.manager-login-section { background: var(--white); border-radius: 12px; margin-bottom: 1rem; border: 2px solid #1976d2; box-shadow: var(--shadow); overflow: hidden; }
+.manager-login-header { padding: 0.875rem 1.25rem; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); color: #1565c0; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1976d2; }
+.manager-login-header:hover { background: linear-gradient(135deg, #bbdefb 0%, #90caf9 100%); }
+.manager-view-header { padding: 1rem 1.25rem; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-radius: 12px 12px 0 0; }
+.manager-view-tabs { display: flex; gap: 4px; margin-bottom: 1rem; }
+.manager-view-tab { padding: 0.6rem 1.2rem; border: none; font-weight: 600; cursor: pointer; border-radius: 6px 6px 0 0; font-family: inherit; font-size: 0.875rem; transition: all 0.2s; }
+.manager-view-tab:hover { opacity: 0.85; }
+.btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+.btn-danger { background: #e53935; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.btn-danger:hover { background: #c62828; }
+
 /* 정산 테이블 */
 .settlement-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
 .settlement-table th { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 0.7rem 0.5rem; text-align: center; font-weight: 600; border: 1px solid #2c3e50; white-space: nowrap; }
@@ -340,9 +352,58 @@ tr.selected { background: var(--primary-light); }
         <button class="btn btn-admin" onclick="showSettlementManagement()">💰 정산 관리</button>
         <button class="btn btn-admin" onclick="document.getElementById('settlementFileInput').click()">📂 정산리스트 업로드</button>
         <button class="btn btn-admin" onclick="showLastBulkUploadResults()" style="background:#9c27b0;">📋 총괄표 결과</button>
+        <button class="btn btn-admin" onclick="openAdminManagerPasswordModal()" style="background:#1976d2;">🔑 담당자 비밀번호 관리</button>
         <button class="btn btn-admin" onclick="openPasswordChangeModal()" style="margin-left:auto;background:var(--gray-500);">⚙️ 비밀번호 변경</button>
       </div>
       <input type="file" id="settlementFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleSettlementUpload(event)">
+    </div>
+  </div>
+
+  <!-- 담당자 정산 확인 (로그인) -->
+  <div class="manager-login-section" id="managerLoginSection">
+    <div class="manager-login-header" onclick="openManagerLoginModal()">
+      <span>👤 내 정산 확인</span>
+      <span style="font-size:0.8rem;color:#64b5f6;">로그인하여 내 정산 데이터를 확인하세요 ▶</span>
+    </div>
+  </div>
+
+  <!-- 담당자 정산 뷰 (로그인 후 표시) -->
+  <div id="managerSettlementView" style="display:none;">
+    <div class="card" style="border:2px solid #1976d2;border-radius:12px;overflow:hidden;">
+      <div class="manager-view-header">
+        <div>
+          <span style="font-size:1.1rem;font-weight:700;color:#1565c0;">👤 <span id="managerViewName"></span> 정산 현황</span>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-outline btn-sm" onclick="openManagerPasswordChangeModal()">🔑 비밀번호 변경</button>
+          <button class="btn btn-danger btn-sm" onclick="logoutManager()">🚪 로그아웃</button>
+        </div>
+      </div>
+      <div style="padding:1rem 1.25rem;">
+        <div class="manager-view-tabs">
+          <button type="button" id="managerTabConstruction" class="manager-view-tab" onclick="switchManagerViewTab('construction')" style="background:#1976d2;color:white;">🏗️ 공사정산</button>
+          <button type="button" id="managerTabConsulting" class="manager-view-tab" onclick="switchManagerViewTab('consulting')" style="background:#e0e0e0;color:#666;">📋 기술컨설팅</button>
+          <button type="button" id="managerTabIntegrated" class="manager-view-tab" onclick="switchManagerViewTab('integrated')" style="background:#e0e0e0;color:#666;">📊 통합</button>
+        </div>
+        <div style="background:#f5f5f5;padding:0.75rem;border-radius:8px;margin-bottom:1rem;">
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+            <select id="managerViewYearSelect" class="search-select" onchange="renderManagerView()" style="min-width:120px;">
+              <option value="">전체 년도</option>
+              <option value="2024">2024년</option>
+              <option value="2025" selected>2025년</option>
+              <option value="2026">2026년</option>
+              <option value="2024+2025">24년 미정산+25년</option>
+            </select>
+            <select id="managerViewSettledSelect" class="search-select" onchange="renderManagerView()" style="min-width:120px;">
+              <option value="">정산여부 전체</option>
+              <option value="정산완료">정산완료</option>
+              <option value="미정산">미정산</option>
+              <option value="진행중">진행중</option>
+            </select>
+          </div>
+        </div>
+        <div id="managerViewPreview"></div>
+      </div>
     </div>
   </div>
 
@@ -746,6 +807,81 @@ tr.selected { background: var(--primary-light); }
     <div class="modal-footer" style="justify-content:center;">
       <button class="btn btn-outline" onclick="closePasswordModal()">취소</button>
       <button class="btn btn-primary" onclick="verifyPassword()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 담당자 로그인 모달 -->
+<div class="modal" id="managerLoginModal">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-header" style="background:#1976d2;color:white;">
+      <div class="modal-title">👤 담당자 로그인</div>
+      <button class="modal-close" onclick="closeManagerLoginModal()" style="color:white;">×</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem;">
+      <div style="text-align:center;font-size:2.5rem;margin-bottom:1rem;">🔐</div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">담당자 선택</label>
+        <select id="managerLoginSelect" class="form-select" style="width:100%;padding:0.6rem;border:1px solid var(--gray-300);border-radius:6px;font-size:1rem;">
+          <option value="">-- 담당자 선택 --</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem;">
+        <label class="form-label">비밀번호</label>
+        <input type="password" id="managerLoginPassword" class="form-input" placeholder="비밀번호 입력" onkeyup="handleManagerLoginKeyup(event)">
+      </div>
+      <div id="managerLoginError" style="color:var(--danger);font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
+    </div>
+    <div class="modal-footer" style="justify-content:center;">
+      <button class="btn btn-outline" onclick="closeManagerLoginModal()">취소</button>
+      <button class="btn btn-primary" onclick="verifyManagerLogin()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 담당자 비밀번호 변경 모달 -->
+<div class="modal" id="managerPasswordChangeModal">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">🔑 내 비밀번호 변경</div>
+      <button class="modal-close" onclick="closeManagerPasswordChangeModal()">×</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem;">
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">현재 비밀번호</label>
+        <input type="password" id="mgrCurrentPassword" class="form-input" placeholder="현재 비밀번호">
+      </div>
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">새 비밀번호</label>
+        <input type="password" id="mgrNewPassword" class="form-input" placeholder="새 비밀번호 (4자리 이상)">
+      </div>
+      <div class="form-group" style="margin-bottom:0.5rem;">
+        <label class="form-label">새 비밀번호 확인</label>
+        <input type="password" id="mgrConfirmPassword" class="form-input" placeholder="새 비밀번호 다시 입력">
+      </div>
+      <div id="mgrPasswordChangeError" style="color:var(--danger);font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
+      <div id="mgrPasswordChangeSuccess" style="color:var(--success);font-size:0.8rem;margin-top:0.5rem;display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeManagerPasswordChangeModal()">취소</button>
+      <button class="btn btn-primary" onclick="changeManagerPassword()">변경</button>
+    </div>
+  </div>
+</div>
+
+<!-- 관리자: 담당자 비밀번호 관리 모달 -->
+<div class="modal" id="adminManagerPasswordModal">
+  <div class="modal-content" style="max-width:500px;">
+    <div class="modal-header" style="background:var(--gray-700);color:white;">
+      <div class="modal-title">🔧 담당자 비밀번호 관리</div>
+      <button class="modal-close" onclick="closeAdminManagerPasswordModal()" style="color:white;">×</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem;">
+      <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:1rem;">각 담당자의 비밀번호를 초기화(0000)할 수 있습니다.</p>
+      <div id="adminManagerPasswordList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeAdminManagerPasswordModal()">닫기</button>
     </div>
   </div>
 </div>
@@ -2369,6 +2505,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resetPwData = await fbLoad(FB_COLLECTIONS.settings, 'resetPassword');
     if (resetPwData && resetPwData.value) localStorage.setItem('resetPassword', resetPwData.value);
   } catch(e) { console.error('비밀번호 동기화 실패:', e); }
+
+  // 담당자 비밀번호 동기화
+  try {
+    const mgrPwData = await fbLoad(FB_COLLECTIONS.settings, 'managerPasswords');
+    if (mgrPwData) {
+      localStorage.setItem('managerPasswords', JSON.stringify(mgrPwData));
+    } else {
+      const defaults = {};
+      HQ_MANAGERS.forEach(m => { defaults[m] = DEFAULT_MANAGER_PASSWORD; });
+      saveManagerPasswords(defaults);
+    }
+  } catch(e) { console.error('담당자 비밀번호 동기화 실패:', e); }
 
   await loadDetailData();  // 총괄표 데이터 먼저 로드 (🔴 표시용)
   initYearTabs();
@@ -7644,6 +7792,12 @@ let isAdminAuthenticated = false;
 let pendingAdminAction = null;
 let settlementData = [];  // 정산 데이터
 
+// ========== 담당자 로그인 시스템 ==========
+const DEFAULT_MANAGER_PASSWORD = '0000';  // 담당자 기본 비밀번호
+let isManagerAuthenticated = false;
+let currentLoggedInManager = null;   // 로그인된 담당자명
+let managerCurrentConfirmationType = 'construction';  // 담당자 뷰 탭 상태
+
 // 저장된 비밀번호 가져오기
 function getAdminPassword() {
   return localStorage.getItem('adminPassword') || DEFAULT_PASSWORD;
@@ -7807,6 +7961,807 @@ function changePassword() {
     closePasswordChangeModal();
     showToast('비밀번호가 변경되었습니다.', 'success');
   }, 1500);
+}
+
+// ========== 담당자 비밀번호 관리 함수 ==========
+// 담당자 비밀번호 맵 가져오기
+function getManagerPasswords() {
+  const saved = localStorage.getItem('managerPasswords');
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  const defaults = {};
+  HQ_MANAGERS.forEach(m => { defaults[m] = DEFAULT_MANAGER_PASSWORD; });
+  return defaults;
+}
+
+// 담당자 비밀번호 저장
+function saveManagerPasswords(passwords) {
+  localStorage.setItem('managerPasswords', JSON.stringify(passwords));
+  fbSave(FB_COLLECTIONS.settings, 'managerPasswords', passwords);
+}
+
+// 특정 담당자 비밀번호 가져오기
+function getManagerPassword(managerName) {
+  const passwords = getManagerPasswords();
+  return passwords[managerName] || DEFAULT_MANAGER_PASSWORD;
+}
+
+// 특정 담당자 비밀번호 설정
+function setManagerPassword(managerName, newPassword) {
+  const passwords = getManagerPasswords();
+  passwords[managerName] = newPassword;
+  saveManagerPasswords(passwords);
+}
+
+// ========== 담당자 로그인 모달 ==========
+function openManagerLoginModal() {
+  if (isManagerAuthenticated && currentLoggedInManager) {
+    showManagerSettlementView();
+    return;
+  }
+
+  const select = document.getElementById('managerLoginSelect');
+  select.innerHTML = '<option value="">-- 담당자 선택 --</option>';
+  HQ_MANAGERS.forEach(m => {
+    select.innerHTML += `<option value="${m}">${m}</option>`;
+  });
+
+  document.getElementById('managerLoginPassword').value = '';
+  document.getElementById('managerLoginError').style.display = 'none';
+  document.getElementById('managerLoginModal').classList.add('active');
+  setTimeout(() => document.getElementById('managerLoginSelect').focus(), 100);
+}
+
+function closeManagerLoginModal() {
+  document.getElementById('managerLoginModal').classList.remove('active');
+}
+
+function handleManagerLoginKeyup(event) {
+  if (event.key === 'Enter') verifyManagerLogin();
+}
+
+function verifyManagerLogin() {
+  const manager = document.getElementById('managerLoginSelect').value;
+  const pwd = document.getElementById('managerLoginPassword').value;
+  const errorEl = document.getElementById('managerLoginError');
+
+  if (!manager) {
+    errorEl.textContent = '담당자를 선택해주세요.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (!pwd) {
+    errorEl.textContent = '비밀번호를 입력해주세요.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const correctPwd = getManagerPassword(manager);
+  if (pwd === correctPwd) {
+    isManagerAuthenticated = true;
+    currentLoggedInManager = manager;
+    closeManagerLoginModal();
+    showManagerSettlementView();
+    showToast(`${manager}님 환영합니다.`, 'success');
+  } else {
+    errorEl.textContent = '비밀번호가 틀렸습니다.';
+    errorEl.style.display = 'block';
+    document.getElementById('managerLoginPassword').value = '';
+    document.getElementById('managerLoginPassword').focus();
+  }
+}
+
+// ========== 담당자 정산 뷰 ==========
+async function showManagerSettlementView() {
+  document.getElementById('managerViewName').textContent = currentLoggedInManager;
+  document.getElementById('managerSettlementView').style.display = 'block';
+  document.getElementById('managerLoginSection').style.display = 'none';
+
+  // 데이터 로드 확인
+  if (!allData || Object.keys(allData).length === 0) {
+    const saved = localStorage.getItem('constructionData');
+    if (saved) { try { allData = JSON.parse(saved); } catch(e) { allData = {}; } }
+  }
+
+  // 정산 데이터 갱신
+  if (settlementData.length === 0) {
+    settlementData = generateSettlementFromCurrentData();
+  }
+
+  await loadConsultingData();
+
+  managerCurrentConfirmationType = 'construction';
+  switchManagerViewTab('construction');
+}
+
+function logoutManager() {
+  isManagerAuthenticated = false;
+  currentLoggedInManager = null;
+  document.getElementById('managerSettlementView').style.display = 'none';
+  document.getElementById('managerLoginSection').style.display = 'block';
+  showToast('로그아웃되었습니다.', 'info');
+}
+
+function switchManagerViewTab(tab) {
+  managerCurrentConfirmationType = tab;
+
+  const tabs = {
+    construction: document.getElementById('managerTabConstruction'),
+    consulting: document.getElementById('managerTabConsulting'),
+    integrated: document.getElementById('managerTabIntegrated')
+  };
+
+  Object.values(tabs).forEach(t => {
+    t.style.background = '#e0e0e0';
+    t.style.color = '#666';
+  });
+
+  if (tab === 'construction') {
+    tabs.construction.style.background = '#1976d2';
+    tabs.construction.style.color = 'white';
+  } else if (tab === 'consulting') {
+    tabs.consulting.style.background = '#00897b';
+    tabs.consulting.style.color = 'white';
+  } else {
+    tabs.integrated.style.background = '#9c27b0';
+    tabs.integrated.style.color = 'white';
+  }
+
+  renderManagerView();
+}
+
+function getManagerViewFilteredData() {
+  let data = settlementData.length > 0 ? [...settlementData] : generateSettlementFromCurrentData();
+
+  data = data.map(item => {
+    if (item.excludedByUser) {
+      return { ...item, realSettlement: 0, companyProfit: 0 };
+    }
+    return item;
+  });
+
+  // 본인 데이터만 강제 필터링
+  data = data.filter(item => item.manager === currentLoggedInManager);
+
+  const yearFilter = document.getElementById('managerViewYearSelect')?.value || '';
+  if (yearFilter === '2024') {
+    data = data.filter(item => String(item.year).includes('24'));
+  } else if (yearFilter === '2025') {
+    data = data.filter(item => String(item.year).includes('25'));
+  } else if (yearFilter === '2026') {
+    data = data.filter(item => String(item.year).includes('26'));
+  } else if (yearFilter === '2024+2025') {
+    data = data.filter(item => {
+      const is24 = String(item.year).includes('24');
+      if (is24) return item.settled !== '정산완료';
+      return String(item.year).includes('25');
+    });
+  }
+
+  const settledFilter = document.getElementById('managerViewSettledSelect')?.value || '';
+  if (settledFilter) {
+    data = data.filter(item => item.settled === settledFilter);
+  }
+
+  return { data, managerFilter: currentLoggedInManager, settledFilter, yearFilter };
+}
+
+function renderManagerView() {
+  if (managerCurrentConfirmationType === 'consulting') {
+    renderManagerConsultingView();
+  } else if (managerCurrentConfirmationType === 'integrated') {
+    renderManagerIntegratedView();
+  } else {
+    renderManagerConstructionView();
+  }
+}
+
+// 담당자 공사정산 뷰
+function renderManagerConstructionView() {
+  const { data, settledFilter } = getManagerViewFilteredData();
+
+  if (data.length === 0) {
+    document.getElementById('managerViewPreview').innerHTML = `
+      <div style="text-align:center;padding:2rem;color:#999;">
+        해당 조건의 공사정산 데이터가 없습니다.
+      </div>`;
+    return;
+  }
+
+  const managerName = currentLoggedInManager;
+  const managerEmail = managerEmails[managerName] || '';
+  const statusText = settledFilter || '전체';
+
+  let totalAmount = 0, totalMaterial = 0, totalLabor = 0, totalExpense = 0, totalProfit = 0, totalSettlement = 0;
+  data.forEach(item => {
+    totalAmount += item.amount || 0;
+    totalMaterial += item.material || 0;
+    totalLabor += item.laborTotal || item.labor || 0;
+    totalExpense += item.expenseTotal || 0;
+    totalProfit += item.profit || 0;
+    totalSettlement += item.realSettlement || 0;
+  });
+  const totalCost = totalMaterial + totalLabor + totalExpense;
+  const avgProfitRate = totalAmount > 0 ? ((totalProfit / totalAmount) * 100).toFixed(1) : '0.0';
+
+  const data24 = data.filter(item => String(item.year).includes('24'));
+  const data25 = data.filter(item => String(item.year).includes('25'));
+  const data26 = data.filter(item => String(item.year).includes('26'));
+
+  const calcTotals = (yearData) => {
+    const t = yearData.reduce((acc, i) => ({
+      amount: acc.amount + (i.amount || 0),
+      material: acc.material + (i.material || 0),
+      labor: acc.labor + (i.laborTotal || i.labor || 0),
+      expense: acc.expense + (i.expenseTotal || 0),
+      profit: acc.profit + (i.profit || 0),
+      settlement: acc.settlement + (i.realSettlement || 0)
+    }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
+    t.cost = t.material + t.labor + t.expense;
+    t.profitRate = t.amount > 0 ? ((t.profit / t.amount) * 100).toFixed(1) : '0.0';
+    return t;
+  };
+
+  const totals24 = calcTotals(data24);
+  const totals25 = calcTotals(data25);
+  const totals26 = calcTotals(data26);
+
+  const createTableHeader = (bgColor) => `
+    <tr style="background:${bgColor};">
+      <th style="padding:0.4rem;border:1px solid #ddd;white-space:nowrap;">NO</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;min-width:120px;">현장명</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">공사금액</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">자재비</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">노무비</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">경비</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">지출합계</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">이익금</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:center;white-space:nowrap;">이익률</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">실정산금액</th>
+    </tr>`;
+
+  const createTableRow = (item) => {
+    const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0);
+    const profitRate = item.profitRate ? (item.profitRate * 100).toFixed(1) : (item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0');
+    const excludedMark = item.excludedByUser ? '<span title="정산제외" style="color:#ff9800;margin-left:2px;">&#128683;</span>' : '';
+    const rowStyle = item.excludedByUser ? 'background:#fff3e0;color:#999;' : '';
+    return `
+      <tr style="${rowStyle}">
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${item.no}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;font-size:0.75rem;" title="${item.site || ''}">${(item.site || '').substring(0, 15)}${(item.site || '').length > 15 ? '...' : ''}${excludedMark}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.amount)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.material)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.laborTotal || item.labor)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.expenseTotal)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(cost)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${(item.profit || 0) >= 0 ? '#2e7d32' : '#c62828'};font-weight:600;">${fmt(item.profit)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${profitRate}%</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#1565c0;font-weight:700;">${fmt(item.realSettlement)}</td>
+      </tr>`;
+  };
+
+  const createSubtotalRow = (label, totals, bgColor) => `
+    <tr style="background:${bgColor};font-weight:700;">
+      <td colspan="2" style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${label}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.amount)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.material)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.labor)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.expense)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(totals.cost)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${totals.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totals.profit)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(totals.profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${totals.profitRate}%</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#1565c0;">${fmt(totals.settlement)}</td>
+    </tr>`;
+
+  const renderYearTable = (yearData, year, totals, headerBg, subtotalBg) => {
+    if (yearData.length === 0) return '';
+    return `
+      <h4 style="margin:0.5rem 0;color:#1565c0;font-size:0.9rem;">${year}년 (${yearData.length}건)</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:0.5rem;">
+        <thead>${createTableHeader(headerBg)}</thead>
+        <tbody>
+          ${yearData.map(item => createTableRow(item)).join('')}
+          ${createSubtotalRow(`${year}년 소계`, totals, subtotalBg)}
+        </tbody>
+      </table>`;
+  };
+
+  let html = `
+    <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <div style="background:#1976d2;color:white;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-size:0.85rem;opacity:0.9;">공사정산 확인서</span>
+            <strong style="font-size:1.2rem;margin-left:0.5rem;">${managerName}</strong>
+            <span style="margin-left:1rem;font-size:0.85rem;opacity:0.9;">상태: ${statusText}</span>
+          </div>
+          <div style="font-size:0.85rem;">
+            ${managerEmail ? managerEmail : '<span style="opacity:0.7;">이메일 미등록</span>'}
+          </div>
+        </div>
+      </div>
+      <div style="padding:1rem;background:#e3f2fd;">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;text-align:center;">
+          <div><div style="font-size:0.7rem;color:#666;">총 건수</div><div style="font-size:1rem;font-weight:700;">${data.length}건</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 공사금액</div><div style="font-size:1rem;font-weight:700;">${fmt(totalAmount)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 지출</div><div style="font-size:1rem;font-weight:700;color:#e65100;">${fmt(totalCost)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 이익금 (${avgProfitRate}%)</div><div style="font-size:1rem;font-weight:700;color:${totalProfit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totalProfit)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">실정산금액</div><div style="font-size:1rem;font-weight:700;color:#1565c0;">${fmt(totalSettlement)}</div></div>
+        </div>
+      </div>
+      <div style="padding:0.5rem;max-height:500px;overflow-y:auto;">`;
+
+  html += renderYearTable(data24, '2024', totals24, '#ffecb3', '#fff8e1');
+  html += renderYearTable(data25, '2025', totals25, '#bbdefb', '#e3f2fd');
+  html += renderYearTable(data26, '2026', totals26, '#c8e6c9', '#e8f5e9');
+
+  html += `
+      </div>
+      <div style="background:#1976d2;color:white;padding:1rem;border-top:2px solid #1565c0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.85rem;">총 ${data.length}건 | 공사금액: ${fmt(totalAmount)} | 지출: ${fmt(totalCost)} | 이익: ${fmt(totalProfit)} (${avgProfitRate}%)</div>
+          <div><span style="font-size:0.9rem;">실정산 총액: </span><strong style="font-size:1.4rem;">${fmt(totalSettlement)}</strong></div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('managerViewPreview').innerHTML = html;
+}
+
+// 담당자 기술컨설팅 뷰
+async function renderManagerConsultingView() {
+  await loadConsultingData();
+
+  const yearFilter = document.getElementById('managerViewYearSelect')?.value || '';
+  const settledFilter = document.getElementById('managerViewSettledSelect')?.value || '';
+
+  let data = [...consultingData];
+
+  // 담당자 필터 (강제)
+  data = data.filter(item => item.manager === currentLoggedInManager);
+
+  if (yearFilter && yearFilter !== '2024+2025') {
+    data = data.filter(item => item.year === yearFilter);
+  } else if (yearFilter === '2024+2025') {
+    data = data.filter(item => {
+      if (item.year === '2024') return item.settled !== '정산완료';
+      return item.year === '2025';
+    });
+  }
+
+  if (settledFilter) {
+    data = data.filter(item => item.settled === settledFilter);
+  }
+
+  if (data.length === 0) {
+    document.getElementById('managerViewPreview').innerHTML = `
+      <div style="text-align:center;padding:2rem;color:#999;">
+        해당 조건의 기술컨설팅 데이터가 없습니다.
+      </div>`;
+    return;
+  }
+
+  const managerName = currentLoggedInManager;
+  const managerEmail = managerEmails[managerName] || '';
+  const statusText = settledFilter || '전체';
+
+  let totalBidAmount = 0, totalExecAmount = 0, totalCompanyExp = 0, totalOtherExp = 0, totalProfit = 0, totalSettlement = 0;
+  data.forEach(item => {
+    totalBidAmount += item.bidAmount || 0;
+    totalExecAmount += item.execAmount || 0;
+    totalCompanyExp += item.companyExp || 0;
+    totalOtherExp += item.otherExp || 0;
+    totalProfit += item.profit || 0;
+    totalSettlement += item.settlement || 0;
+  });
+  const totalExpense = totalExecAmount + totalCompanyExp + totalOtherExp;
+  const avgProfitRate = totalBidAmount > 0 ? ((totalProfit / totalBidAmount) * 100).toFixed(1) : '0.0';
+
+  const data24 = data.filter(item => item.year === '2024');
+  const data25 = data.filter(item => item.year === '2025');
+  const data26 = data.filter(item => item.year === '2026');
+
+  const calcYearTotals = (yearData) => {
+    const t = yearData.reduce((acc, i) => ({
+      bidAmount: acc.bidAmount + (i.bidAmount || 0),
+      execAmount: acc.execAmount + (i.execAmount || 0),
+      companyExp: acc.companyExp + (i.companyExp || 0),
+      otherExp: acc.otherExp + (i.otherExp || 0),
+      profit: acc.profit + (i.profit || 0),
+      settlement: acc.settlement + (i.settlement || 0)
+    }), { bidAmount: 0, execAmount: 0, companyExp: 0, otherExp: 0, profit: 0, settlement: 0 });
+    t.totalExpense = t.execAmount + t.companyExp + t.otherExp;
+    t.profitRate = t.bidAmount > 0 ? ((t.profit / t.bidAmount) * 100).toFixed(1) : '0.0';
+    return t;
+  };
+
+  const totals24 = calcYearTotals(data24);
+  const totals25 = calcYearTotals(data25);
+  const totals26 = calcYearTotals(data26);
+
+  const createTableHeader = (bgColor) => `
+    <tr style="background:${bgColor};">
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;min-width:100px;">현장명</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;min-width:80px;">공사명</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">낙찰금액</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">실행금액</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">본사경비</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">기타비용</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">지출합계</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">이익금</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:center;white-space:nowrap;">이익률</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">실정산금액</th>
+    </tr>`;
+
+  const createTableRow = (item) => {
+    const itemExpense = (item.execAmount || 0) + (item.companyExp || 0) + (item.otherExp || 0);
+    const profitRate = item.profitRate || (item.bidAmount > 0 ? ((item.profit / item.bidAmount) * 100).toFixed(1) : '0.0');
+    return `
+      <tr>
+        <td style="padding:0.4rem;border:1px solid #ddd;font-size:0.75rem;" title="${item.site || ''}">${(item.site || '').substring(0, 12)}${(item.site || '').length > 12 ? '...' : ''}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;font-size:0.7rem;color:#666;" title="${item.project || ''}">${(item.project || '-').substring(0, 10)}${(item.project || '').length > 10 ? '...' : ''}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#00897b;font-weight:600;">${fmt(item.bidAmount)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.execAmount)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.companyExp)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.otherExp)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(itemExpense)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${(item.profit || 0) >= 0 ? '#2e7d32' : '#c62828'};font-weight:600;">${fmt(item.profit)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${profitRate}%</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#00897b;font-weight:700;">${fmt(item.settlement)}</td>
+      </tr>`;
+  };
+
+  const createSubtotalRow = (label, totals, bgColor) => `
+    <tr style="background:${bgColor};font-weight:700;">
+      <td colspan="2" style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${label}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.bidAmount)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.execAmount)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.companyExp)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.otherExp)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(totals.totalExpense)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${totals.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totals.profit)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(totals.profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${totals.profitRate}%</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#00897b;">${fmt(totals.settlement)}</td>
+    </tr>`;
+
+  const renderYearTable = (yearData, year, totals, headerBg, subtotalBg) => {
+    if (yearData.length === 0) return '';
+    return `
+      <h4 style="margin:0.5rem 0;color:#00695c;font-size:0.9rem;">${year}년 (${yearData.length}건)</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem;margin-bottom:0.5rem;">
+        <thead>${createTableHeader(headerBg)}</thead>
+        <tbody>
+          ${yearData.map(item => createTableRow(item)).join('')}
+          ${createSubtotalRow(`${year}년 소계`, totals, subtotalBg)}
+        </tbody>
+      </table>`;
+  };
+
+  let html = `
+    <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <div style="background:#00897b;color:white;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-size:0.85rem;opacity:0.9;">기술컨설팅 확인서</span>
+            <strong style="font-size:1.2rem;margin-left:0.5rem;">${managerName}</strong>
+            <span style="margin-left:1rem;font-size:0.85rem;opacity:0.9;">상태: ${statusText}</span>
+          </div>
+          <div style="font-size:0.85rem;">
+            ${managerEmail ? managerEmail : '<span style="opacity:0.7;">이메일 미등록</span>'}
+          </div>
+        </div>
+      </div>
+      <div style="padding:1rem;background:#e0f2f1;">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;text-align:center;">
+          <div><div style="font-size:0.7rem;color:#666;">총 건수</div><div style="font-size:1rem;font-weight:700;">${data.length}건</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 낙찰금액</div><div style="font-size:1rem;font-weight:700;">${fmt(totalBidAmount)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 지출</div><div style="font-size:1rem;font-weight:700;color:#e65100;">${fmt(totalExpense)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">총 이익금 (${avgProfitRate}%)</div><div style="font-size:1rem;font-weight:700;color:${totalProfit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totalProfit)}</div></div>
+          <div><div style="font-size:0.7rem;color:#666;">실정산금액</div><div style="font-size:1rem;font-weight:700;color:#00897b;">${fmt(totalSettlement)}</div></div>
+        </div>
+      </div>
+      <div style="padding:0.5rem;max-height:500px;overflow-y:auto;">`;
+
+  html += renderYearTable(data24, '2024', totals24, '#ffecb3', '#fff8e1');
+  html += renderYearTable(data25, '2025', totals25, '#b2dfdb', '#e0f2f1');
+  html += renderYearTable(data26, '2026', totals26, '#c8e6c9', '#e8f5e9');
+
+  html += `
+      </div>
+      <div style="background:#00897b;color:white;padding:1rem;border-top:2px solid #00695c;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.85rem;">총 ${data.length}건 | 낙찰금액: ${fmt(totalBidAmount)} | 지출: ${fmt(totalExpense)} | 이익: ${fmt(totalProfit)} (${avgProfitRate}%)</div>
+          <div><span style="font-size:0.9rem;">실정산 총액: </span><strong style="font-size:1.4rem;">${fmt(totalSettlement)}</strong></div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('managerViewPreview').innerHTML = html;
+}
+
+// 담당자 통합 뷰
+async function renderManagerIntegratedView() {
+  // 공사정산 데이터
+  const { data: constructionData2, settledFilter } = getManagerViewFilteredData();
+
+  // 기술컨설팅 데이터
+  await loadConsultingData();
+  const yearFilter = document.getElementById('managerViewYearSelect')?.value || '';
+
+  let consultingFiltered = [...consultingData];
+  consultingFiltered = consultingFiltered.filter(item => item.manager === currentLoggedInManager);
+
+  if (yearFilter && yearFilter !== '2024+2025') {
+    consultingFiltered = consultingFiltered.filter(item => item.year === yearFilter);
+  } else if (yearFilter === '2024+2025') {
+    consultingFiltered = consultingFiltered.filter(item => {
+      if (item.year === '2024') return item.settled !== '정산완료';
+      return item.year === '2025';
+    });
+  }
+
+  if (settledFilter) {
+    consultingFiltered = consultingFiltered.filter(item => item.settled === settledFilter);
+  }
+
+  if (constructionData2.length === 0 && consultingFiltered.length === 0) {
+    document.getElementById('managerViewPreview').innerHTML = `
+      <div style="text-align:center;padding:2rem;color:#999;">
+        해당 조건의 데이터가 없습니다.
+      </div>`;
+    return;
+  }
+
+  const managerName = currentLoggedInManager;
+  const statusText = settledFilter || '전체';
+
+  // 공사정산 합계
+  let conTotalAmount = 0, conTotalSettlement = 0;
+  constructionData2.forEach(item => {
+    conTotalAmount += item.amount || 0;
+    conTotalSettlement += item.realSettlement || 0;
+  });
+
+  // 컨설팅 합계
+  let consTotalBid = 0, consTotalSettlement = 0;
+  consultingFiltered.forEach(item => {
+    consTotalBid += item.bidAmount || 0;
+    consTotalSettlement += item.settlement || 0;
+  });
+
+  const grandTotal = conTotalSettlement + consTotalSettlement;
+
+  let html = `
+    <div style="border:1px solid #ddd;border-radius:8px;overflow:hidden;">
+      <div style="background:#9c27b0;color:white;padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-size:0.85rem;opacity:0.9;">통합 정산 확인서</span>
+            <strong style="font-size:1.2rem;margin-left:0.5rem;">${managerName}</strong>
+            <span style="margin-left:1rem;font-size:0.85rem;opacity:0.9;">상태: ${statusText}</span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:1rem;background:#f3e5f5;">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;text-align:center;">
+          <div style="background:white;padding:1rem;border-radius:8px;border:2px solid #1976d2;">
+            <div style="font-size:0.8rem;color:#666;">공사정산</div>
+            <div style="font-size:0.85rem;color:#999;">${constructionData2.length}건</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#1565c0;">${fmt(conTotalSettlement)}</div>
+          </div>
+          <div style="background:white;padding:1rem;border-radius:8px;border:2px solid #00897b;">
+            <div style="font-size:0.8rem;color:#666;">기술컨설팅</div>
+            <div style="font-size:0.85rem;color:#999;">${consultingFiltered.length}건</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#00897b;">${fmt(consTotalSettlement)}</div>
+          </div>
+          <div style="background:white;padding:1rem;border-radius:8px;border:2px solid #9c27b0;">
+            <div style="font-size:0.8rem;color:#666;">통합 실정산 총액</div>
+            <div style="font-size:0.85rem;color:#999;">${constructionData2.length + consultingFiltered.length}건</div>
+            <div style="font-size:1.4rem;font-weight:700;color:#9c27b0;">${fmt(grandTotal)}</div>
+          </div>
+        </div>
+      </div>`;
+
+  // 공사정산 요약 테이블
+  if (constructionData2.length > 0) {
+    html += `
+      <div style="padding:0.75rem;">
+        <h4 style="margin:0.5rem 0;color:#1565c0;font-size:0.9rem;">공사정산 (${constructionData2.length}건)</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+          <thead>
+            <tr style="background:#bbdefb;">
+              <th style="padding:0.4rem;border:1px solid #ddd;">NO</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;">현장명</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">공사금액</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">이익금</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">실정산금액</th>
+            </tr>
+          </thead>
+          <tbody>`;
+    constructionData2.forEach(item => {
+      const rowStyle = item.excludedByUser ? 'background:#fff3e0;color:#999;' : '';
+      html += `
+            <tr style="${rowStyle}">
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${item.no}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;" title="${item.site || ''}">${(item.site || '').substring(0, 18)}${(item.site || '').length > 18 ? '...' : ''}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${fmt(item.amount)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:${(item.profit || 0) >= 0 ? '#2e7d32' : '#c62828'};">${fmt(item.profit)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#1565c0;font-weight:700;">${fmt(item.realSettlement)}</td>
+            </tr>`;
+    });
+    html += `
+            <tr style="background:#e3f2fd;font-weight:700;">
+              <td colspan="2" style="padding:0.4rem;border:1px solid #ddd;text-align:center;">공사정산 소계</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${fmt(conTotalAmount)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;"></td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#1565c0;">${fmt(conTotalSettlement)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  // 기술컨설팅 요약 테이블
+  if (consultingFiltered.length > 0) {
+    html += `
+      <div style="padding:0.75rem;">
+        <h4 style="margin:0.5rem 0;color:#00897b;font-size:0.9rem;">기술컨설팅 (${consultingFiltered.length}건)</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+          <thead>
+            <tr style="background:#b2dfdb;">
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;">현장명</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:left;">공사명</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">낙찰금액</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">이익금</th>
+              <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">실정산금액</th>
+            </tr>
+          </thead>
+          <tbody>`;
+    consultingFiltered.forEach(item => {
+      html += `
+            <tr>
+              <td style="padding:0.4rem;border:1px solid #ddd;" title="${item.site || ''}">${(item.site || '').substring(0, 12)}${(item.site || '').length > 12 ? '...' : ''}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;font-size:0.7rem;color:#666;">${(item.project || '-').substring(0, 10)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${fmt(item.bidAmount)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:${(item.profit || 0) >= 0 ? '#2e7d32' : '#c62828'};">${fmt(item.profit)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#00897b;font-weight:700;">${fmt(item.settlement)}</td>
+            </tr>`;
+    });
+    html += `
+            <tr style="background:#e0f2f1;font-weight:700;">
+              <td colspan="2" style="padding:0.4rem;border:1px solid #ddd;text-align:center;">기술컨설팅 소계</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${fmt(consTotalBid)}</td>
+              <td style="padding:0.4rem;border:1px solid #ddd;"></td>
+              <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#00897b;">${fmt(consTotalSettlement)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  html += `
+      <div style="background:#9c27b0;color:white;padding:1rem;border-top:2px solid #7b1fa2;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.85rem;">
+            공사: ${fmt(conTotalSettlement)} + 컨설팅: ${fmt(consTotalSettlement)}
+          </div>
+          <div>
+            <span style="font-size:0.9rem;">통합 실정산 총액: </span>
+            <strong style="font-size:1.4rem;">${fmt(grandTotal)}</strong>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('managerViewPreview').innerHTML = html;
+}
+
+// ========== 담당자 비밀번호 변경 ==========
+function openManagerPasswordChangeModal() {
+  document.getElementById('mgrCurrentPassword').value = '';
+  document.getElementById('mgrNewPassword').value = '';
+  document.getElementById('mgrConfirmPassword').value = '';
+  document.getElementById('mgrPasswordChangeError').style.display = 'none';
+  document.getElementById('mgrPasswordChangeSuccess').style.display = 'none';
+  document.getElementById('managerPasswordChangeModal').classList.add('active');
+  setTimeout(() => document.getElementById('mgrCurrentPassword').focus(), 100);
+}
+
+function closeManagerPasswordChangeModal() {
+  document.getElementById('managerPasswordChangeModal').classList.remove('active');
+}
+
+function changeManagerPassword() {
+  const currentPwd = document.getElementById('mgrCurrentPassword').value;
+  const newPwd = document.getElementById('mgrNewPassword').value;
+  const confirmPwd = document.getElementById('mgrConfirmPassword').value;
+  const errorEl = document.getElementById('mgrPasswordChangeError');
+  const successEl = document.getElementById('mgrPasswordChangeSuccess');
+
+  errorEl.style.display = 'none';
+  successEl.style.display = 'none';
+
+  if (!currentPwd || !newPwd || !confirmPwd) {
+    errorEl.textContent = '모든 항목을 입력해주세요.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (currentPwd !== getManagerPassword(currentLoggedInManager)) {
+    errorEl.textContent = '현재 비밀번호가 틀렸습니다.';
+    errorEl.style.display = 'block';
+    document.getElementById('mgrCurrentPassword').value = '';
+    document.getElementById('mgrCurrentPassword').focus();
+    return;
+  }
+
+  if (newPwd.length < 4) {
+    errorEl.textContent = '새 비밀번호는 4자리 이상이어야 합니다.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  if (newPwd !== confirmPwd) {
+    errorEl.textContent = '새 비밀번호가 일치하지 않습니다.';
+    errorEl.style.display = 'block';
+    document.getElementById('mgrConfirmPassword').value = '';
+    document.getElementById('mgrConfirmPassword').focus();
+    return;
+  }
+
+  setManagerPassword(currentLoggedInManager, newPwd);
+
+  successEl.textContent = '비밀번호가 변경되었습니다.';
+  successEl.style.display = 'block';
+
+  document.getElementById('mgrCurrentPassword').value = '';
+  document.getElementById('mgrNewPassword').value = '';
+  document.getElementById('mgrConfirmPassword').value = '';
+
+  setTimeout(() => {
+    closeManagerPasswordChangeModal();
+    showToast('비밀번호가 변경되었습니다.', 'success');
+  }, 1500);
+}
+
+// ========== 관리자: 담당자 비밀번호 관리 ==========
+function openAdminManagerPasswordModal() {
+  const passwords = getManagerPasswords();
+  const listEl = document.getElementById('adminManagerPasswordList');
+
+  let html = '';
+  HQ_MANAGERS.forEach(manager => {
+    const hasCustomPwd = passwords[manager] && passwords[manager] !== DEFAULT_MANAGER_PASSWORD;
+    html += `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem;border-bottom:1px solid var(--gray-200);">
+        <div>
+          <span style="font-weight:600;">${manager}</span>
+          <span style="font-size:0.75rem;color:${hasCustomPwd ? 'var(--success)' : 'var(--gray-400)'};margin-left:0.5rem;">
+            ${hasCustomPwd ? '(비밀번호 설정됨)' : '(기본 비밀번호)'}
+          </span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="resetManagerPassword('${manager}')">
+          초기화 (0000)
+        </button>
+      </div>`;
+  });
+
+  listEl.innerHTML = html;
+  document.getElementById('adminManagerPasswordModal').classList.add('active');
+}
+
+function closeAdminManagerPasswordModal() {
+  document.getElementById('adminManagerPasswordModal').classList.remove('active');
+}
+
+function resetManagerPassword(managerName) {
+  if (confirm(`${managerName}의 비밀번호를 0000으로 초기화하시겠습니까?`)) {
+    setManagerPassword(managerName, DEFAULT_MANAGER_PASSWORD);
+    showToast(`${managerName}의 비밀번호가 초기화되었습니다.`, 'success');
+    openAdminManagerPasswordModal();
+  }
 }
 
 // ========== 정산 관리 ==========
