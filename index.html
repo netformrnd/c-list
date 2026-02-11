@@ -2506,7 +2506,8 @@ const FB_COLLECTIONS = {
   settlementStatusData: 'settlement-status-data',
   consultingData: 'consulting-data',
   consultingListData: 'consulting-list-data',
-  settings: 'settings'
+  settings: 'settings',
+  editLocks: 'edit-locks'
 };
 
 // ========== Firebase 저장/로드 유틸 ==========
@@ -2569,6 +2570,72 @@ function saveConsultingListDataToStorage() {
   localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
   fbSave(FB_COLLECTIONS.consultingListData, 'data', { items: consultingListData });
 }
+
+// ========== 편집 잠금(Edit Lock) 시스템 ==========
+let currentEditLockKey = null;
+const EDIT_LOCK_TIMEOUT = 5 * 60 * 1000; // 5분 (밀리초)
+
+function getCurrentUserName() {
+  if (typeof currentLoggedInManager !== 'undefined' && currentLoggedInManager) return currentLoggedInManager;
+  if (typeof isAdminAuthenticated !== 'undefined' && isAdminAuthenticated) return '관리자';
+  // 미로그인: 브라우저별 고유 ID
+  let userId = localStorage.getItem('editLockUserId');
+  if (!userId) {
+    userId = '사용자_' + Math.random().toString(36).substr(2, 6);
+    localStorage.setItem('editLockUserId', userId);
+  }
+  return userId;
+}
+
+async function acquireEditLock(lockKey) {
+  try {
+    const userName = getCurrentUserName();
+    const doc = await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).get();
+    if (doc.exists) {
+      const lockData = doc.data();
+      const elapsed = Date.now() - (lockData.timestamp || 0);
+      // 같은 사용자면 잠금 갱신
+      if (lockData.user === userName) {
+        await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
+          user: userName, timestamp: Date.now()
+        });
+        return { locked: false };
+      }
+      // 다른 사용자이고 5분 이내면 차단
+      if (elapsed < EDIT_LOCK_TIMEOUT) {
+        return { locked: true, user: lockData.user };
+      }
+      // 만료된 잠금 → 덮어쓰기
+    }
+    // 잠금 등록
+    await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
+      user: userName, timestamp: Date.now()
+    });
+    return { locked: false };
+  } catch (e) {
+    console.error('잠금 확인 실패:', e);
+    return { locked: false }; // 오류 시 잠금 없이 진행
+  }
+}
+
+async function releaseEditLock(lockKey) {
+  if (!lockKey) return;
+  try {
+    await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).delete();
+  } catch (e) {
+    console.error('잠금 해제 실패:', e);
+  }
+}
+
+// 페이지 종료 시 잠금 해제
+window.addEventListener('beforeunload', function() {
+  if (currentEditLockKey) {
+    // 동기적으로 삭제 시도 (비정상 종료 시 5분 후 만료)
+    try {
+      navigator.sendBeacon && db.collection(FB_COLLECTIONS.editLocks).doc(currentEditLockKey).delete();
+    } catch(e) {}
+  }
+});
 
 // ========== 기존 변수 ==========
 let allData = {};
@@ -3190,8 +3257,16 @@ function updateDeleteButton() { const btn = document.getElementById('deleteSelec
 
 function openAddModal() { document.getElementById('modalTitle').textContent = '새 공사 추가'; document.getElementById('editIndex').value = ''; clearForm(); document.getElementById('editModal').classList.add('active'); }
 
-function openEditModal(idx) {
+async function openEditModal(idx) {
   const item = (allData[currentYear] || [])[idx]; if (!item) return;
+  // 편집 잠금 확인
+  const lockKey = `edit_${currentYear}_${item.no}`;
+  const lockResult = await acquireEditLock(lockKey);
+  if (lockResult.locked) {
+    showToast(`⚠️ ${lockResult.user}님이 수정 중입니다. 잠시 후 다시 시도해주세요.`, 'error');
+    return;
+  }
+  currentEditLockKey = lockKey;
   document.getElementById('modalTitle').textContent = '공사 정보 수정';
   document.getElementById('editIndex').value = idx;
   document.getElementById('editNo').value = item.no || '';
@@ -3222,7 +3297,7 @@ function openEditModal(idx) {
 }
 
 function clearForm() { document.querySelectorAll('#editModal input, #editModal select').forEach(i => i.value = ''); }
-function closeModal() { document.getElementById('editModal').classList.remove('active'); }
+function closeModal() { document.getElementById('editModal').classList.remove('active'); releaseEditLock(currentEditLockKey); currentEditLockKey = null; }
 function updateTaxAmount() { document.getElementById('editAmountTax').value = Math.round(parseNum(document.getElementById('editAmount').value) * 1.1); }
 
 function saveData() {
@@ -4044,7 +4119,15 @@ async function openDetailModal(idx) {
   const data = allData[currentYear] || [];
   const item = data[idx];
   if (!item) return;
-  
+  // 편집 잠금 확인
+  const lockKey = `detail_${currentYear}_${item.no}`;
+  const lockResult = await acquireEditLock(lockKey);
+  if (lockResult.locked) {
+    showToast(`⚠️ ${lockResult.user}님이 상세정보를 수정 중입니다. 잠시 후 다시 시도해주세요.`, 'error');
+    return;
+  }
+  currentEditLockKey = lockKey;
+
   document.getElementById('detailIndex').value = idx;
   document.getElementById('detailModalTitle').textContent = `현장 상세 - ${item.site || ''}`;
   document.getElementById('detailSiteName').textContent = item.site || '-';
@@ -4329,6 +4412,8 @@ function updateChecklistModalProgress() {
 
 function closeDetailModal() {
   document.getElementById('detailModal').classList.remove('active');
+  releaseEditLock(currentEditLockKey);
+  currentEditLockKey = null;
 }
 
 // ========== 현장 상세 사진 첨부 기능 ==========
@@ -13317,11 +13402,17 @@ async function syncAllConsultingListToSettlement() {
 async function openConsultingAddModal(editId = null) {
   // 최신 데이터 로드
   await loadConsultingData();
-  
-  console.log('=== 수정 모달 열기 ===');
-  console.log('요청된 editId:', editId);
-  console.log('현재 consultingData:', consultingData.map(d => ({ id: d.id, site: d.site, year: d.year })));
-  
+  // 편집 잠금 확인 (수정 모드에서만)
+  if (editId) {
+    const lockKey = `consulting_${editId}`;
+    const lockResult = await acquireEditLock(lockKey);
+    if (lockResult.locked) {
+      showToast(`⚠️ ${lockResult.user}님이 수정 중입니다. 잠시 후 다시 시도해주세요.`, 'error');
+      return;
+    }
+    currentEditLockKey = lockKey;
+  }
+
   document.getElementById('consultingAddModal').classList.add('active');
   document.getElementById('consultingEditId').value = '';
   document.getElementById('consultingYear').value = '2025';
@@ -13376,6 +13467,8 @@ async function openConsultingAddModal(editId = null) {
 // 기술컨설팅 모달 닫기
 function closeConsultingAddModal() {
   document.getElementById('consultingAddModal').classList.remove('active');
+  releaseEditLock(currentEditLockKey);
+  currentEditLockKey = null;
 }
 
 // 계산 미리보기
@@ -13897,7 +13990,17 @@ function renderConsultingList() {
 }
 
 // 기술컨설팅 현장 등록/수정 모달
-function openConsultingItemModal(editId = null) {
+async function openConsultingItemModal(editId = null) {
+  // 편집 잠금 확인 (수정 모드에서만)
+  if (editId) {
+    const lockKey = `consultingItem_${editId}`;
+    const lockResult = await acquireEditLock(lockKey);
+    if (lockResult.locked) {
+      showToast(`⚠️ ${lockResult.user}님이 수정 중입니다. 잠시 후 다시 시도해주세요.`, 'error');
+      return;
+    }
+    currentEditLockKey = lockKey;
+  }
   document.getElementById('consultingItemModal').classList.add('active');
   document.getElementById('consultingItemEditId').value = '';
   
@@ -13959,6 +14062,8 @@ function openConsultingItemModal(editId = null) {
 
 function closeConsultingItemModal() {
   document.getElementById('consultingItemModal').classList.remove('active');
+  releaseEditLock(currentEditLockKey);
+  currentEditLockKey = null;
 }
 
 // 기술컨설팅 현장 저장
