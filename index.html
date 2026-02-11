@@ -2573,8 +2573,8 @@ let filteredData = null;
 const HQ_MANAGERS = ['황윤선', '김성민', '이필선', '한준엽', '정정훈', '조재연', '한인규'];
 // 정산 제외 담당자 (본사 정산 대상 아님)
 const EXCLUDE_MANAGERS = ['기타', '박연진', '이승우'];
-// 일괄정산 제외 담당자 (미정산 유지 - 별도 관리)
-const BATCH_EXCLUDE_MANAGERS = ['이승우', '황윤선'];
+// 일괄정산 제외 담당자 (위저드에서 체크 해제로 대체 → 자동 제외 없음)
+const BATCH_EXCLUDE_MANAGERS = [];
 // 외주 담당자 (또는 기타(외) 등)
 const EXT_MANAGERS = ['기타(외)'];
 
@@ -10092,12 +10092,11 @@ function updateBatchManagerList() {
   managers.forEach(mgr => {
     const items = groups[mgr];
     const totalAmt = items.reduce((s, i) => s + (i.realSettlement || 0), 0);
-    const isExcluded = BATCH_EXCLUDE_MANAGERS.includes(mgr);
     const totalProfit = items.reduce((s, i) => s + (i.profit || 0), 0);
-    html += `<label style="display:flex;align-items:center;padding:0.5rem 0.6rem;border-bottom:1px solid #f0f0f0;cursor:pointer;${isExcluded ? 'opacity:0.5;' : ''}">
-      <input type="checkbox" class="batchMgrCheck" value="${mgr}" ${isExcluded ? 'disabled' : 'checked'} onchange="updateBatchStep1Summary()" style="margin-right:0.6rem;">
+    html += `<label style="display:flex;align-items:center;padding:0.5rem 0.6rem;border-bottom:1px solid #f0f0f0;cursor:pointer;">
+      <input type="checkbox" class="batchMgrCheck" value="${mgr}" checked onchange="updateBatchStep1Summary()" style="margin-right:0.6rem;">
       <div style="flex:1;">
-        <div style="font-weight:600;font-size:0.9rem;">${mgr} ${isExcluded ? '<span style="color:#c62828;font-size:0.75rem;">(제외 대상)</span>' : ''}</div>
+        <div style="font-weight:600;font-size:0.9rem;">${mgr}</div>
         <div style="font-size:0.78rem;color:#666;">미정산 ${items.length}건 · 이익금 ${totalProfit.toLocaleString()}원 · <strong style="color:#c62828;">정산(15%) ${Math.round(totalAmt).toLocaleString()}원</strong></div>
       </div>
     </label>`;
