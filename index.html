@@ -1132,7 +1132,16 @@ tr.selected { background: var(--primary-light); }
       <div id="batchStep1">
         <div style="margin-bottom:1rem;">
           <h3 style="margin-bottom:0.5rem;font-size:1rem;">📅 Step 1. 정산 기간 및 담당자 선택</h3>
-          <p style="color:#666;font-size:0.85rem;">정산 기간을 선택하고, 정산할 담당자를 체크해주세요.</p>
+          <p style="color:#666;font-size:0.85rem;">정산 유형과 기간을 선택하고, 정산할 담당자를 체크해주세요.</p>
+        </div>
+        <!-- 정산유형 탭 -->
+        <div style="display:flex;gap:4px;margin-bottom:1rem;">
+          <button type="button" id="batchModeConstruction" onclick="switchBatchMode('construction')" style="flex:1;padding:0.6rem;border:none;background:#c62828;color:white;font-weight:700;cursor:pointer;border-radius:6px 6px 0 0;font-size:0.9rem;">
+            🏗️ 공사정산
+          </button>
+          <button type="button" id="batchModeConsulting" onclick="switchBatchMode('consulting')" style="flex:1;padding:0.6rem;border:none;background:#e0e0e0;color:#666;font-weight:600;cursor:pointer;border-radius:6px 6px 0 0;font-size:0.9rem;">
+            📋 기술컨설팅
+          </button>
         </div>
         <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
           <div style="flex:1;min-width:200px;">
@@ -1147,7 +1156,7 @@ tr.selected { background: var(--primary-light); }
             </select>
           </div>
           <div style="flex:1;min-width:200px;">
-            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem;">구분</label>
+            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem;" id="batchTypeLabel">구분</label>
             <select id="batchTypeFilter" onchange="updateBatchManagerList()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
               <option value="">전체</option>
               <option value="본사">본사</option>
@@ -1171,7 +1180,7 @@ tr.selected { background: var(--primary-light); }
       <!-- Step 2: 담당자별 현장 확인 -->
       <div id="batchStep2" style="display:none;">
         <div style="margin-bottom:0.8rem;">
-          <h3 style="margin-bottom:0.3rem;font-size:1rem;">🏗️ Step 2. 담당자별 현장 확인 및 정산</h3>
+          <h3 id="batchStep2Title" style="margin-bottom:0.3rem;font-size:1rem;">🏗️ Step 2. 담당자별 현장 확인 및 정산</h3>
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
             <div id="batchManagerProgress" style="font-size:0.85rem;color:#666;"></div>
             <div id="batchProgressBar" style="flex:1;max-width:300px;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
@@ -1193,7 +1202,7 @@ tr.selected { background: var(--primary-light); }
         </div>
         <div style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:0.8rem;" id="batchProjectTable">
-            <thead>
+            <thead id="batchProjectHead">
               <tr style="background:#f5f5f5;">
                 <th style="padding:0.4rem;border:1px solid #ddd;width:35px;">✓</th>
                 <th style="padding:0.4rem;border:1px solid #ddd;width:45px;">년도</th>
@@ -9990,6 +9999,28 @@ let batchWizardData = {
   sendIdx: 0             // 현재 발송 인덱스
 };
 
+function switchBatchMode(mode) {
+  batchWizardData.mode = mode;
+  const constBtn = document.getElementById('batchModeConstruction');
+  const consBtn = document.getElementById('batchModeConsulting');
+  const typeFilter = document.getElementById('batchTypeFilter');
+  const typeLabel = document.getElementById('batchTypeLabel');
+  if (mode === 'consulting') {
+    constBtn.style.background = '#e0e0e0'; constBtn.style.color = '#666';
+    consBtn.style.background = '#00897b'; consBtn.style.color = 'white';
+    typeLabel.textContent = '구분';
+    typeFilter.innerHTML = '<option value="">전체</option><option value="일반">일반</option><option value="시지원">시지원</option><option value="사후정산">사후정산</option>';
+    document.getElementById('batchWizardTitle').textContent = '📋 컨설팅 일괄정산 - Step 1/3';
+  } else {
+    constBtn.style.background = '#c62828'; constBtn.style.color = 'white';
+    consBtn.style.background = '#e0e0e0'; consBtn.style.color = '#666';
+    typeLabel.textContent = '구분';
+    typeFilter.innerHTML = '<option value="">전체</option><option value="본사">본사</option><option value="외주">외주</option>';
+    document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 1/3';
+  }
+  updateBatchManagerList();
+}
+
 function openBatchWizard() {
   // 데이터 준비
   if (!settlementData || settlementData.length === 0) {
@@ -9997,6 +10028,7 @@ function openBatchWizard() {
   }
   // 상태 초기화
   batchWizardData = {
+    mode: 'construction',
     allItems: [], managerGroups: {}, selectedManagers: [],
     currentManagerIdx: 0, results: [], sendQueue: [], sendIdx: 0
   };
@@ -10010,17 +10042,23 @@ function openBatchWizard() {
   document.getElementById('btnBatchNextManager').style.display = 'none';
   document.getElementById('btnBatchSendAll').style.display = 'none';
   document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 1/3';
-  updateBatchManagerList();
+  // 탭 초기화 (공사정산)
+  switchBatchMode('construction');
   document.getElementById('batchWizardModal').style.display = 'flex';
 }
 
 async function closeBatchWizard() {
   document.getElementById('batchWizardModal').style.display = 'none';
-  // 정산 테이블 갱신 - settlementStatusData를 확실히 반영
-  settlementData = generateSettlementFromCurrentData();
-  // Firebase에서 최신 정산 상태 로드하여 반영
-  await loadSettlementStatusFromStorage();
-  renderSettlementTable();
+  if (batchWizardData.mode === 'consulting') {
+    // 컨설팅 모드: 컨설팅 테이블 갱신
+    await loadConsultingData();
+    renderConsultingTable();
+  } else {
+    // 공사 모드: 정산 테이블 갱신
+    settlementData = generateSettlementFromCurrentData();
+    await loadSettlementStatusFromStorage();
+    renderSettlementTable();
+  }
 }
 
 function prepareBatchManagerData(yearFilter, typeFilter) {
@@ -10070,10 +10108,40 @@ function prepareBatchManagerData(yearFilter, typeFilter) {
   return data;
 }
 
+function prepareConsultingBatchData(yearFilter, typeFilter) {
+  let data = [...consultingData];
+  // 년도 필터
+  if (yearFilter === '2024+2025') {
+    data = data.filter(item => {
+      const is24 = String(item.year).includes('2024') || String(item.year).includes('24');
+      const is25 = String(item.year).includes('2025') || String(item.year).includes('25');
+      if (is24) return item.settled !== '정산완료';
+      return is25;
+    });
+  } else if (yearFilter === '2024') {
+    data = data.filter(item => String(item.year).includes('2024') || String(item.year).includes('24'));
+  } else if (yearFilter === '2025') {
+    data = data.filter(item => String(item.year).includes('2025') || String(item.year).includes('25'));
+  } else if (yearFilter === '2026' || yearFilter === '2026-1H' || yearFilter === '2026-2H') {
+    data = data.filter(item => String(item.year).includes('2026') || String(item.year).includes('26'));
+  }
+  // 구분 필터 (일반/시지원/사후정산)
+  if (typeFilter) {
+    data = data.filter(item => item.type === typeFilter);
+  }
+  // 미정산 + 이익 있는 항목만
+  data = data.filter(item =>
+    item.settled === '미정산' &&
+    (item.profit || 0) !== 0
+  );
+  return data;
+}
+
 function updateBatchManagerList() {
   const yearFilter = document.getElementById('batchYearFilter').value;
   const typeFilter = document.getElementById('batchTypeFilter').value;
-  const data = prepareBatchManagerData(yearFilter, typeFilter);
+  const isConsulting = batchWizardData.mode === 'consulting';
+  const data = isConsulting ? prepareConsultingBatchData(yearFilter, typeFilter) : prepareBatchManagerData(yearFilter, typeFilter);
   batchWizardData.allItems = data;
   // 담당자별 그룹핑
   const groups = {};
@@ -10094,13 +10162,15 @@ function updateBatchManagerList() {
   let html = '';
   managers.forEach(mgr => {
     const items = groups[mgr];
-    const totalAmt = items.reduce((s, i) => s + (i.realSettlement || 0), 0);
+    const totalSettlement = items.reduce((s, i) => s + Math.round(isConsulting ? (i.settlement || 0) : (i.realSettlement || 0)), 0);
     const totalProfit = items.reduce((s, i) => s + (i.profit || 0), 0);
+    const amtLabel = isConsulting ? '낙찰금액' : '이익금';
+    const mgrColor = isConsulting ? '#00897b' : '#c62828';
     html += `<label style="display:flex;align-items:center;padding:0.5rem 0.6rem;border-bottom:1px solid #f0f0f0;cursor:pointer;">
       <input type="checkbox" class="batchMgrCheck" value="${mgr}" checked onchange="updateBatchStep1Summary()" style="margin-right:0.6rem;">
       <div style="flex:1;">
         <div style="font-weight:600;font-size:0.9rem;">${mgr}</div>
-        <div style="font-size:0.78rem;color:#666;">미정산 ${items.length}건 · 이익금 ${totalProfit.toLocaleString()}원 · <strong style="color:#c62828;">정산(15%) ${Math.round(totalAmt).toLocaleString()}원</strong></div>
+        <div style="font-size:0.78rem;color:#666;">미정산 ${items.length}건 · ${amtLabel} ${totalProfit.toLocaleString()}원 · <strong style="color:${mgrColor};">정산(15%) ${totalSettlement.toLocaleString()}원</strong></div>
       </div>
     </label>`;
   });
@@ -10116,16 +10186,18 @@ function toggleBatchAllManagers(checked) {
 
 function updateBatchStep1Summary() {
   const checked = [...document.querySelectorAll('.batchMgrCheck:checked')].map(cb => cb.value);
+  const isConsulting = batchWizardData.mode === 'consulting';
   let totalCount = 0, totalAmt = 0;
   checked.forEach(mgr => {
     const items = batchWizardData.managerGroups[mgr] || [];
     totalCount += items.length;
-    totalAmt += items.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
+    totalAmt += items.reduce((s, i) => s + Math.round(isConsulting ? (i.settlement || 0) : (i.realSettlement || 0)), 0);
   });
   const summary = document.getElementById('batchStep1Summary');
   if (checked.length > 0) {
     summary.style.display = '';
-    summary.innerHTML = `📊 선택: <strong>${checked.length}명</strong> · 현장 <strong>${totalCount}건</strong> · 정산금액(15%) 합계 <strong style="color:#c62828;">${totalAmt.toLocaleString()}원</strong>`;
+    const summaryColor = isConsulting ? '#00897b' : '#c62828';
+    summary.innerHTML = `📊 선택: <strong>${checked.length}명</strong> · 현장 <strong>${totalCount}건</strong> · 정산금액(15%) 합계 <strong style="color:${summaryColor};">${totalAmt.toLocaleString()}원</strong>`;
   } else {
     summary.style.display = 'none';
   }
@@ -10153,7 +10225,8 @@ function batchWizardPrev() {
     document.getElementById('btnBatchPrev').style.display = 'none';
     document.getElementById('btnBatchExecute').style.display = 'none';
     document.getElementById('btnBatchNextManager').style.display = 'none';
-    document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 1/3';
+    const prevLabel = batchWizardData.mode === 'consulting' ? '📋 컨설팅 일괄정산' : '🔒 일괄정산 실행';
+    document.getElementById('batchWizardTitle').textContent = `${prevLabel} - Step 1/3`;
   }
 }
 
@@ -10168,7 +10241,15 @@ function showBatchStep2() {
   document.getElementById('btnBatchSendAll').style.display = 'none';
   const total = batchWizardData.selectedManagers.length;
   const idx = batchWizardData.currentManagerIdx;
-  document.getElementById('batchWizardTitle').textContent = `🔒 일괄정산 실행 - Step 2/3 (${idx + 1}/${total})`;
+  const modeLabel = batchWizardData.mode === 'consulting' ? '📋 컨설팅 일괄정산' : '🔒 일괄정산 실행';
+  document.getElementById('batchWizardTitle').textContent = `${modeLabel} - Step 2/3 (${idx + 1}/${total})`;
+  // Step2 제목 변경
+  const step2TitleEl = document.getElementById('batchStep2Title');
+  if (step2TitleEl) {
+    step2TitleEl.textContent = batchWizardData.mode === 'consulting'
+      ? '📋 Step 2. 담당자별 컨설팅 현장 확인 및 정산'
+      : '🏗️ Step 2. 담당자별 현장 확인 및 정산';
+  }
   renderBatchManagerProjects();
 }
 
@@ -10178,29 +10259,71 @@ function renderBatchManagerProjects() {
   const mgr = managers[idx];
   const items = batchWizardData.managerGroups[mgr] || [];
   const total = managers.length;
+  const isConsulting = batchWizardData.mode === 'consulting';
   // 진행률
   const pct = Math.round(((idx) / total) * 100);
   document.getElementById('batchManagerProgress').textContent = `${idx + 1} / ${total} 담당자`;
   document.getElementById('batchProgressFill').style.width = pct + '%';
   // 담당자 정보
-  const totalAmt = items.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
+  const totalAmt = items.reduce((s, i) => s + Math.round(isConsulting ? (i.settlement || 0) : (i.realSettlement || 0)), 0);
   document.getElementById('batchCurrentManagerName').textContent = `👤 ${mgr}`;
   document.getElementById('batchCurrentManagerInfo').textContent = `${items.length}건 · 정산(15%) ${totalAmt.toLocaleString()}원`;
-  // 테이블
+  // 테이블 헤더 변경
+  const thead = document.getElementById('batchProjectHead');
+  if (thead) {
+    if (isConsulting) {
+      thead.innerHTML = `<tr style="background:#00897b;color:white;">
+        <th style="padding:0.3rem;border:1px solid #00897b;width:35px;"><input type="checkbox" id="batchSelectAllProjects" onchange="toggleBatchAllProjects(this.checked)" checked></th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">년도</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">구분</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">현장명</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">낙찰금액</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">이익금</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">이익률</th>
+        <th style="padding:0.3rem;border:1px solid #00897b;">정산(15%)</th>
+      </tr>`;
+    } else {
+      thead.innerHTML = `<tr style="background:#c62828;color:white;">
+        <th style="padding:0.3rem;border:1px solid #c62828;width:35px;"><input type="checkbox" id="batchSelectAllProjects" onchange="toggleBatchAllProjects(this.checked)" checked></th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">년도</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">NO</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">현장명</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">공사금액</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">이익금</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">이익률</th>
+        <th style="padding:0.3rem;border:1px solid #c62828;">정산(15%)</th>
+      </tr>`;
+    }
+  }
+  // 테이블 바디
   const tbody = document.getElementById('batchProjectBody');
   let html = '';
   items.forEach((item, i) => {
-    const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
-    html += `<tr style="border-bottom:1px solid #eee;">
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;"><input type="checkbox" class="batchProjCheck" data-idx="${i}" checked onchange="updateBatchStep2Summary()"></td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.year}</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.no}</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.site}">${item.site || '-'}</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${(item.amount || 0).toLocaleString()}</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${Math.round(item.profit || 0).toLocaleString()}</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;">${rate}%</td>
-      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-weight:700;color:#c62828;font-family:monospace;">${Math.round(item.realSettlement || 0).toLocaleString()}</td>
-    </tr>`;
+    if (isConsulting) {
+      const rate = (item.bidAmount || 0) > 0 ? ((item.profit / item.bidAmount) * 100).toFixed(1) : '0.0';
+      html += `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;"><input type="checkbox" class="batchProjCheck" data-idx="${i}" checked onchange="updateBatchStep2Summary()"></td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.year}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.type || '-'}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.site}">${item.site || '-'}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${(item.bidAmount || 0).toLocaleString()}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${Math.round(item.profit || 0).toLocaleString()}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;">${rate}%</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-weight:700;color:#00897b;font-family:monospace;">${Math.round(item.settlement || 0).toLocaleString()}</td>
+      </tr>`;
+    } else {
+      const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
+      html += `<tr style="border-bottom:1px solid #eee;">
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;"><input type="checkbox" class="batchProjCheck" data-idx="${i}" checked onchange="updateBatchStep2Summary()"></td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.year}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.no}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.site}">${item.site || '-'}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${(item.amount || 0).toLocaleString()}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${Math.round(item.profit || 0).toLocaleString()}</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;">${rate}%</td>
+        <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-weight:700;color:#c62828;font-family:monospace;">${Math.round(item.realSettlement || 0).toLocaleString()}</td>
+      </tr>`;
+    }
   });
   tbody.innerHTML = html;
   document.getElementById('batchSelectAllProjects').checked = true;
@@ -10216,67 +10339,97 @@ function updateBatchStep2Summary() {
   const mgr = batchWizardData.selectedManagers[batchWizardData.currentManagerIdx];
   const items = batchWizardData.managerGroups[mgr] || [];
   const checked = [...document.querySelectorAll('.batchProjCheck:checked')].map(cb => parseInt(cb.dataset.idx));
+  const isConsulting = batchWizardData.mode === 'consulting';
   let totalAmt = 0;
-  checked.forEach(idx => { totalAmt += Math.round((items[idx]?.realSettlement) || 0); });
+  checked.forEach(idx => { totalAmt += Math.round((isConsulting ? items[idx]?.settlement : items[idx]?.realSettlement) || 0); });
+  const themeColor = isConsulting ? '#00897b' : '#c62828';
   document.getElementById('batchSelectedCount').textContent = `${checked.length}/${items.length}건 선택`;
-  document.getElementById('batchStep2Summary').innerHTML = `📊 선택된 현장: <strong>${checked.length}건</strong> · 정산금액(15%) 합계: <strong style="color:#c62828;">${totalAmt.toLocaleString()}원</strong>`;
+  document.getElementById('batchStep2Summary').innerHTML = `📊 선택된 현장: <strong>${checked.length}건</strong> · 정산금액(15%) 합계: <strong style="color:${themeColor};">${totalAmt.toLocaleString()}원</strong>`;
 }
 
 async function executeBatchForCurrentManager() {
   const mgr = batchWizardData.selectedManagers[batchWizardData.currentManagerIdx];
   const items = batchWizardData.managerGroups[mgr] || [];
   const checkedIdxs = [...document.querySelectorAll('.batchProjCheck:checked')].map(cb => parseInt(cb.dataset.idx));
+  const isConsulting = batchWizardData.mode === 'consulting';
   if (checkedIdxs.length === 0) {
     showToast('정산할 현장을 1건 이상 선택해주세요.', 'error');
     return;
   }
   const selectedItems = checkedIdxs.map(i => items[i]).filter(Boolean);
-  const totalAmt = selectedItems.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
-  if (!confirm(`📋 ${mgr} 소장 정산 실행\n\n대상: ${selectedItems.length}건\n정산금액(15%): ${totalAmt.toLocaleString()}원\n\n진행하시겠습니까?`)) return;
-  // detailData 로드 확인
-  if (!detailData || Object.keys(detailData).length === 0) await loadDetailData();
+  const totalAmt = selectedItems.reduce((s, i) => s + Math.round(isConsulting ? (i.settlement || 0) : (i.realSettlement || 0)), 0);
+  const modeLabel = isConsulting ? '컨설팅' : '공사';
+  if (!confirm(`📋 ${mgr} ${modeLabel} 정산 실행\n\n대상: ${selectedItems.length}건\n정산금액(15%): ${totalAmt.toLocaleString()}원\n\n진행하시겠습니까?`)) return;
+
   let successCount = 0, failCount = 0;
   const resultItems = [];
-  for (const item of selectedItems) {
-    try {
-      const fullYear = '20' + item.year;
-      const key = `${fullYear}_${item.no}`;
-      const detail = detailData[key];
-      if (!detail) { failCount++; resultItems.push({ ...item, success: false, reason: '총괄표 없음' }); continue; }
-      const settlementAmt = Math.round(item.realSettlement || 0);
-      // 기타경비에 영업정산 추가
-      if (!detail.expenses) detail.expenses = [];
-      detail.expenses = detail.expenses.filter(exp => !(exp.type === '기타경비' && exp.content && exp.content.includes('영업정산')));
-      const today = new Date().toISOString().split('T')[0];
-      detail.expenses.push({ type: '기타경비', date: today, amount: String(settlementAmt), content: '영업정산(15%)', payDate: '' });
-      detailData[key] = detail;
-      // 정산 상태 변경
-      const statusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
-      const statusKey = `${item.year}_${item.no}`;
-      statusData[statusKey] = '정산완료';
-      localStorage.setItem('settlementStatusData', JSON.stringify(statusData));
-      const memItem = settlementData.find(d => String(d.year) === String(item.year) && String(d.no) === String(item.no));
-      if (memItem) memItem.settled = '정산완료';
-      successCount++;
-      resultItems.push({ ...item, success: true, settlementAmt });
-    } catch (e) {
-      failCount++;
-      resultItems.push({ ...item, success: false, reason: e.message });
+
+  if (isConsulting) {
+    // ===== 컨설팅 모드: consultingData에서 settled 상태만 변경 =====
+    for (const item of selectedItems) {
+      try {
+        const settlementAmt = Math.round(item.settlement || 0);
+        // consultingData에서 해당 항목 찾아서 settled 변경
+        const cItem = consultingData.find(c => c.id === item.id);
+        if (!cItem) { failCount++; resultItems.push({ ...item, success: false, reason: '데이터 없음' }); continue; }
+        cItem.settled = '정산완료';
+        successCount++;
+        resultItems.push({ ...item, success: true, settlementAmt });
+      } catch (e) {
+        failCount++;
+        resultItems.push({ ...item, success: false, reason: e.message });
+      }
     }
+    // Firebase 저장
+    try {
+      saveConsultingDataToStorage();
+      console.log('[컨설팅 일괄정산] 저장 완료:', successCount, '건 정산완료');
+    } catch (e) { console.error('컨설팅 저장 실패:', e); }
+  } else {
+    // ===== 공사 모드: 기존 로직 =====
+    if (!detailData || Object.keys(detailData).length === 0) await loadDetailData();
+    for (const item of selectedItems) {
+      try {
+        const fullYear = '20' + item.year;
+        const key = `${fullYear}_${item.no}`;
+        const detail = detailData[key];
+        if (!detail) { failCount++; resultItems.push({ ...item, success: false, reason: '총괄표 없음' }); continue; }
+        const settlementAmt = Math.round(item.realSettlement || 0);
+        // 기타경비에 영업정산 추가
+        if (!detail.expenses) detail.expenses = [];
+        detail.expenses = detail.expenses.filter(exp => !(exp.type === '기타경비' && exp.content && exp.content.includes('영업정산')));
+        const today = new Date().toISOString().split('T')[0];
+        detail.expenses.push({ type: '기타경비', date: today, amount: String(settlementAmt), content: '영업정산(15%)', payDate: '' });
+        detailData[key] = detail;
+        // 정산 상태 변경
+        const statusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+        const statusKey = `${item.year}_${item.no}`;
+        statusData[statusKey] = '정산완료';
+        localStorage.setItem('settlementStatusData', JSON.stringify(statusData));
+        const memItem = settlementData.find(d => String(d.year) === String(item.year) && String(d.no) === String(item.no));
+        if (memItem) memItem.settled = '정산완료';
+        successCount++;
+        resultItems.push({ ...item, success: true, settlementAmt });
+      } catch (e) {
+        failCount++;
+        resultItems.push({ ...item, success: false, reason: e.message });
+      }
+    }
+    // Firebase 저장
+    try {
+      await saveDetailDataToStorage();
+      const finalStatus = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+      await fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatus);
+      console.log('[일괄정산] Firebase 정산상태 저장 완료:', Object.keys(finalStatus).filter(k => finalStatus[k] === '정산완료').length, '건 정산완료');
+    } catch (e) { console.error('저장 실패:', e); }
+    // settlementData 메모리에도 즉시 반영
+    settlementData.forEach(sd => {
+      const sk = `${sd.year}_${sd.no}`;
+      const statusCheck = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+      if (statusCheck[sk]) sd.settled = statusCheck[sk];
+    });
   }
-  // Firebase 저장
-  try {
-    await saveDetailDataToStorage();
-    const finalStatus = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
-    await fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatus);
-    console.log('[일괄정산] Firebase 정산상태 저장 완료:', Object.keys(finalStatus).filter(k => finalStatus[k] === '정산완료').length, '건 정산완료');
-  } catch (e) { console.error('저장 실패:', e); }
-  // settlementData 메모리에도 즉시 반영 (위저드 내에서도 상태 표시용)
-  settlementData.forEach(sd => {
-    const sk = `${sd.year}_${sd.no}`;
-    const statusCheck = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
-    if (statusCheck[sk]) sd.settled = statusCheck[sk];
-  });
+
   // 결과 저장
   batchWizardData.results.push({ manager: mgr, count: successCount, failCount, amount: totalAmt, items: resultItems });
   showToast(`${mgr}: ${successCount}건 정산완료`, 'success');
@@ -10306,7 +10459,10 @@ function showBatchStep3() {
   document.getElementById('btnBatchExecute').style.display = 'none';
   document.getElementById('btnBatchNextManager').style.display = 'none';
   document.getElementById('btnBatchSendAll').style.display = '';
-  document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 3/3 ✅';
+  const isConsulting = batchWizardData.mode === 'consulting';
+  const step3Label = isConsulting ? '📋 컨설팅 일괄정산' : '🔒 일괄정산 실행';
+  const themeColor = isConsulting ? '#00897b' : '#c62828';
+  document.getElementById('batchWizardTitle').textContent = `${step3Label} - Step 3/3 ✅`;
   // 진행률 100%
   document.getElementById('batchProgressFill').style.width = '100%';
   // 결과 요약 렌더링
@@ -10321,14 +10477,14 @@ function showBatchStep3() {
     html += `<tr>
       <td style="padding:0.4rem;border:1px solid #ddd;font-weight:600;">👤 ${r.manager}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${r.count}건</td>
-      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#c62828;font-weight:700;">${r.amount.toLocaleString()}원</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:${themeColor};font-weight:700;">${r.amount.toLocaleString()}원</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${r.failCount > 0 ? `✅${r.count} ❌${r.failCount}` : '✅ 완료'}</td>
     </tr>`;
   });
   html += `<tr style="background:#e8f5e9;font-weight:700;">
     <td style="padding:0.4rem;border:1px solid #ddd;">합계</td>
     <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${totalCount}건</td>
-    <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#c62828;">${totalAmt.toLocaleString()}원</td>
+    <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:${themeColor};">${totalAmt.toLocaleString()}원</td>
     <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${totalFail > 0 ? `실패 ${totalFail}건` : '전체 완료'}</td>
   </tr>`;
   html += '</table></div>';
@@ -10438,6 +10594,8 @@ function skipToNextSendManager() {
 function generateBatchPDFHTML(result) {
   const items = result.items.filter(i => i.success);
   if (items.length === 0) return '';
+  const isConsulting = batchWizardData.mode === 'consulting';
+  const themeColor = isConsulting ? '#00897b' : '#c62828';
   const mgr = result.manager;
   const today = new Date();
   const reportDate = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
@@ -10447,38 +10605,69 @@ function generateBatchPDFHTML(result) {
   else if (yearFilter === '2026-1H') periodText = '2026년 상반기 (1~6월)';
   else if (yearFilter === '2026-2H') periodText = '2026년 하반기 (7~12월)';
   let totalAmount = 0, totalProfit = 0, totalSettlement = 0;
-  items.forEach(i => { totalAmount += i.amount || 0; totalProfit += i.profit || 0; totalSettlement += i.settlementAmt || 0; });
-  const avgRate = totalAmount > 0 ? ((totalProfit / totalAmount) * 100).toFixed(1) : '0.0';
+  items.forEach(i => {
+    totalAmount += (isConsulting ? (i.bidAmount || 0) : (i.amount || 0));
+    totalProfit += i.profit || 0;
+    totalSettlement += i.settlementAmt || 0;
+  });
+
+  const titleText = isConsulting ? '기술컨설팅 정산 확인서' : '공사 정산 확인서';
+  const amountLabel = isConsulting ? '낙찰금액' : '공사금액';
   // 년도별 분리
   const data24 = items.filter(i => String(i.year).includes('24'));
   const data25 = items.filter(i => String(i.year).includes('25'));
   const data26 = items.filter(i => String(i.year).includes('26'));
   let html = `<div style="padding:10px;">
-    <h2 style="text-align:center;margin-bottom:3px;font-size:16px;">공사 정산 확인서</h2>
+    <h2 style="text-align:center;margin-bottom:3px;font-size:16px;">${titleText}</h2>
     <p style="text-align:center;font-size:10px;color:#666;margin-bottom:10px;">${reportDate} · ${periodText}</p>
     <table style="margin-bottom:10px;border:none;">
       <tr><td style="border:none;font-size:11px;"><strong>담당자:</strong> ${mgr}</td>
-      <td style="border:none;font-size:11px;text-align:right;"><strong>정산 건수:</strong> ${items.length}건 · <strong>정산금액(15%):</strong> <span style="color:#c62828;">${totalSettlement.toLocaleString()}원</span></td></tr>
+      <td style="border:none;font-size:11px;text-align:right;"><strong>정산 건수:</strong> ${items.length}건 · <strong>정산금액(15%):</strong> <span style="color:${themeColor};">${totalSettlement.toLocaleString()}원</span></td></tr>
     </table>`;
-  const renderYearTable = (yearItems, yearLabel) => {
-    if (yearItems.length === 0) return '';
-    let yTotal = 0, yProfit = 0, ySettle = 0;
-    let t = `<h4 style="font-size:11px;margin:8px 0 3px;">${yearLabel}</h4>`;
-    t += '<table><tr style="background:#f0f0f0;"><th>NO</th><th>현장명</th><th style="text-align:right;">공사금액</th><th style="text-align:right;">이익금</th><th style="text-align:right;">이익률</th><th style="text-align:right;color:#c62828;">정산(15%)</th></tr>';
-    yearItems.forEach(item => {
-      const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
-      yTotal += item.amount || 0; yProfit += item.profit || 0; ySettle += item.settlementAmt || 0;
-      t += `<tr><td style="text-align:center;">${item.no}</td><td>${item.site || '-'}</td><td style="text-align:right;font-family:monospace;">${(item.amount||0).toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(item.profit||0).toLocaleString()}</td><td style="text-align:right;">${rate}%</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#c62828;">${(item.settlementAmt||0).toLocaleString()}</td></tr>`;
-    });
-    t += `<tr style="background:#e8f5e9;font-weight:700;"><td colspan="2">소계 (${yearItems.length}건)</td><td style="text-align:right;font-family:monospace;">${yTotal.toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(yProfit).toLocaleString()}</td><td style="text-align:right;">${yTotal > 0 ? ((yProfit/yTotal)*100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-family:monospace;color:#c62828;">${ySettle.toLocaleString()}</td></tr>`;
-    t += '</table>';
-    return t;
-  };
-  if (data24.length > 0) html += renderYearTable(data24, '2024년');
-  if (data25.length > 0) html += renderYearTable(data25, '2025년');
-  if (data26.length > 0) html += renderYearTable(data26, '2026년');
-  html += `<div style="margin-top:12px;padding:8px;background:#e3f2fd;border-radius:4px;text-align:center;">
-    <strong>총 정산금액(15%): <span style="color:#c62828;font-size:14px;">${totalSettlement.toLocaleString()}원</span></strong>
+
+  if (isConsulting) {
+    // 컨설팅 모드: 구분 컬럼 포함
+    const renderConsultingYearTable = (yearItems, yearLabel) => {
+      if (yearItems.length === 0) return '';
+      let yTotal = 0, yProfit = 0, ySettle = 0;
+      let t = `<h4 style="font-size:11px;margin:8px 0 3px;">${yearLabel}</h4>`;
+      t += `<table><tr style="background:#e0f2f1;"><th>구분</th><th>현장명</th><th style="text-align:right;">낙찰금액</th><th style="text-align:right;">이익금</th><th style="text-align:right;">이익률</th><th style="text-align:right;color:${themeColor};">정산(15%)</th></tr>`;
+      yearItems.forEach(item => {
+        const amt = item.bidAmount || 0;
+        const rate = amt > 0 ? ((item.profit / amt) * 100).toFixed(1) : '0.0';
+        yTotal += amt; yProfit += item.profit || 0; ySettle += item.settlementAmt || 0;
+        t += `<tr><td style="text-align:center;">${item.type || '-'}</td><td>${item.site || '-'}</td><td style="text-align:right;font-family:monospace;">${amt.toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(item.profit||0).toLocaleString()}</td><td style="text-align:right;">${rate}%</td><td style="text-align:right;font-family:monospace;font-weight:700;color:${themeColor};">${(item.settlementAmt||0).toLocaleString()}</td></tr>`;
+      });
+      t += `<tr style="background:#e8f5e9;font-weight:700;"><td colspan="2">소계 (${yearItems.length}건)</td><td style="text-align:right;font-family:monospace;">${yTotal.toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(yProfit).toLocaleString()}</td><td style="text-align:right;">${yTotal > 0 ? ((yProfit/yTotal)*100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-family:monospace;color:${themeColor};">${ySettle.toLocaleString()}</td></tr>`;
+      t += '</table>';
+      return t;
+    };
+    if (data24.length > 0) html += renderConsultingYearTable(data24, '2024년');
+    if (data25.length > 0) html += renderConsultingYearTable(data25, '2025년');
+    if (data26.length > 0) html += renderConsultingYearTable(data26, '2026년');
+  } else {
+    // 공사 모드: 기존 로직
+    const renderYearTable = (yearItems, yearLabel) => {
+      if (yearItems.length === 0) return '';
+      let yTotal = 0, yProfit = 0, ySettle = 0;
+      let t = `<h4 style="font-size:11px;margin:8px 0 3px;">${yearLabel}</h4>`;
+      t += '<table><tr style="background:#f0f0f0;"><th>NO</th><th>현장명</th><th style="text-align:right;">공사금액</th><th style="text-align:right;">이익금</th><th style="text-align:right;">이익률</th><th style="text-align:right;color:#c62828;">정산(15%)</th></tr>';
+      yearItems.forEach(item => {
+        const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
+        yTotal += item.amount || 0; yProfit += item.profit || 0; ySettle += item.settlementAmt || 0;
+        t += `<tr><td style="text-align:center;">${item.no}</td><td>${item.site || '-'}</td><td style="text-align:right;font-family:monospace;">${(item.amount||0).toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(item.profit||0).toLocaleString()}</td><td style="text-align:right;">${rate}%</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#c62828;">${(item.settlementAmt||0).toLocaleString()}</td></tr>`;
+      });
+      t += `<tr style="background:#e8f5e9;font-weight:700;"><td colspan="2">소계 (${yearItems.length}건)</td><td style="text-align:right;font-family:monospace;">${yTotal.toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(yProfit).toLocaleString()}</td><td style="text-align:right;">${yTotal > 0 ? ((yProfit/yTotal)*100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-family:monospace;color:#c62828;">${ySettle.toLocaleString()}</td></tr>`;
+      t += '</table>';
+      return t;
+    };
+    if (data24.length > 0) html += renderYearTable(data24, '2024년');
+    if (data25.length > 0) html += renderYearTable(data25, '2025년');
+    if (data26.length > 0) html += renderYearTable(data26, '2026년');
+  }
+
+  html += `<div style="margin-top:12px;padding:8px;background:${isConsulting ? '#e0f2f1' : '#e3f2fd'};border-radius:4px;text-align:center;">
+    <strong>총 정산금액(15%): <span style="color:${themeColor};font-size:14px;">${totalSettlement.toLocaleString()}원</span></strong>
   </div>`;
   html += `<div style="margin-top:20px;text-align:center;font-size:10px;color:#999;">
     <p>상기 내역을 확인합니다.</p>
