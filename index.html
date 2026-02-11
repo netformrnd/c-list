@@ -5323,14 +5323,12 @@ function loadFieldSettlementData(manager) {
   const idx = document.getElementById('detailIndex').value;
   const data = allData[currentYear] || [];
   const item = data[idx];
-  if (!item || !manager) { console.log('[현장소장] 로드 실패: item 또는 manager 없음', idx, manager); return false; }
+  if (!item || !manager) return false;
 
   const key = `${currentYear}_${item.no}`;
-  console.log('[현장소장] 로드 시도:', key, manager, '저장 키 목록:', Object.keys(fieldSettlementByManager));
 
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
-    console.log('[현장소장] 저장 데이터 발견:', { works: saved.works?.length, materials: saved.materials?.length, labors: saved.labors?.length });
 
     fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works || []));
     fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials || []));
@@ -5342,12 +5340,8 @@ function loadFieldSettlementData(manager) {
     document.getElementById('fieldMemo').value = fieldSettlementData.memo;
     renderFieldPhotoPreview();
 
-    console.log('[현장소장] 데이터 로드 완료 - works:', fieldSettlementData.works.length, 'materials:', fieldSettlementData.materials.length, 'labors:', fieldSettlementData.labors.length);
-    console.log('[현장소장] works 상세:', JSON.stringify(fieldSettlementData.works));
-    console.log('[현장소장] labors 상세:', JSON.stringify(fieldSettlementData.labors.map(l => ({ content: l.content, amount: l.amount }))));
     return true;
   }
-  console.log('[현장소장] 저장 데이터 없음. key:', key, 'manager:', manager);
   return false;
 }
 
@@ -5760,7 +5754,6 @@ function closeFieldSettlementModal() {
 function renderFieldWorkTable() {
   const tbody = document.getElementById('fieldWorkTableBody');
   tbody.innerHTML = '';
-  console.log('[현장소장 렌더링] works:', fieldSettlementData.works.length, '건, 상세:', JSON.stringify(fieldSettlementData.works));
 
   fieldSettlementData.works.forEach((work, i) => {
     const tr = document.createElement('tr');
@@ -5819,7 +5812,6 @@ function updateFieldMaterial(idx, field, value) {
 function renderFieldLaborTable() {
   const tbody = document.getElementById('fieldLaborTableBody');
   tbody.innerHTML = '';
-  console.log('[현장소장 렌더링] labors:', fieldSettlementData.labors.length, '건');
 
   fieldSettlementData.labors.forEach((labor, i) => {
     const tr = document.createElement('tr');
