@@ -3114,9 +3114,9 @@ function saveData() {
           result.manualPaid = existingPayment.manualPaid || false;
         }
       } else {
-        // 입금일 없으면 기존 플래그 유지
+        // ★ 입금일이 없으면(지웠으면) manualPaid 리셋 → 미입금 상태로 복귀
         result.isRed = existingPayment.isRed || false;
-        result.manualPaid = existingPayment.manualPaid || false;
+        result.manualPaid = false;
       }
     } else {
       // 신규 항목: 입금일이 있으면 manualPaid 설정
@@ -3298,20 +3298,31 @@ function applyRedCellInfo() {
         if (!paymentObj) return;
         const hasPaidDate = paymentObj.paid && paymentObj.paid !== '' && paymentObj.paid !== '미정';
         const wasManualPaid = paymentObj.manualPaid === true;
+        const isRedInInfo = redFlags[field] === true;
 
         // MANUAL_PAID_INFO에 있으면 무조건 manualPaid
         if (paidFlags[field]) {
           paymentObj.manualPaid = true;
           paymentObj.isRed = false;
         }
-        // 입금일이 이미 있거나 기존 manualPaid면 isRed 적용 안함
-        else if (hasPaidDate || wasManualPaid) {
-          paymentObj.isRed = false;
-          paymentObj.manualPaid = wasManualPaid || hasPaidDate;
+        // ★ RED_CELL_INFO에 미입금으로 등록 + 입금일 없음 → 미입금 (manualPaid 리셋)
+        else if (isRedInInfo && !hasPaidDate) {
+          paymentObj.isRed = true;
+          paymentObj.manualPaid = false;
         }
-        // 그 외: RED_CELL_INFO 적용
+        // 입금일이 있으면 완료 처리
+        else if (hasPaidDate) {
+          paymentObj.isRed = false;
+          paymentObj.manualPaid = true;
+        }
+        // 기존 manualPaid이고 RED_CELL_INFO에 없으면 유지
+        else if (wasManualPaid && !isRedInInfo) {
+          paymentObj.isRed = false;
+          paymentObj.manualPaid = true;
+        }
+        // 그 외: 초기화
         else {
-          paymentObj.isRed = redFlags[field] || false;
+          paymentObj.isRed = false;
           paymentObj.manualPaid = false;
         }
       };
