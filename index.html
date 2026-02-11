@@ -5323,40 +5323,14 @@ function loadFieldSettlementData(manager) {
   const idx = document.getElementById('detailIndex').value;
   const data = allData[currentYear] || [];
   const item = data[idx];
-  if (!item || !manager) return false;
+  if (!item || !manager) { console.log('[현장소장] 로드 실패: item 또는 manager 없음', idx, manager); return false; }
 
   const key = `${currentYear}_${item.no}`;
+  console.log('[현장소장] 로드 시도:', key, manager, '저장 키 목록:', Object.keys(fieldSettlementByManager));
 
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
-
-    // 저장된 데이터의 금액이 비정상인지 체크 (parseFloat 버그로 만원단위 잘림 감지)
-    let corrupted = false;
-    if (saved.labors && saved.labors.length > 0) {
-      // 투입내역의 실제 노무비와 비교
-      let actualLaborTotal = 0;
-      document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
-        const typeSelect = tr.querySelector('td:nth-child(1) select');
-        const inputs = tr.querySelectorAll('input');
-        const type = typeSelect?.value || '자재비';
-        if (type === '노무비') actualLaborTotal += parseAmt(inputs[1]?.value);
-      });
-      const savedLaborTotal = saved.labors.reduce((s, l) => s + (l.amount || 0), 0);
-      if (actualLaborTotal > 10000 && savedLaborTotal > 0 && savedLaborTotal < actualLaborTotal / 100) {
-        corrupted = true;
-        console.log('[현장소장] 저장된 데이터 금액 이상 감지 - 재초기화:', savedLaborTotal, 'vs', actualLaborTotal);
-      }
-    }
-
-    if (corrupted) {
-      // 금액 손상 → 재초기화 (비고/사진은 유지)
-      initFieldSettlementData();
-      fieldSettlementData.memo = saved.memo || '';
-      fieldSettlementData.photos = saved.photos || [];
-      document.getElementById('fieldMemo').value = fieldSettlementData.memo;
-      renderFieldPhotoPreview();
-      return true;
-    }
+    console.log('[현장소장] 저장 데이터 발견:', { works: saved.works?.length, materials: saved.materials?.length, labors: saved.labors?.length });
 
     fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works || []));
     fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials || []));
@@ -5368,8 +5342,10 @@ function loadFieldSettlementData(manager) {
     document.getElementById('fieldMemo').value = fieldSettlementData.memo;
     renderFieldPhotoPreview();
 
+    console.log('[현장소장] 데이터 로드 완료 - works:', fieldSettlementData.works.length, 'materials:', fieldSettlementData.materials.length, 'labors:', fieldSettlementData.labors.length);
     return true;
   }
+  console.log('[현장소장] 저장 데이터 없음. key:', key, 'manager:', manager);
   return false;
 }
 
