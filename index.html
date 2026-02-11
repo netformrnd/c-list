@@ -9854,16 +9854,15 @@ async function batchSettlement() {
     targetData = targetData.filter(item => item.manager === managerFilter);
   }
 
-  // 미정산 항목만 대상 (정산관리에서 '미정산' 상태 기준)
-  // 진행중 현장 제외: paid(잔금완료), interim(중도금)만 정산 대상
+  // 미정산 항목만 대상 (정산관리 상태 기준)
+  // '미정산'만 포함, '정산완료'와 '진행중'은 제외
   const unsettledItems = targetData.filter(item =>
-    item.settled !== '정산완료' &&
+    item.settled === '미정산' &&
     !item.isExcluded &&
     !item.excludedByUser &&
     !BATCH_EXCLUDE_MANAGERS.includes(item.manager) &&
     item.hasDetailData &&
-    item.profit !== 0 &&
-    (item.detailStatus === 'paid' || item.detailStatus === 'interim')
+    item.profit !== 0
   );
 
   if (unsettledItems.length === 0) {
@@ -10058,16 +10057,15 @@ function prepareBatchManagerData(yearFilter, typeFilter) {
   // 구분 필터
   if (typeFilter === '본사') data = data.filter(i => i.hqType === '본사');
   else if (typeFilter === '외주') data = data.filter(i => i.hqType === '외주');
-  // 미정산 + 대상 필터 (정산관리에서 '미정산' 상태 기준)
-  // 진행중 현장 제외: paid(잔금완료), interim(중도금)만 정산 대상
-  // contract(계약금만), progress(진행중), unpaid(미입금)는 제외
+  // 미정산 항목만 대상 (정산관리 상태 기준)
+  // '미정산'만 포함, '정산완료'와 '진행중'은 제외
+  // 진행중 현장은 정산관리에서 사용자가 직접 '진행중'으로 설정
   data = data.filter(item =>
-    item.settled !== '정산완료' &&
+    item.settled === '미정산' &&
     !item.isExcluded &&
     !item.excludedByUser &&
     item.hasDetailData &&
-    item.profit !== 0 &&
-    (item.detailStatus === 'paid' || item.detailStatus === 'interim')
+    item.profit !== 0
   );
   return data;
 }
