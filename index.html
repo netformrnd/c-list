@@ -5343,6 +5343,8 @@ function loadFieldSettlementData(manager) {
     renderFieldPhotoPreview();
 
     console.log('[현장소장] 데이터 로드 완료 - works:', fieldSettlementData.works.length, 'materials:', fieldSettlementData.materials.length, 'labors:', fieldSettlementData.labors.length);
+    console.log('[현장소장] works 상세:', JSON.stringify(fieldSettlementData.works));
+    console.log('[현장소장] labors 상세:', JSON.stringify(fieldSettlementData.labors.map(l => ({ content: l.content, amount: l.amount }))));
     return true;
   }
   console.log('[현장소장] 저장 데이터 없음. key:', key, 'manager:', manager);
@@ -5758,7 +5760,8 @@ function closeFieldSettlementModal() {
 function renderFieldWorkTable() {
   const tbody = document.getElementById('fieldWorkTableBody');
   tbody.innerHTML = '';
-  
+  console.log('[현장소장 렌더링] works:', fieldSettlementData.works.length, '건, 상세:', JSON.stringify(fieldSettlementData.works));
+
   fieldSettlementData.works.forEach((work, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -5816,7 +5819,8 @@ function updateFieldMaterial(idx, field, value) {
 function renderFieldLaborTable() {
   const tbody = document.getElementById('fieldLaborTableBody');
   tbody.innerHTML = '';
-  
+  console.log('[현장소장 렌더링] labors:', fieldSettlementData.labors.length, '건');
+
   fieldSettlementData.labors.forEach((labor, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
