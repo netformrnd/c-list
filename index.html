@@ -10015,11 +10015,13 @@ function openBatchWizard() {
   document.getElementById('batchWizardModal').style.display = 'flex';
 }
 
-function closeBatchWizard() {
+async function closeBatchWizard() {
   document.getElementById('batchWizardModal').style.display = 'none';
-  // 정산 테이블 갱신
+  // 정산 테이블 갱신 - settlementStatusData를 확실히 반영
   settlementData = generateSettlementFromCurrentData();
-  renderSettlementTable(settlementData);
+  // Firebase에서 최신 정산 상태 로드하여 반영
+  await loadSettlementStatusFromStorage();
+  renderSettlementTable();
 }
 
 function prepareBatchManagerData(yearFilter, typeFilter) {
@@ -10268,8 +10270,15 @@ async function executeBatchForCurrentManager() {
   try {
     await saveDetailDataToStorage();
     const finalStatus = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
-    fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatus);
+    await fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatus);
+    console.log('[일괄정산] Firebase 정산상태 저장 완료:', Object.keys(finalStatus).filter(k => finalStatus[k] === '정산완료').length, '건 정산완료');
   } catch (e) { console.error('저장 실패:', e); }
+  // settlementData 메모리에도 즉시 반영 (위저드 내에서도 상태 표시용)
+  settlementData.forEach(sd => {
+    const sk = `${sd.year}_${sd.no}`;
+    const statusCheck = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+    if (statusCheck[sk]) sd.settled = statusCheck[sk];
+  });
   // 결과 저장
   batchWizardData.results.push({ manager: mgr, count: successCount, failCount, amount: totalAmt, items: resultItems });
   showToast(`${mgr}: ${successCount}건 정산완료`, 'success');
