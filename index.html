@@ -3206,7 +3206,7 @@ function confirmDelete() {
 // 엑셀에서 빨간색(미입금) 표시된 셀 정보 (전역 변수)
 // 금액이 있는 경우에만 미입금으로 처리
 // 2020-2021, 2022, 2023년도는 모두 입금완료
-const RED_CELL_INFO = {"2020-2021": {}, "2022": {}, "2023": {}, "2024": {"20": {"balance1": true}}, "2025": {"62": {"balance1": true}, "87": {"balance1": true}, "98": {"balance1": true}, "113": {"balance1": true}, "121": {"balance1": true}}};
+const RED_CELL_INFO = {"2020-2021": {}, "2022": {}, "2023": {}, "2024": {"20": {"balance1": true}}, "2025": {"62": {"balance1": true}, "87": {"balance1": true}, "113": {"balance1": true}, "121": {"balance1": true}}};
 
 // 계약 해지된 건 (공사현장명에 "해지" 포함)
 const CANCELLED_INFO = {
@@ -3282,32 +3282,44 @@ async function loadFromStorage() {
 
 function applyRedCellInfo() {
   // 저장된 데이터에 빨간색 정보 및 수동 입금완료 정보 적용
+  // ★ 입금일이 이미 있거나 manualPaid가 설정된 경우 isRed를 적용하지 않음
   Object.keys(allData).forEach(yearKey => {
     const redInfo = RED_CELL_INFO[yearKey] || {};
     const manualPaidInfo = MANUAL_PAID_INFO[yearKey] || {};
     const data = allData[yearKey] || [];
-    
+
     data.forEach(item => {
       const noKey = String(Math.floor(Number(item.no)));
       const redFlags = redInfo[noKey] || {};
       const paidFlags = manualPaidInfo[noKey] || {};
-      
-      if (item.contract1) {
-        item.contract1.isRed = redFlags.contract1 || false;
-        item.contract1.manualPaid = paidFlags.contract1 || false;
-      }
-      if (item.interim1) {
-        item.interim1.isRed = redFlags.interim1 || false;
-        item.interim1.manualPaid = paidFlags.interim1 || false;
-      }
-      if (item.balance1) {
-        item.balance1.isRed = redFlags.balance1 || false;
-        item.balance1.manualPaid = paidFlags.balance1 || false;
-      }
-      if (item.interim2) {
-        item.interim2.isRed = redFlags.interim2 || false;
-        item.interim2.manualPaid = paidFlags.interim2 || false;
-      }
+
+      // 입금일이 있으면 isRed 적용하지 않는 헬퍼
+      const applyFlags = (paymentObj, field) => {
+        if (!paymentObj) return;
+        const hasPaidDate = paymentObj.paid && paymentObj.paid !== '' && paymentObj.paid !== '미정';
+        const wasManualPaid = paymentObj.manualPaid === true;
+
+        // MANUAL_PAID_INFO에 있으면 무조건 manualPaid
+        if (paidFlags[field]) {
+          paymentObj.manualPaid = true;
+          paymentObj.isRed = false;
+        }
+        // 입금일이 이미 있거나 기존 manualPaid면 isRed 적용 안함
+        else if (hasPaidDate || wasManualPaid) {
+          paymentObj.isRed = false;
+          paymentObj.manualPaid = wasManualPaid || hasPaidDate;
+        }
+        // 그 외: RED_CELL_INFO 적용
+        else {
+          paymentObj.isRed = redFlags[field] || false;
+          paymentObj.manualPaid = false;
+        }
+      };
+
+      applyFlags(item.contract1, 'contract1');
+      applyFlags(item.interim1, 'interim1');
+      applyFlags(item.interim2, 'interim2');
+      applyFlags(item.balance1, 'balance1');
     });
   });
 }
