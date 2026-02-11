@@ -9854,14 +9854,15 @@ async function batchSettlement() {
     targetData = targetData.filter(item => item.manager === managerFilter);
   }
 
-  // 미정산 항목만 대상 (이미 정산완료, 일괄정산 제외 담당자 제외)
+  // 미정산 항목만 대상 (이미 정산완료, 일괄정산 제외 담당자, 입금미완료 제외)
   const unsettledItems = targetData.filter(item =>
     item.settled !== '정산완료' &&
     !item.isExcluded &&
     !item.excludedByUser &&
     !BATCH_EXCLUDE_MANAGERS.includes(item.manager) &&
     item.hasDetailData &&
-    item.profit !== 0
+    item.profit !== 0 &&
+    item.detailStatus === 'paid'  // ★ 입금완료(잔금까지)된 현장만
   );
 
   if (unsettledItems.length === 0) {
@@ -10054,13 +10055,14 @@ function prepareBatchManagerData(yearFilter, typeFilter) {
   // 구분 필터
   if (typeFilter === '본사') data = data.filter(i => i.hqType === '본사');
   else if (typeFilter === '외주') data = data.filter(i => i.hqType === '외주');
-  // 미정산 + 대상 필터
+  // 미정산 + 대상 필터 (★ 입금완료된 현장만 정산 대상)
   data = data.filter(item =>
     item.settled !== '정산완료' &&
     !item.isExcluded &&
     !item.excludedByUser &&
     item.hasDetailData &&
-    item.profit !== 0
+    item.profit !== 0 &&
+    item.detailStatus === 'paid'  // ★ 입금완료(잔금까지)된 현장만
   );
   return data;
 }
