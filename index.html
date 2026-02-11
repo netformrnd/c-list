@@ -10868,9 +10868,9 @@ function renderManagerSettlementSummary(data) {
   const hqManagers = {};
   const extManagers = {};
   const excludedManagers = {};
-  let hqTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
-  let extTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
-  let excludedTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
+  let hqTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
+  let extTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
+  let excludedTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
   
   data.forEach(item => {
     const manager = item.manager || '기타';
@@ -10903,6 +10903,7 @@ function renderManagerSettlementSummary(data) {
     targetTotal.amount += item.amount || 0;
     targetTotal.profit += item.profit || 0;
     targetTotal.realSettlement += item.realSettlement || 0;
+    targetTotal.companyProfit += item.companyProfit || 0;
   });
   
   let html = '';
@@ -14198,9 +14199,9 @@ function renderConstructionReport() {
   const extManagers = {};
   const excludedManagers = {};
   let grandTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
-  let hqTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
-  let extTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
-  let excludedTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
+  let hqTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
+  let extTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
+  let excludedTotal = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
   
   data.forEach(item => {
     const manager = item.manager || '기타';
@@ -14244,6 +14245,7 @@ function renderConstructionReport() {
     targetTotal.amount += item.amount || 0;
     targetTotal.profit += item.profit || 0;
     targetTotal.realSettlement += item.realSettlement || 0;
+    targetTotal.companyProfit += item.companyProfit || 0;
   });
   
   const today = new Date();
@@ -14258,11 +14260,12 @@ function renderConstructionReport() {
   let targetManagers, targetTotal;
   if (reportType === '전체') {
     targetManagers = { ...hqManagers, ...extManagers };
-    targetTotal = { 
-      count: hqTotal.count + extTotal.count, 
+    targetTotal = {
+      count: hqTotal.count + extTotal.count,
       amount: hqTotal.amount + extTotal.amount,
       profit: hqTotal.profit + extTotal.profit,
-      realSettlement: hqTotal.realSettlement + extTotal.realSettlement
+      realSettlement: hqTotal.realSettlement + extTotal.realSettlement,
+      companyProfit: hqTotal.companyProfit + extTotal.companyProfit
     };
   } else if (reportType === '외주') {
     targetManagers = extManagers;
@@ -14284,7 +14287,7 @@ function renderConstructionReport() {
       
       <!-- 요약 -->
       <div style="background:${themeBgColor};padding:0.8rem;border-radius:8px;margin-bottom:1rem;border:1px solid ${themeColor}40;">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;text-align:center;">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.5rem;text-align:center;">
           <div style="background:white;padding:0.5rem;border-radius:6px;border:1px solid #ddd;">
             <div style="font-size:0.75rem;color:#666;">총 공사건수</div>
             <div style="font-size:1rem;font-weight:700;">${targetTotal.count}건</div>
@@ -14300,6 +14303,10 @@ function renderConstructionReport() {
           <div style="background:white;padding:0.5rem;border-radius:6px;border:1px solid #ddd;">
             <div style="font-size:0.75rem;color:#666;">정산금액 (15%)</div>
             <div style="font-size:1rem;font-weight:700;color:${themeColor};">${fmtAmount(targetTotal.realSettlement)}</div>
+          </div>
+          <div style="background:white;padding:0.5rem;border-radius:6px;border:1px solid #c62828;">
+            <div style="font-size:0.75rem;color:#666;">회사수익 (85%)</div>
+            <div style="font-size:1rem;font-weight:700;color:#c62828;">${fmtAmount(targetTotal.companyProfit)}</div>
           </div>
         </div>
       </div>
@@ -14319,6 +14326,7 @@ function renderConstructionReport() {
               <th style="padding:0.5rem;text-align:right;border:1px solid ${themeColor};">이익금</th>
               <th style="padding:0.5rem;text-align:center;border:1px solid ${themeColor};">이익률</th>
               <th style="padding:0.5rem;text-align:right;border:1px solid ${themeColor};">정산금액(15%)</th>
+              <th style="padding:0.5rem;text-align:right;border:1px solid ${themeColor};">회사수익(85%)</th>
             </tr>
           </thead>
           <tbody>
@@ -14332,6 +14340,7 @@ function renderConstructionReport() {
                   <td style="padding:0.5rem;text-align:right;font-family:monospace;border:1px solid #ddd;color:${stats.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(stats.profit)}</td>
                   <td style="padding:0.5rem;text-align:center;border:1px solid #ddd;">${stats.amount > 0 ? (stats.profit / stats.amount * 100).toFixed(1) : 0}%</td>
                   <td style="padding:0.5rem;text-align:right;font-family:monospace;font-weight:700;color:${themeColor};border:1px solid #ddd;">${fmt(stats.realSettlement)}</td>
+                  <td style="padding:0.5rem;text-align:right;font-family:monospace;font-weight:700;color:#c62828;border:1px solid #ddd;">${fmt(stats.companyProfit)}</td>
                 </tr>
               `).join('')}
           </tbody>
@@ -14343,6 +14352,7 @@ function renderConstructionReport() {
               <td style="padding:0.5rem;text-align:right;font-family:monospace;border:1px solid #ccc;color:${targetTotal.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(targetTotal.profit)}</td>
               <td style="padding:0.5rem;text-align:center;border:1px solid #ccc;">${targetTotal.amount > 0 ? (targetTotal.profit / targetTotal.amount * 100).toFixed(1) : 0}%</td>
               <td style="padding:0.5rem;text-align:right;font-family:monospace;font-weight:700;color:${themeColor};border:1px solid #ccc;">${fmt(targetTotal.realSettlement)}</td>
+              <td style="padding:0.5rem;text-align:right;font-family:monospace;font-weight:700;color:#c62828;border:1px solid #ccc;">${fmt(targetTotal.companyProfit)}</td>
             </tr>
           </tfoot>
         </table>
@@ -14378,7 +14388,8 @@ function renderConstructionReport() {
                       <th style="padding:0.3rem;text-align:left;border:1px solid #ddd;">현장명</th>
                       <th style="padding:0.3rem;text-align:right;border:1px solid #ddd;">공사금액</th>
                       <th style="padding:0.3rem;text-align:right;border:1px solid #ddd;">이익금</th>
-                      <th style="padding:0.3rem;text-align:right;border:1px solid #ddd;">정산금액</th>
+                      <th style="padding:0.3rem;text-align:right;border:1px solid #ddd;">정산금액(15%)</th>
+                      <th style="padding:0.3rem;text-align:right;border:1px solid #ddd;">회사수익(85%)</th>
                       <th style="padding:0.3rem;text-align:center;border:1px solid #ddd;">상태</th>
                     </tr>
                   </thead>
@@ -14389,6 +14400,7 @@ function renderConstructionReport() {
                         <td style="padding:0.3rem;text-align:right;font-family:monospace;border:1px solid #ddd;">${fmt(site.amount)}</td>
                         <td style="padding:0.3rem;text-align:right;font-family:monospace;border:1px solid #ddd;color:${site.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(site.profit)}</td>
                         <td style="padding:0.3rem;text-align:right;font-family:monospace;font-weight:600;color:${themeColor};border:1px solid #ddd;">${fmt(site.realSettlement)}</td>
+                        <td style="padding:0.3rem;text-align:right;font-family:monospace;font-weight:600;color:#c62828;border:1px solid #ddd;">${fmt(site.companyProfit)}</td>
                         <td style="padding:0.3rem;text-align:center;border:1px solid #ddd;font-size:0.7rem;">${site.settled || '미정산'}</td>
                       </tr>
                     `).join('')}
@@ -15253,7 +15265,7 @@ function printReport() {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif; padding: 20px; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #333; padding: 8px 10px; font-size: 11px; color: #000 !important; }
+        th, td { border: 1px solid #333; padding: 6px 8px; font-size: 10px; color: #000 !important; }
         th { background: #f0f0f0 !important; color: #000 !important; font-weight: 700; }
         tr { background: white !important; }
         tfoot tr { background: #f5f5f5 !important; }
@@ -15276,9 +15288,13 @@ function printReport() {
 }
 
 function downloadReportExcel() {
-  let data = settlementData.length > 0 ? [...settlementData] : generateSettlementFromCurrentData();
-  
-  const yearFilter = document.getElementById('settlementYearFilter').value;
+  // 보고서 모달 필터 기준으로 데이터 준비
+  let data = generateSettlementFromCurrentData();
+  const reportType = document.getElementById('reportTypeFilter')?.value || '본사';
+  const yearFilter = document.getElementById('reportYearFilter')?.value || '';
+  const settledFilter = document.getElementById('reportSettledFilter')?.value || '';
+
+  // 년도 필터
   if (yearFilter === '2024') {
     data = data.filter(item => String(item.year).includes('24'));
   } else if (yearFilter === '2025') {
@@ -15290,66 +15306,201 @@ function downloadReportExcel() {
       if (is24) return item.settled !== '정산완료';
       return is25;
     });
+  } else if (yearFilter === '2026') {
+    data = data.filter(item => String(item.year).includes('26'));
   }
-  
-  // 담당자별 요약
+  // 정산여부 필터
+  if (settledFilter) {
+    data = data.filter(item => item.settled === settledFilter);
+  }
+  // 본사/외주 필터
+  if (reportType === '본사') {
+    data = data.filter(item => {
+      const isExt = item.hqType === '외주';
+      const isExcluded = item.isExcluded || EXCLUDE_MANAGERS.includes(item.manager);
+      return !isExt && !isExcluded;
+    });
+  } else if (reportType === '외주') {
+    data = data.filter(item => item.hqType === '외주');
+  }
+  // 담당자 필터
+  const selectedManagers = typeof getSelectedManagers === 'function' ? getSelectedManagers() : [];
+  if (selectedManagers && selectedManagers.length > 0) {
+    data = data.filter(item => selectedManagers.includes(item.manager));
+  }
+
+  const today = new Date().toLocaleDateString('ko-KR');
+  let filterDesc = yearFilter || '전체년도';
+  if (settledFilter) filterDesc += ' / ' + settledFilter;
+  filterDesc += ' / ' + (reportType || '전체');
+
+  // === Sheet 1: 요약 ===
   const managerSummary = {};
+  let grandTotals = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
   data.forEach(item => {
-    const manager = item.manager || '기타';
-    if (!managerSummary[manager]) {
-      managerSummary[manager] = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
-    }
-    managerSummary[manager].count++;
-    managerSummary[manager].amount += item.amount || 0;
-    managerSummary[manager].profit += item.profit || 0;
-    managerSummary[manager].realSettlement += item.realSettlement || 0;
-    managerSummary[manager].companyProfit += item.companyProfit || 0;
+    const mgr = item.manager || '기타';
+    if (!managerSummary[mgr]) managerSummary[mgr] = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
+    managerSummary[mgr].count++;
+    managerSummary[mgr].amount += item.amount || 0;
+    managerSummary[mgr].profit += item.profit || 0;
+    managerSummary[mgr].realSettlement += item.realSettlement || 0;
+    managerSummary[mgr].companyProfit += item.companyProfit || 0;
+    grandTotals.count++;
+    grandTotals.amount += item.amount || 0;
+    grandTotals.profit += item.profit || 0;
+    grandTotals.realSettlement += item.realSettlement || 0;
+    grandTotals.companyProfit += item.companyProfit || 0;
   });
-  
-  const wsData = [
-    ['정산 현황 보고서'],
-    ['보고일: ' + new Date().toLocaleDateString('ko-KR')],
+
+  const ws1Data = [
+    ['㈜석민이앤씨 정산 현황 보고서'],
+    ['보고일: ' + today, '', '조건: ' + filterDesc],
     [],
+    ['[ 전체 요약 ]'],
+    ['공사건수', '공사금액', '이익금', '이익률', '정산금액(15%)', '회사수익(85%)'],
+    [grandTotals.count + '건', grandTotals.amount, grandTotals.profit,
+     grandTotals.amount > 0 ? grandTotals.profit / grandTotals.amount : 0,
+     grandTotals.realSettlement, grandTotals.companyProfit],
+    [],
+    ['[ 담당자별 요약 ]'],
     ['담당자', '건수', '공사금액', '이익금', '이익률', '정산금액(15%)', '회사수익(85%)']
   ];
-  
-  let totals = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
-  
+
   Object.entries(managerSummary)
     .sort((a, b) => b[1].realSettlement - a[1].realSettlement)
-    .forEach(([manager, stats]) => {
-      wsData.push([
-        manager,
-        stats.count,
-        stats.amount,
-        stats.profit,
-        stats.amount > 0 ? stats.profit / stats.amount : 0,
-        stats.realSettlement,
-        stats.companyProfit
-      ]);
-      totals.count += stats.count;
-      totals.amount += stats.amount;
-      totals.profit += stats.profit;
-      totals.realSettlement += stats.realSettlement;
-      totals.companyProfit += stats.companyProfit;
+    .forEach(([mgr, s]) => {
+      ws1Data.push([mgr, s.count, s.amount, s.profit,
+        s.amount > 0 ? s.profit / s.amount : 0, s.realSettlement, s.companyProfit]);
     });
-  
-  wsData.push([
-    '합계',
-    totals.count,
-    totals.amount,
-    totals.profit,
-    totals.amount > 0 ? totals.profit / totals.amount : 0,
-    totals.realSettlement,
-    totals.companyProfit
+  ws1Data.push(['합계', grandTotals.count, grandTotals.amount, grandTotals.profit,
+    grandTotals.amount > 0 ? grandTotals.profit / grandTotals.amount : 0,
+    grandTotals.realSettlement, grandTotals.companyProfit]);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
+
+  // 스타일 적용
+  const headerStyle = { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, fill: { fgColor: { rgb: '1565C0' } }, border: { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} }, alignment: { horizontal: 'center' } };
+  const titleStyle = { font: { bold: true, sz: 14, color: { rgb: '1565C0' } } };
+  const totalStyle = { font: { bold: true, sz: 11 }, fill: { fgColor: { rgb: 'E3F2FD' } }, border: { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} } };
+  const numStyle = { numFmt: '#,##0', border: { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} } };
+  const pctStyle = { numFmt: '0.0%', border: { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} }, alignment: { horizontal: 'center' } };
+  const cellBorder = { border: { top: {style:'thin'}, bottom: {style:'thin'}, left: {style:'thin'}, right: {style:'thin'} } };
+
+  // 제목 스타일
+  if (ws1['A1']) ws1['A1'].s = titleStyle;
+  // 전체요약 헤더 (row 5 = index 4)
+  ['A5','B5','C5','D5','E5','F5'].forEach(addr => { if (ws1[addr]) ws1[addr].s = headerStyle; });
+  // 전체요약 데이터 (row 6)
+  ['B6','C6','E6','F6'].forEach(addr => { if (ws1[addr]) ws1[addr].s = numStyle; });
+  if (ws1['D6']) ws1['D6'].s = pctStyle;
+  // 담당자별 헤더 (row 9 = index 8)
+  ['A9','B9','C9','D9','E9','F9','G9'].forEach(addr => { if (ws1[addr]) ws1[addr].s = headerStyle; });
+  // 담당자별 데이터 행 스타일
+  const mgrCount = Object.keys(managerSummary).length;
+  for (let i = 0; i < mgrCount; i++) {
+    const row = 10 + i;
+    ['A','B'].forEach(c => { const addr = c + row; if (ws1[addr]) ws1[addr].s = cellBorder; });
+    ['C','D','F','G'].forEach(c => { const addr = c + row; if (ws1[addr]) ws1[addr].s = numStyle; });
+    const eAddr = 'E' + row; if (ws1[eAddr]) ws1[eAddr].s = pctStyle;
+  }
+  // 합계행
+  const totalRow = 10 + mgrCount;
+  ['A','B'].forEach(c => { const addr = c + totalRow; if (ws1[addr]) ws1[addr].s = totalStyle; });
+  ['C','D','F','G'].forEach(c => { const addr = c + totalRow; if (ws1[addr]) ws1[addr].s = { ...numStyle, ...totalStyle }; });
+  const eTotalAddr = 'E' + totalRow; if (ws1[eTotalAddr]) ws1[eTotalAddr].s = { ...pctStyle, ...totalStyle };
+
+  // 열 너비
+  ws1['!cols'] = [{ wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 16 }];
+  // 제목 병합
+  ws1['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+
+  // === Sheet 2: 상세 ===
+  const ws2Data = [
+    ['정산 현황 상세 내역'],
+    ['보고일: ' + today, '', '', '조건: ' + filterDesc],
+    [],
+    ['년도', 'NO', '구분', '현장명', '공사금액', '자재비', '노무비', '경비합계', '지출총액', '이익금', '이익률', '정산금액(15%)', '회사수익(85%)', '담당자', '정산상태']
+  ];
+
+  data.sort((a, b) => {
+    if (a.manager !== b.manager) return (a.manager || '').localeCompare(b.manager || '');
+    return (a.year || '').localeCompare(b.year || '') || (Number(a.no) - Number(b.no));
+  }).forEach(item => {
+    ws2Data.push([
+      '20' + item.year,
+      item.no,
+      item.hqType || '',
+      item.site || '',
+      item.amount || 0,
+      item.material || 0,
+      item.laborTotal || item.labor || 0,
+      item.expenseTotal || 0,
+      item.totalExpense || 0,
+      item.profit || 0,
+      item.amount > 0 ? item.profit / item.amount : 0,
+      item.realSettlement || 0,
+      item.companyProfit || 0,
+      item.manager || '',
+      item.settled || '미정산'
+    ]);
+  });
+
+  // 상세 합계행
+  const detailTotals = data.reduce((t, item) => {
+    t.amount += item.amount || 0;
+    t.material += item.material || 0;
+    t.labor += item.laborTotal || item.labor || 0;
+    t.expense += item.expenseTotal || 0;
+    t.totalExpense += item.totalExpense || 0;
+    t.profit += item.profit || 0;
+    t.settlement += item.realSettlement || 0;
+    t.company += item.companyProfit || 0;
+    return t;
+  }, { amount: 0, material: 0, labor: 0, expense: 0, totalExpense: 0, profit: 0, settlement: 0, company: 0 });
+
+  ws2Data.push([
+    '합계', '', '', data.length + '건',
+    detailTotals.amount, detailTotals.material, detailTotals.labor, detailTotals.expense,
+    detailTotals.totalExpense, detailTotals.profit,
+    detailTotals.amount > 0 ? detailTotals.profit / detailTotals.amount : 0,
+    detailTotals.settlement, detailTotals.company, '', ''
   ]);
-  
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
+
+  // 상세 시트 스타일
+  if (ws2['A1']) ws2['A1'].s = titleStyle;
+  // 헤더행 (row 4 = index 3)
+  ['A4','B4','C4','D4','E4','F4','G4','H4','I4','J4','K4','L4','M4','N4','O4'].forEach(addr => {
+    if (ws2[addr]) ws2[addr].s = headerStyle;
+  });
+  // 데이터행 스타일
+  for (let i = 0; i < data.length; i++) {
+    const row = 5 + i;
+    ['A','B','C','D','N','O'].forEach(c => { const addr = c + row; if (ws2[addr]) ws2[addr].s = cellBorder; });
+    ['E','F','G','H','I','J','L','M'].forEach(c => { const addr = c + row; if (ws2[addr]) ws2[addr].s = numStyle; });
+    const kAddr = 'K' + row; if (ws2[kAddr]) ws2[kAddr].s = pctStyle;
+  }
+  // 합계행
+  const detailTotalRow = 5 + data.length;
+  ['A','B','C','D','N','O'].forEach(c => { const addr = c + detailTotalRow; if (ws2[addr]) ws2[addr].s = totalStyle; });
+  ['E','F','G','H','I','J','L','M'].forEach(c => { const addr = c + detailTotalRow; if (ws2[addr]) ws2[addr].s = { ...numStyle, ...totalStyle }; });
+  const kTotalAddr = 'K' + detailTotalRow; if (ws2[kTotalAddr]) ws2[kTotalAddr].s = { ...pctStyle, ...totalStyle };
+
+  // 열 너비
+  ws2['!cols'] = [
+    { wch: 8 }, { wch: 6 }, { wch: 6 }, { wch: 25 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 10 }, { wch: 10 }
+  ];
+  ws2['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 14 } }];
+
+  // 워크북 생성
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '보고서');
-  
+  XLSX.utils.book_append_sheet(wb, ws1, '요약');
+  XLSX.utils.book_append_sheet(wb, ws2, '상세');
+
   XLSX.writeFile(wb, `정산보고서_${new Date().toISOString().split('T')[0]}.xlsx`);
-  showToast('보고서 엑셀 다운로드 완료', 'success');
+  showToast('보고서 엑셀 다운로드 완료 (요약+상세 2시트)', 'success');
 }
 </script>
 </body>
