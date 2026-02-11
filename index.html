@@ -3093,6 +3093,34 @@ function updateTaxAmount() { document.getElementById('editAmountTax').value = Ma
 
 function saveData() {
   const idx = document.getElementById('editIndex').value;
+  // 기존 데이터에서 isRed, manualPaid 플래그 보존
+  const existingItem = idx !== '' ? (allData[currentYear] || [])[parseInt(idx)] : null;
+
+  // 입금일 기반으로 isRed/manualPaid 자동 업데이트하는 헬퍼
+  function buildPayment(prefix, existingPayment) {
+    const amt = parseNum(document.getElementById('edit' + prefix + 'Amt').value);
+    const bill = document.getElementById('edit' + prefix + 'Bill').value;
+    const paid = document.getElementById('edit' + prefix + 'Paid').value;
+    const result = { amt, bill, paid };
+
+    if (existingPayment) {
+      // 입금일이 새로 기재되었으면 isRed 해제, manualPaid 설정
+      if (paid && paid !== '' && paid !== '미정') {
+        result.isRed = false;
+        result.manualPaid = existingPayment.manualPaid || false;
+        // 기존에 isRed였는데 입금일이 입력되면 manualPaid로 전환
+        if (existingPayment.isRed) {
+          result.manualPaid = true;
+        }
+      } else {
+        // 입금일 없으면 기존 플래그 유지
+        result.isRed = existingPayment.isRed || false;
+        result.manualPaid = existingPayment.manualPaid || false;
+      }
+    }
+    return result;
+  }
+
   const item = {
     no: document.getElementById('editNo').value, region: document.getElementById('editRegion').value,
     type: document.getElementById('editType').value, site: document.getElementById('editSite').value,
@@ -3100,10 +3128,10 @@ function saveData() {
     amountTax: parseNum(document.getElementById('editAmountTax').value), manager: document.getElementById('editManager').value,
     siteManager: document.getElementById('editSiteManager').value, contractDate: document.getElementById('editContractDate').value,
     startDate: document.getElementById('editStartDate').value, endDate: document.getElementById('editEndDate').value,
-    contract1: { amt: parseNum(document.getElementById('editContract1Amt').value), bill: document.getElementById('editContract1Bill').value, paid: document.getElementById('editContract1Paid').value },
-    interim1: { amt: parseNum(document.getElementById('editInterim1Amt').value), bill: document.getElementById('editInterim1Bill').value, paid: document.getElementById('editInterim1Paid').value },
-    interim2: { amt: parseNum(document.getElementById('editInterim2Amt').value), bill: document.getElementById('editInterim2Bill').value, paid: document.getElementById('editInterim2Paid').value },
-    balance1: { amt: parseNum(document.getElementById('editBalance1Amt').value), bill: document.getElementById('editBalance1Bill').value, paid: document.getElementById('editBalance1Paid').value }
+    contract1: buildPayment('Contract1', existingItem?.contract1),
+    interim1: buildPayment('Interim1', existingItem?.interim1),
+    interim2: buildPayment('Interim2', existingItem?.interim2),
+    balance1: buildPayment('Balance1', existingItem?.balance1)
   };
   if (!allData[currentYear]) allData[currentYear] = [];
   if (idx === '') { allData[currentYear].push(item); showToast('새 공사가 추가되었습니다.', 'success'); }
@@ -3312,19 +3340,200 @@ function setResetPassword() {
 function exportToExcel() {
   const data = allData[currentYear] || [];
   if (data.length === 0) { showToast('내보낼 데이터가 없습니다.', 'error'); return; }
-  const exp = data.map(d => ({
-    'NO': d.no, '지역': d.region, '공사현장': d.site, '공사명': d.name,
-    '계약금액(부가세별도)': d.amount, '계약금액(부가세포함)': d.amountTax,
-    '계약일': d.contractDate, '착공일': d.startDate, '준공일': d.endDate,
-    '계약금_금액': d.contract1?.amt, '계약금_계산서': d.contract1?.bill, '계약금_입금일': d.contract1?.paid,
-    '중도금_금액': d.interim1?.amt, '중도금_계산서': d.interim1?.bill, '중도금_입금일': d.interim1?.paid,
-    '중도금2_금액': d.interim2?.amt, '중도금2_계산서': d.interim2?.bill, '중도금2_입금일': d.interim2?.paid,
-    '잔금_금액': d.balance1?.amt, '잔금_계산서': d.balance1?.bill, '잔금_입금일': d.balance1?.paid,
-    '공사유형': d.type, '영업담당자': d.manager, '현장소장': d.siteManager
-  }));
-  const ws = XLSX.utils.json_to_sheet(exp);
+
+  const cancelledList = CANCELLED_INFO[currentYear] || [];
+
+  // 테두리 스타일
+  const border = {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } }
+  };
+
+  // 헤더 스타일
+  const headerStyle = {
+    font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+    fill: { fgColor: { rgb: '2C3E50' } },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+    border: border
+  };
+
+  // 금액 셀 스타일
+  const amountStyle = {
+    font: { sz: 10 },
+    numFmt: '#,##0',
+    alignment: { horizontal: 'right', vertical: 'center' },
+    border: border
+  };
+
+  // 일반 셀 스타일
+  const cellStyle = {
+    font: { sz: 10 },
+    alignment: { vertical: 'center' },
+    border: border
+  };
+
+  // 가운데정렬 셀
+  const centerStyle = {
+    font: { sz: 10 },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: border
+  };
+
+  // 상태별 셀 스타일
+  const paidStyle = { font: { sz: 10, color: { rgb: '27AE60' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'EAFAF1' } } };
+  const unpaidStyle = { font: { sz: 10, color: { rgb: 'E74C3C' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FDEDEC' } } };
+  const progressStyle = { font: { sz: 10, color: { rgb: 'F39C12' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FEF9E7' } } };
+
+  // 헤더 행
+  const headers = ['NO', '지역', '공사현장', '공사명', '계약금액\n(부가세별도)', '계약금액\n(부가세포함)',
+    '계약일', '착공일', '준공일',
+    '계약금\n금액', '계약금\n계산서', '계약금\n입금일', '계약금\n상태',
+    '중도금\n금액', '중도금\n계산서', '중도금\n입금일', '중도금\n상태',
+    '중도금2\n금액', '중도금2\n계산서', '중도금2\n입금일', '중도금2\n상태',
+    '잔금\n금액', '잔금\n계산서', '잔금\n입금일', '잔금\n상태',
+    '공사유형', '영업담당자', '현장소장'];
+
+  // 데이터 행 생성
+  const wsData = [headers];
+
+  data.forEach(d => {
+    const noKey = String(Math.floor(Number(d.no)));
+    const isCancelled = cancelledList.includes(noKey) || (d.site && d.site.includes('해지'));
+
+    const getStatusText = (p) => {
+      if (!p) return '-';
+      if (isCancelled) return '해지';
+      if (p.isRed) return '미입금';
+      if (p.manualPaid) return '완료';
+      if (p.paid && p.paid !== '' && p.paid !== '미정') return '완료';
+      if (p.bill && p.bill !== '' && (!p.paid || p.paid === '' || p.paid === '미정')) return '미입금';
+      if (p.amt && p.amt > 0 && !p.bill && !p.paid) return '진행중';
+      return '-';
+    };
+
+    wsData.push([
+      d.no || '', d.region || '', d.site || '', d.name || '',
+      d.amount || '', d.amountTax || '',
+      d.contractDate || '', d.startDate || '', d.endDate || '',
+      d.contract1?.amt || '', d.contract1?.bill || '', d.contract1?.paid || '', getStatusText(d.contract1),
+      d.interim1?.amt || '', d.interim1?.bill || '', d.interim1?.paid || '', getStatusText(d.interim1),
+      d.interim2?.amt || '', d.interim2?.bill || '', d.interim2?.paid || '', getStatusText(d.interim2),
+      d.balance1?.amt || '', d.balance1?.bill || '', d.balance1?.paid || '', getStatusText(d.balance1),
+      d.type || '', d.manager || '', d.siteManager || ''
+    ]);
+  });
+
+  // 합계 행 계산
+  let sumAmount = 0, sumAmountTax = 0, sumContract1 = 0, sumInterim1 = 0, sumInterim2 = 0, sumBalance1 = 0;
+  data.forEach(d => {
+    const noKey = String(Math.floor(Number(d.no)));
+    const isCancelled = cancelledList.includes(noKey) || (d.site && d.site.includes('해지'));
+    if (isCancelled) return;
+    sumAmount += (d.amount || 0);
+    sumAmountTax += (d.amountTax || 0);
+    sumContract1 += (d.contract1?.amt || 0);
+    sumInterim1 += (d.interim1?.amt || 0);
+    sumInterim2 += (d.interim2?.amt || 0);
+    sumBalance1 += (d.balance1?.amt || 0);
+  });
+
+  wsData.push([
+    '', '', '', '합 계',
+    sumAmount, sumAmountTax,
+    '', '', '',
+    sumContract1, '', '', '',
+    sumInterim1, '', '', '',
+    sumInterim2, '', '', '',
+    sumBalance1, '', '', '',
+    '', '', ''
+  ]);
+
+  const totalRowIdx = wsData.length - 1;
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // 열 너비 설정
+  ws['!cols'] = [
+    { wch: 5 },   // NO
+    { wch: 8 },   // 지역
+    { wch: 25 },  // 공사현장
+    { wch: 30 },  // 공사명
+    { wch: 15 },  // 계약금액(별도)
+    { wch: 15 },  // 계약금액(포함)
+    { wch: 12 },  // 계약일
+    { wch: 12 },  // 착공일
+    { wch: 12 },  // 준공일
+    { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 계약금
+    { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 중도금
+    { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 중도금2
+    { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 잔금
+    { wch: 10 },  // 공사유형
+    { wch: 10 },  // 영업담당자
+    { wch: 15 }   // 현장소장
+  ];
+
+  // 행 높이 - 헤더
+  ws['!rows'] = [{ hpt: 35 }];
+
+  // 모든 셀에 스타일 적용
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = range.s.r; R <= range.e.r; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+
+      if (R === 0) {
+        // 헤더 행
+        ws[addr].s = headerStyle;
+      } else if (R === totalRowIdx) {
+        // 합계 행 스타일
+        const totalStyle = {
+          font: { bold: true, sz: 11, color: { rgb: '000000' } },
+          fill: { fgColor: { rgb: 'D5E8D4' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: border
+        };
+        const totalAmountStyle = {
+          font: { bold: true, sz: 11, color: { rgb: '000000' } },
+          fill: { fgColor: { rgb: 'D5E8D4' } },
+          numFmt: '#,##0',
+          alignment: { horizontal: 'right', vertical: 'center' },
+          border: border
+        };
+        const amountCols = [4, 5, 9, 13, 17, 21];
+        if (amountCols.includes(C)) {
+          ws[addr].s = totalAmountStyle;
+          if (ws[addr].v && typeof ws[addr].v === 'number') ws[addr].t = 'n';
+        } else {
+          ws[addr].s = totalStyle;
+        }
+      } else {
+        // 금액 열 (4,5,9,13,17,21)
+        const amountCols = [4, 5, 9, 13, 17, 21];
+        // 상태 열 (12,16,20,24)
+        const statusCols = [12, 16, 20, 24];
+
+        if (amountCols.includes(C)) {
+          ws[addr].s = amountStyle;
+          if (ws[addr].v && typeof ws[addr].v === 'number') ws[addr].t = 'n';
+        } else if (statusCols.includes(C)) {
+          const val = ws[addr].v;
+          if (val === '완료') ws[addr].s = paidStyle;
+          else if (val === '미입금') ws[addr].s = unpaidStyle;
+          else if (val === '진행중') ws[addr].s = progressStyle;
+          else ws[addr].s = centerStyle;
+        } else if (C <= 1 || C === 25) {
+          ws[addr].s = centerStyle;
+        } else {
+          ws[addr].s = cellStyle;
+        }
+      }
+    }
+  }
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, currentYear + '년');
+  XLSX.utils.book_append_sheet(wb, ws, currentYear + '년 공사현황');
   XLSX.writeFile(wb, `공사현황_${currentYear}_${new Date().toISOString().split('T')[0]}.xlsx`);
   showToast('엑셀 다운로드 완료', 'success');
 }
@@ -4236,12 +4445,34 @@ async function saveDetailData() {
   const siteManagerValue = document.getElementById('detail_site_manager').value;
   const fieldManagerValue = document.getElementById('detail_field_manager').value;
   const hqManagerValue = document.getElementById('detail_hq_manager').value;
-  
+
   if (siteManagerValue) item.siteManager = siteManagerValue;
   if (fieldManagerValue) item.fieldManager = fieldManagerValue;
   // 영업담당자 양방향 동기화 (현장 상세에서 변경하면 목록에도 반영)
   if (hqManagerValue) item.manager = hqManagerValue;
-  
+
+  // 수금내역 → 공사현황 리스트 자동 동기화 (입금일 반영)
+  const syncPayment = (paymentObj, dateValue) => {
+    if (!paymentObj) return;
+    if (dateValue && dateValue !== '') {
+      paymentObj.paid = dateValue;
+      // 입금일이 입력되면 isRed 해제
+      if (paymentObj.isRed) {
+        paymentObj.isRed = false;
+        paymentObj.manualPaid = true;
+      }
+    }
+  };
+  const detailContractDate = document.getElementById('収contract_date').value;
+  const detailInterimDate = document.getElementById('収interim_date').value;
+  const detailInterim2Date = document.getElementById('収interim2_date').value;
+  const detailBalanceDate = document.getElementById('収balance_date').value;
+
+  if (item.contract1) syncPayment(item.contract1, detailContractDate);
+  if (item.interim1) syncPayment(item.interim1, detailInterimDate);
+  if (item.interim2) syncPayment(item.interim2, detailInterim2Date);
+  if (item.balance1) syncPayment(item.balance1, detailBalanceDate);
+
   // allData 저장
   saveToStorage();
 
