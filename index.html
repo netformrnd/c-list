@@ -5392,6 +5392,9 @@ function openFieldSettlementModal() {
     select.innerHTML += `<option value="${manager}">${manager}</option>`;
   });
   
+  // ★ 항상 메인 정산서(총괄표) 100% 데이터를 먼저 로드
+  initFieldSettlementFromMain();
+
   // 첫 번째 소장 기본 선택 (1명이면 자동 선택)
   if (managers.length === 1) {
     select.value = managers[0];
@@ -5399,19 +5402,13 @@ function openFieldSettlementModal() {
     document.getElementById('selectedManagerDisplay').style.display = 'block';
     document.getElementById('selectedManagerName').textContent = managers[0];
 
-    // ★ 저장된 데이터 우선 불러오기
-    if (!loadFieldSettlementData(managers[0])) {
-      // 저장된 데이터 없으면 메인 정산서에서 초기화
-      initFieldSettlementFromMain();
-    }
+    // ★ 저장된 데이터에서 메모/사진만 복원 (works/materials/labors는 항상 총괄표 100%)
+    restoreFieldMemoPhotos(managers[0]);
   } else if (managers.length > 1) {
     document.getElementById('field_manager').value = '';
     document.getElementById('selectedManagerDisplay').style.display = 'none';
-    // 여러 명일 때도 기본 데이터는 메인 정산서에서 가져오기
-    initFieldSettlementFromMain();
   } else {
-    // 소장 없을 때도 기본 초기화
-    initFieldSettlementFromMain();
+    // 소장 없음
   }
 
   // 테이블 렌더링
@@ -5421,6 +5418,28 @@ function openFieldSettlementModal() {
   updateFieldTotals();
 
   document.getElementById('fieldSettlementModal').style.display = 'flex';
+}
+
+// ★ 저장된 데이터에서 메모/사진만 복원 (works/materials/labors는 총괄표 100% 유지)
+function restoreFieldMemoPhotos(manager) {
+  const idx = document.getElementById('detailIndex').value;
+  const data = allData[currentYear] || [];
+  const item = data[idx];
+  if (!item || !manager) return;
+
+  const key = `${currentYear}_${item.no}`;
+  if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
+    const saved = fieldSettlementByManager[key][manager];
+    // 메모와 사진만 복원
+    if (saved.memo) {
+      fieldSettlementData.memo = saved.memo;
+      document.getElementById('fieldMemo').value = saved.memo;
+    }
+    if (saved.photos && saved.photos.length > 0) {
+      fieldSettlementData.photos = saved.photos;
+      renderFieldPhotoPreview();
+    }
+  }
 }
 
 // ★ 메인 정산서(총괄표) 데이터에서 현장소장용 정산서 초기값 가져오기
@@ -5564,21 +5583,19 @@ function addNewFieldManager() {
 function onFieldManagerSelect() {
   const select = document.getElementById('field_manager_select');
   const selectedManager = select.value;
-  
+
   document.getElementById('field_manager').value = selectedManager;
-  
+
   if (selectedManager) {
     document.getElementById('selectedManagerDisplay').style.display = 'block';
     document.getElementById('selectedManagerName').textContent = selectedManager;
-    
-    // 저장된 데이터가 있으면 불러오기
-    if (loadFieldSettlementData(selectedManager)) {
-      showToast(`${selectedManager} 소장의 저장된 데이터를 불러왔습니다.`, 'info');
-    } else {
-      // 저장된 데이터가 없으면 메인 정산서에서 초기화
-      initFieldSettlementFromMain();
-    }
-    
+
+    // ★ 항상 메인 정산서(총괄표) 100% 데이터를 먼저 로드
+    initFieldSettlementFromMain();
+
+    // ★ 저장된 데이터에서 메모/사진만 복원 (works/materials/labors는 항상 총괄표 100%)
+    restoreFieldMemoPhotos(selectedManager);
+
     // 테이블 렌더링
     renderFieldWorkTable();
     renderFieldMaterialTable();
