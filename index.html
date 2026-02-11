@@ -5426,58 +5426,126 @@ function openFieldSettlementModal() {
     document.getElementById('field_manager').value = managers[0];
     document.getElementById('selectedManagerDisplay').style.display = 'block';
     document.getElementById('selectedManagerName').textContent = managers[0];
+
+    // ★ 저장된 데이터 우선 불러오기
+    if (!loadFieldSettlementData(managers[0])) {
+      // 저장된 데이터 없으면 메인 정산서에서 초기화
+      initFieldSettlementFromMain();
+    }
   } else if (managers.length > 1) {
     document.getElementById('field_manager').value = '';
     document.getElementById('selectedManagerDisplay').style.display = 'none';
+    // 여러 명일 때도 기본 데이터는 메인 정산서에서 가져오기
+    initFieldSettlementFromMain();
+  } else {
+    // 소장 없을 때도 기본 초기화
+    initFieldSettlementFromMain();
   }
-  
-  // 공사 내역 초기화
-  fieldSettlementData.works = [];
-  const projectName = document.getElementById('detail_project_input').value || item.name || '';
-  
-  // 노무비에서 매출액 계산 (parseAmt로 쉼표 포함 금액 파싱)
-  let laborTotal = 0;
-  document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
-    const typeSelect = tr.querySelector('td:nth-child(1) select');
-    const inputs = tr.querySelectorAll('input');
-    const type = typeSelect?.value || '자재비';
-    const amount = parseAmt(inputs[1]?.value);
-    if (type === '노무비') laborTotal += amount;
-  });
 
-  fieldSettlementData.works.push({
-    content: projectName,
-    sales: laborTotal,
-    purchase: 0
-  });
-
-  // 노무비 내역 가져오기 (parseAmt로 쉼표 포함 금액 파싱)
-  fieldSettlementData.labors = [];
-  document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
-    const typeSelect = tr.querySelector('td:nth-child(1) select');
-    const inputs = tr.querySelectorAll('input');
-    const type = typeSelect?.value || '자재비';
-    const amount = parseAmt(inputs[1]?.value);
-    const content = inputs[2]?.value || '';
-    const payDate = inputs[3]?.value || '';
-
-    if (type === '노무비' && (amount > 0 || content)) {
-      fieldSettlementData.labors.push({
-        content: content,
-        amount: amount,
-        payDate: payDate,
-        note: ''
-      });
-    }
-  });
-  
   // 테이블 렌더링
   renderFieldWorkTable();
   renderFieldMaterialTable();
   renderFieldLaborTable();
   updateFieldTotals();
-  
+
   document.getElementById('fieldSettlementModal').style.display = 'flex';
+}
+
+// ★ 메인 정산서(총괄표) 데이터에서 현장소장용 정산서 초기값 가져오기
+function initFieldSettlementFromMain() {
+  const idx = document.getElementById('detailIndex').value;
+  const data = allData[currentYear] || [];
+  const item = data[idx];
+  const projectName = document.getElementById('detail_project_input').value || item?.name || '';
+
+  // 메인 정산서의 공사내역에서 매출액/매입액 가져오기
+  let mainWorkSales = 0, mainWorkPurchase = 0;
+  const mainWorks = [];
+  document.querySelectorAll('#settlementWorkBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const type = inputs[0]?.value || '';
+    const content = inputs[1]?.value || '';
+    const sales = parseAmt(inputs[2]?.value);
+    const purchase = parseAmt(inputs[3]?.value);
+    mainWorkSales += sales;
+    mainWorkPurchase += purchase;
+    if (content || sales || purchase) {
+      mainWorks.push({ content, sales, purchase });
+    }
+  });
+
+  // 메인 정산서에 공사내역이 있으면 사용, 없으면 투입내역에서 계산
+  if (mainWorks.length > 0) {
+    fieldSettlementData.works = mainWorks;
+  } else {
+    // 투입내역에서 노무비 합계로 매출액 계산 (폴백)
+    let laborTotal = 0;
+    document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+      const typeSelect = tr.querySelector('td:nth-child(1) select');
+      const inputs = tr.querySelectorAll('input');
+      if ((typeSelect?.value || '자재비') === '노무비') laborTotal += parseAmt(inputs[1]?.value);
+    });
+    fieldSettlementData.works = [{ content: projectName, sales: laborTotal, purchase: 0 }];
+  }
+
+  // 메인 정산서의 자재비에서 가져오기
+  fieldSettlementData.materials = [];
+  document.querySelectorAll('#settlementMaterialBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    const note = inputs[2]?.value || '';
+    if (content || purchase) {
+      fieldSettlementData.materials.push({ content, amount: purchase, note });
+    }
+  });
+  // 메인 정산서 자재비가 없으면 투입내역에서 가져오기 (폴백)
+  if (fieldSettlementData.materials.length === 0) {
+    document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+      const typeSelect = tr.querySelector('td:nth-child(1) select');
+      const inputs = tr.querySelectorAll('input');
+      if ((typeSelect?.value || '자재비') === '자재비') {
+        const amount = parseAmt(inputs[1]?.value);
+        const content = inputs[2]?.value || '';
+        if (amount > 0 || content) {
+          fieldSettlementData.materials.push({ content, amount, note: '' });
+        }
+      }
+    });
+  }
+
+  // 메인 정산서의 노무비에서 가져오기
+  fieldSettlementData.labors = [];
+  document.querySelectorAll('#settlementLaborBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    const note = inputs[2]?.value || '';
+    if (content || purchase) {
+      fieldSettlementData.labors.push({ content, amount: purchase, payDate: '', note });
+    }
+  });
+  // 메인 정산서 노무비가 없으면 투입내역에서 가져오기 (폴백)
+  if (fieldSettlementData.labors.length === 0) {
+    document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+      const typeSelect = tr.querySelector('td:nth-child(1) select');
+      const inputs = tr.querySelectorAll('input');
+      if ((typeSelect?.value || '자재비') === '노무비') {
+        const amount = parseAmt(inputs[1]?.value);
+        const content = inputs[2]?.value || '';
+        const payDate = inputs[3]?.value || '';
+        if (amount > 0 || content) {
+          fieldSettlementData.labors.push({ content, amount, payDate, note: '' });
+        }
+      }
+    });
+  }
+
+  // 비고와 사진 초기화
+  fieldSettlementData.memo = '';
+  fieldSettlementData.photos = [];
+  document.getElementById('fieldMemo').value = '';
+  renderFieldPhotoPreview();
 }
 
 // 현장소장 선택 시 호출
@@ -5535,8 +5603,8 @@ function onFieldManagerSelect() {
     if (loadFieldSettlementData(selectedManager)) {
       showToast(`${selectedManager} 소장의 저장된 데이터를 불러왔습니다.`, 'info');
     } else {
-      // 저장된 데이터가 없으면 기본 데이터로 초기화
-      initFieldSettlementData();
+      // 저장된 데이터가 없으면 메인 정산서에서 초기화
+      initFieldSettlementFromMain();
     }
     
     // 테이블 렌더링
@@ -6154,35 +6222,71 @@ function closeSalesSettlementModal() {
 function initSalesSettlementData() {
   const projectName = document.getElementById('detail_project_input').value || '';
 
-  // 매출액 = 계약금액 (parseAmt로 쉼표 포함 금액 파싱)
-  const contractAmt = parseAmt(document.getElementById('detail_amount_input').value);
-
-  salesSettlementData.works = [{
-    content: projectName,
-    sales: contractAmt
-  }];
-
-  // 매입내역 = 투입내역에서 가져오기 (parseAmt로 쉼표 포함 금액 파싱)
-  salesSettlementData.expenses = [];
-  document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
-    const typeSelect = tr.querySelector('td:nth-child(1) select');
+  // ★ 메인 정산서의 공사내역에서 매출액 가져오기 (우선)
+  const mainWorks = [];
+  document.querySelectorAll('#settlementWorkBody tr').forEach(tr => {
     const inputs = tr.querySelectorAll('input');
-    const type = typeSelect?.value || '자재비';
-    const amount = parseAmt(inputs[1]?.value);
-    const content = inputs[2]?.value || '';
-    const payDate = inputs[3]?.value || '';
-
-    if (amount > 0 || content) {
-      salesSettlementData.expenses.push({
-        type: type,
-        content: content,
-        amount: amount,
-        payDate: payDate,
-        note: ''
-      });
+    const content = inputs[1]?.value || '';
+    const sales = parseAmt(inputs[2]?.value);
+    if (content || sales) {
+      mainWorks.push({ content, sales });
     }
   });
-  
+
+  if (mainWorks.length > 0) {
+    salesSettlementData.works = mainWorks;
+  } else {
+    // 메인 정산서에 데이터 없으면 계약금액으로 폴백
+    const contractAmt = parseAmt(document.getElementById('detail_amount_input').value);
+    salesSettlementData.works = [{ content: projectName, sales: contractAmt }];
+  }
+
+  // ★ 매입내역 = 메인 정산서(자재비+노무비+기타경비) 우선, 없으면 투입내역에서 가져오기
+  salesSettlementData.expenses = [];
+
+  // 메인 정산서 자재비
+  document.querySelectorAll('#settlementMaterialBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) {
+      salesSettlementData.expenses.push({ type: '자재비', content, amount: purchase, payDate: '', note: '' });
+    }
+  });
+  // 메인 정산서 노무비
+  document.querySelectorAll('#settlementLaborBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) {
+      salesSettlementData.expenses.push({ type: '노무비', content, amount: purchase, payDate: '', note: '' });
+    }
+  });
+  // 메인 정산서 기타경비
+  document.querySelectorAll('#settlementOtherBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) {
+      salesSettlementData.expenses.push({ type: '기타경비', content, amount: purchase, payDate: '', note: '' });
+    }
+  });
+
+  // 메인 정산서에 데이터 없으면 투입내역에서 가져오기 (폴백)
+  if (salesSettlementData.expenses.length === 0) {
+    document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+      const typeSelect = tr.querySelector('td:nth-child(1) select');
+      const inputs = tr.querySelectorAll('input');
+      const type = typeSelect?.value || '자재비';
+      const amount = parseAmt(inputs[1]?.value);
+      const content = inputs[2]?.value || '';
+      const payDate = inputs[3]?.value || '';
+      if (amount > 0 || content) {
+        salesSettlementData.expenses.push({ type, content, amount, payDate, note: '' });
+      }
+    });
+  }
+
   salesSettlementData.memo = '';
   document.getElementById('salesMemo').value = '';
 }
