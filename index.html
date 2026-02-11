@@ -3107,15 +3107,22 @@ function saveData() {
       // 입금일이 새로 기재되었으면 isRed 해제, manualPaid 설정
       if (paid && paid !== '' && paid !== '미정') {
         result.isRed = false;
-        result.manualPaid = existingPayment.manualPaid || false;
-        // 기존에 isRed였는데 입금일이 입력되면 manualPaid로 전환
-        if (existingPayment.isRed) {
+        // 기존에 isRed였거나, 이전에 입금일이 없었는데 새로 입력되면 manualPaid 설정
+        if (existingPayment.isRed || (!existingPayment.paid || existingPayment.paid === '' || existingPayment.paid === '미정')) {
           result.manualPaid = true;
+        } else {
+          result.manualPaid = existingPayment.manualPaid || false;
         }
       } else {
         // 입금일 없으면 기존 플래그 유지
         result.isRed = existingPayment.isRed || false;
         result.manualPaid = existingPayment.manualPaid || false;
+      }
+    } else {
+      // 신규 항목: 입금일이 있으면 manualPaid 설정
+      if (paid && paid !== '' && paid !== '미정') {
+        result.isRed = false;
+        result.manualPaid = true;
       }
     }
     return result;
@@ -3136,7 +3143,53 @@ function saveData() {
   if (!allData[currentYear]) allData[currentYear] = [];
   if (idx === '') { allData[currentYear].push(item); showToast('새 공사가 추가되었습니다.', 'success'); }
   else { allData[currentYear][parseInt(idx)] = item; showToast('저장되었습니다.', 'success'); }
+
+  // ★ 관리(수정) → 상세(detailData) 동기화
+  syncEditToDetail(item);
+
   saveToStorage(); renderTable(); updateStats(); closeModal();
+}
+
+// 관리(수정) 모달에서 저장 시 상세(detailData)에도 주요 정보 동기화
+function syncEditToDetail(item) {
+  const key = `${currentYear}_${item.no}`;
+  if (!detailData[key]) return; // 상세 데이터가 없으면 스킵
+
+  const detail = detailData[key];
+  let changed = false;
+
+  // 공사 기본정보 동기화
+  if (item.site) { detail.siteInput = item.site; changed = true; }
+  if (item.name) { detail.projectInput = item.name; changed = true; }
+  if (item.amount) { detail.amountInput = String(item.amount); changed = true; }
+
+  // 담당자 정보 동기화
+  if (item.siteManager) { detail.siteManager = item.siteManager; changed = true; }
+  if (item.manager) { detail.hqManager = item.manager; detail.settlementSales = item.manager; changed = true; }
+
+  // 수금내역 동기화 (입금일, 금액)
+  const syncPaymentToDetail = (payment, dateKey, amtKey) => {
+    if (!payment) return;
+    if (payment.paid && payment.paid !== '') {
+      detail[dateKey] = payment.paid;
+      changed = true;
+    }
+    if (payment.amt) {
+      detail[amtKey] = String(payment.amt);
+      changed = true;
+    }
+  };
+
+  syncPaymentToDetail(item.contract1, 'contractDate', 'contractAmt');
+  syncPaymentToDetail(item.interim1, 'interimDate', 'interimAmt');
+  syncPaymentToDetail(item.interim2, 'interim2Date', 'interim2Amt');
+  syncPaymentToDetail(item.balance1, 'balanceDate', 'balanceAmt');
+
+  // 변경사항이 있으면 저장
+  if (changed) {
+    detailData[key] = detail;
+    saveDetailDataToStorage();
+  }
 }
 
 function deleteSelected() { if (selectedItems.size === 0) return; deleteTarget = 'selected'; document.getElementById('deleteMessage').textContent = `선택한 ${selectedItems.size}개 항목을 삭제하시겠습니까?`; document.getElementById('deleteModal').classList.add('active'); }
@@ -3345,15 +3398,43 @@ function exportToExcel() {
 
   // 테두리 스타일
   const border = {
-    top: { style: 'thin', color: { rgb: '000000' } },
-    bottom: { style: 'thin', color: { rgb: '000000' } },
-    left: { style: 'thin', color: { rgb: '000000' } },
-    right: { style: 'thin', color: { rgb: '000000' } }
+    top: { style: 'thin', color: { rgb: '333333' } },
+    bottom: { style: 'thin', color: { rgb: '333333' } },
+    left: { style: 'thin', color: { rgb: '333333' } },
+    right: { style: 'thin', color: { rgb: '333333' } }
+  };
+
+  const borderThick = {
+    top: { style: 'medium', color: { rgb: '000000' } },
+    bottom: { style: 'medium', color: { rgb: '000000' } },
+    left: { style: 'medium', color: { rgb: '000000' } },
+    right: { style: 'medium', color: { rgb: '000000' } }
+  };
+
+  // 타이틀 스타일
+  const titleStyle = {
+    font: { bold: true, sz: 16, color: { rgb: '1A237E' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: { bottom: { style: 'medium', color: { rgb: '1A237E' } } }
+  };
+
+  // 서브타이틀 스타일 (날짜/건수 정보)
+  const subTitleStyle = {
+    font: { sz: 10, color: { rgb: '666666' } },
+    alignment: { horizontal: 'right', vertical: 'center' }
+  };
+
+  // 카테고리 헤더 스타일 (계약금, 중도금 등 그룹 헤더)
+  const categoryHeaderStyle = {
+    font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+    fill: { fgColor: { rgb: '1A237E' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: borderThick
   };
 
   // 헤더 스타일
   const headerStyle = {
-    font: { bold: true, sz: 10, color: { rgb: 'FFFFFF' } },
+    font: { bold: true, sz: 9, color: { rgb: 'FFFFFF' } },
     fill: { fgColor: { rgb: '2C3E50' } },
     alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
     border: border
@@ -3361,7 +3442,7 @@ function exportToExcel() {
 
   // 금액 셀 스타일
   const amountStyle = {
-    font: { sz: 10 },
+    font: { sz: 10, name: 'Calibri' },
     numFmt: '#,##0',
     alignment: { horizontal: 'right', vertical: 'center' },
     border: border
@@ -3381,22 +3462,65 @@ function exportToExcel() {
     border: border
   };
 
+  // 날짜 셀 스타일
+  const dateStyle = {
+    font: { sz: 9 },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: border
+  };
+
   // 상태별 셀 스타일
-  const paidStyle = { font: { sz: 10, color: { rgb: '27AE60' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'EAFAF1' } } };
-  const unpaidStyle = { font: { sz: 10, color: { rgb: 'E74C3C' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FDEDEC' } } };
-  const progressStyle = { font: { sz: 10, color: { rgb: 'F39C12' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FEF9E7' } } };
+  const paidStyle = { font: { sz: 10, color: { rgb: '1B5E20' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'E8F5E9' } } };
+  const unpaidStyle = { font: { sz: 10, color: { rgb: 'B71C1C' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FFEBEE' } } };
+  const progressStyle = { font: { sz: 10, color: { rgb: 'E65100' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'FFF3E0' } } };
+  const cancelledStyle = { font: { sz: 10, color: { rgb: '757575' }, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: border, fill: { fgColor: { rgb: 'F5F5F5' } } };
+
+  // 짝수행 배경 스타일
+  const evenRowBg = 'F8F9FA';
+
+  // 카테고리 헤더 행 (계약금, 중도금 등 그룹)
+  const categoryRow = ['', '', '', '', '', '',
+    '', '', '',
+    '계약금', '', '', '',
+    '중도금 1차', '', '', '',
+    '중도금 2차', '', '', '',
+    '잔금', '', '', '',
+    '', '', ''];
 
   // 헤더 행
   const headers = ['NO', '지역', '공사현장', '공사명', '계약금액\n(부가세별도)', '계약금액\n(부가세포함)',
     '계약일', '착공일', '준공일',
-    '계약금\n금액', '계약금\n계산서', '계약금\n입금일', '계약금\n상태',
-    '중도금\n금액', '중도금\n계산서', '중도금\n입금일', '중도금\n상태',
-    '중도금2\n금액', '중도금2\n계산서', '중도금2\n입금일', '중도금2\n상태',
-    '잔금\n금액', '잔금\n계산서', '잔금\n입금일', '잔금\n상태',
+    '금액', '계산서', '입금일', '상태',
+    '금액', '계산서', '입금일', '상태',
+    '금액', '계산서', '입금일', '상태',
+    '금액', '계산서', '입금일', '상태',
     '공사유형', '영업담당자', '현장소장'];
 
-  // 데이터 행 생성
-  const wsData = [headers];
+  // 타이틀 행 생성
+  const titleRow = [`${currentYear}년 공사현황 리스트`];
+  for (let i = 1; i < 28; i++) titleRow.push('');
+
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+  const activeCnt = data.filter(d => {
+    const noKey = String(Math.floor(Number(d.no)));
+    return !(cancelledList.includes(noKey) || (d.site && d.site.includes('해지')));
+  }).length;
+  const subTitleRow = [`출력일: ${dateStr}  |  총 ${data.length}건 (진행 ${activeCnt}건)`];
+  for (let i = 1; i < 28; i++) subTitleRow.push('');
+
+  // 빈 행
+  const emptyRow = [];
+  for (let i = 0; i < 28; i++) emptyRow.push('');
+
+  // 데이터 행 생성 (타이틀 + 서브타이틀 + 빈줄 + 카테고리헤더 + 헤더 + 데이터 + 합계)
+  const wsData = [titleRow, subTitleRow, emptyRow, categoryRow, headers];
+  const TITLE_ROW = 0;
+  const SUBTITLE_ROW = 1;
+  const EMPTY_ROW = 2;
+  const CATEGORY_ROW = 3;
+  const HEADER_ROW = 4;
+  const DATA_START_ROW = 5;
 
   data.forEach(d => {
     const noKey = String(Math.floor(Number(d.no)));
@@ -3427,6 +3551,7 @@ function exportToExcel() {
 
   // 합계 행 계산
   let sumAmount = 0, sumAmountTax = 0, sumContract1 = 0, sumInterim1 = 0, sumInterim2 = 0, sumBalance1 = 0;
+  let paidCount = 0, unpaidCount = 0, progressCount = 0;
   data.forEach(d => {
     const noKey = String(Math.floor(Number(d.no)));
     const isCancelled = cancelledList.includes(noKey) || (d.site && d.site.includes('해지'));
@@ -3437,12 +3562,23 @@ function exportToExcel() {
     sumInterim1 += (d.interim1?.amt || 0);
     sumInterim2 += (d.interim2?.amt || 0);
     sumBalance1 += (d.balance1?.amt || 0);
+    // 상태 카운트
+    const isPaid = (p) => {
+      if (!p) return false;
+      if (p.isRed) return false;
+      if (p.manualPaid) return true;
+      return p.paid && p.paid !== '' && p.paid !== '미정';
+    };
+    if (isPaid(d.balance1)) paidCount++;
+    else if ((d.contract1?.isRed) || (d.interim1?.isRed) || (d.balance1?.isRed) ||
+             (d.contract1?.bill && !isPaid(d.contract1)) || (d.interim1?.bill && !isPaid(d.interim1)) || (d.balance1?.bill && !isPaid(d.balance1))) unpaidCount++;
+    else progressCount++;
   });
 
   wsData.push([
     '', '', '', '합 계',
     sumAmount, sumAmountTax,
-    '', '', '',
+    '', '', `완료:${paidCount} 미입금:${unpaidCount} 진행:${progressCount}`,
     sumContract1, '', '', '',
     sumInterim1, '', '', '',
     sumInterim2, '', '', '',
@@ -3452,6 +3588,18 @@ function exportToExcel() {
 
   const totalRowIdx = wsData.length - 1;
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // 셀 병합: 타이틀 행
+  ws['!merges'] = [
+    { s: { r: TITLE_ROW, c: 0 }, e: { r: TITLE_ROW, c: 27 } },     // 타이틀
+    { s: { r: SUBTITLE_ROW, c: 0 }, e: { r: SUBTITLE_ROW, c: 27 } }, // 서브타이틀
+    { s: { r: CATEGORY_ROW, c: 0 }, e: { r: CATEGORY_ROW, c: 8 } },  // 기본정보
+    { s: { r: CATEGORY_ROW, c: 9 }, e: { r: CATEGORY_ROW, c: 12 } }, // 계약금
+    { s: { r: CATEGORY_ROW, c: 13 }, e: { r: CATEGORY_ROW, c: 16 } }, // 중도금1차
+    { s: { r: CATEGORY_ROW, c: 17 }, e: { r: CATEGORY_ROW, c: 20 } }, // 중도금2차
+    { s: { r: CATEGORY_ROW, c: 21 }, e: { r: CATEGORY_ROW, c: 24 } }, // 잔금
+    { s: { r: CATEGORY_ROW, c: 25 }, e: { r: CATEGORY_ROW, c: 27 } }  // 기타
+  ];
 
   // 열 너비 설정
   ws['!cols'] = [
@@ -3468,13 +3616,19 @@ function exportToExcel() {
     { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 중도금
     { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 중도금2
     { wch: 13 }, { wch: 12 }, { wch: 12 }, { wch: 7 },  // 잔금
-    { wch: 10 },  // 공사유형
+    { wch: 12 },  // 공사유형
     { wch: 10 },  // 영업담당자
     { wch: 15 }   // 현장소장
   ];
 
-  // 행 높이 - 헤더
-  ws['!rows'] = [{ hpt: 35 }];
+  // 행 높이
+  ws['!rows'] = [
+    { hpt: 32 },  // 타이틀
+    { hpt: 18 },  // 서브타이틀
+    { hpt: 8 },   // 빈줄
+    { hpt: 22 },  // 카테고리 헤더
+    { hpt: 35 }   // 헤더
+  ];
 
   // 모든 셀에 스타일 적용
   const range = XLSX.utils.decode_range(ws['!ref']);
@@ -3483,23 +3637,36 @@ function exportToExcel() {
       const addr = XLSX.utils.encode_cell({ r: R, c: C });
       if (!ws[addr]) ws[addr] = { v: '', t: 's' };
 
-      if (R === 0) {
-        // 헤더 행
+      if (R === TITLE_ROW) {
+        ws[addr].s = titleStyle;
+      } else if (R === SUBTITLE_ROW) {
+        ws[addr].s = subTitleStyle;
+      } else if (R === EMPTY_ROW) {
+        ws[addr].s = {};
+      } else if (R === CATEGORY_ROW) {
+        // 카테고리 헤더 (계약금, 중도금 등)
+        if (C >= 9 && C <= 24) {
+          ws[addr].s = categoryHeaderStyle;
+        } else {
+          ws[addr].s = { fill: { fgColor: { rgb: '1A237E' } }, border: borderThick };
+        }
+      } else if (R === HEADER_ROW) {
+        // 컬럼 헤더
         ws[addr].s = headerStyle;
       } else if (R === totalRowIdx) {
         // 합계 행 스타일
         const totalStyle = {
-          font: { bold: true, sz: 11, color: { rgb: '000000' } },
-          fill: { fgColor: { rgb: 'D5E8D4' } },
+          font: { bold: true, sz: 11, color: { rgb: '1A237E' } },
+          fill: { fgColor: { rgb: 'E8EAF6' } },
           alignment: { horizontal: 'center', vertical: 'center' },
-          border: border
+          border: borderThick
         };
         const totalAmountStyle = {
-          font: { bold: true, sz: 11, color: { rgb: '000000' } },
-          fill: { fgColor: { rgb: 'D5E8D4' } },
+          font: { bold: true, sz: 11, color: { rgb: '1A237E' } },
+          fill: { fgColor: { rgb: 'E8EAF6' } },
           numFmt: '#,##0',
           alignment: { horizontal: 'right', vertical: 'center' },
-          border: border
+          border: borderThick
         };
         const amountCols = [4, 5, 9, 13, 17, 21];
         if (amountCols.includes(C)) {
@@ -3509,24 +3676,28 @@ function exportToExcel() {
           ws[addr].s = totalStyle;
         }
       } else {
-        // 금액 열 (4,5,9,13,17,21)
+        // 데이터 행
+        const isEvenRow = (R - DATA_START_ROW) % 2 === 1;
         const amountCols = [4, 5, 9, 13, 17, 21];
-        // 상태 열 (12,16,20,24)
         const statusCols = [12, 16, 20, 24];
+        const dateCols = [6, 7, 8, 10, 11, 14, 15, 18, 19, 22, 23];
 
-        if (amountCols.includes(C)) {
-          ws[addr].s = amountStyle;
-          if (ws[addr].v && typeof ws[addr].v === 'number') ws[addr].t = 'n';
-        } else if (statusCols.includes(C)) {
+        if (statusCols.includes(C)) {
           const val = ws[addr].v;
           if (val === '완료') ws[addr].s = paidStyle;
           else if (val === '미입금') ws[addr].s = unpaidStyle;
           else if (val === '진행중') ws[addr].s = progressStyle;
-          else ws[addr].s = centerStyle;
+          else if (val === '해지') ws[addr].s = cancelledStyle;
+          else ws[addr].s = { ...centerStyle, fill: isEvenRow ? { fgColor: { rgb: evenRowBg } } : undefined };
+        } else if (amountCols.includes(C)) {
+          ws[addr].s = { ...amountStyle, fill: isEvenRow ? { fgColor: { rgb: evenRowBg } } : undefined };
+          if (ws[addr].v && typeof ws[addr].v === 'number') ws[addr].t = 'n';
+        } else if (dateCols.includes(C)) {
+          ws[addr].s = { ...dateStyle, fill: isEvenRow ? { fgColor: { rgb: evenRowBg } } : undefined };
         } else if (C <= 1 || C === 25) {
-          ws[addr].s = centerStyle;
+          ws[addr].s = { ...centerStyle, fill: isEvenRow ? { fgColor: { rgb: evenRowBg } } : undefined };
         } else {
-          ws[addr].s = cellStyle;
+          ws[addr].s = { ...cellStyle, fill: isEvenRow ? { fgColor: { rgb: evenRowBg } } : undefined };
         }
       }
     }
