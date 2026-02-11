@@ -11396,6 +11396,37 @@ async function loadConsultingData() {
 
     if (restoredCount > 0) {
       console.log(`PDF 기준 데이터 복원 완료: ${restoredCount}건`);
+    }
+
+    // PDF에 있지만 consultingData에서 누락된 항목 복원 (중복 제거로 삭제된 경우)
+    let addedCount = 0;
+    pdfCorrectData.forEach((pdf, idx) => {
+      if (usedPdfIndices.has(idx)) return; // 이미 매칭된 항목 스킵
+      // consultingData에 없는 항목이므로 추가
+      const newItem = {
+        id: Date.now().toString() + '_restored_' + idx,
+        site: pdf.site,
+        bidAmount: pdf.bidAmount,
+        profit: pdf.profit,
+        settlement: pdf.settlement,
+        manager: pdf.manager,
+        year: '2024',
+        type: '일반',
+        settled: '미정산',
+        execAmount: 0,
+        companyExp: pdf.bidAmount - pdf.profit,
+        otherExp: 0,
+        totalExpense: pdf.bidAmount - pdf.profit,
+        profitRate: pdf.bidAmount > 0 ? (pdf.profit / pdf.bidAmount * 100).toFixed(1) : '0.0',
+        companyProfit: pdf.profit - pdf.settlement
+      };
+      consultingData.push(newItem);
+      addedCount++;
+      console.log(`[컨설팅 복원] 누락 항목 추가: ${pdf.site} (${pdf.bidAmount.toLocaleString()}원)`);
+    });
+
+    if (restoredCount > 0 || addedCount > 0) {
+      console.log(`PDF 데이터 복원: ${restoredCount}건 갱신, ${addedCount}건 추가`);
       localStorage.setItem('consultingData', JSON.stringify(consultingData));
       fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
     }
@@ -13219,13 +13250,13 @@ async function syncAllConsultingListToSettlement() {
   // 정산 데이터 로드
   await loadConsultingData();
   
-  // 먼저 중복 데이터 정리 (현장명+년도 기준)
+  // 먼저 중복 데이터 정리 (현장명+년도+낙찰금액 기준)
   // listId가 있는 것(현장 리스트에서 온 것)을 우선 유지
   const seen = new Map();
   const cleanedData = [];
-  
+
   consultingData.forEach(item => {
-    const key = `${item.site}_${item.year}`;
+    const key = `${item.site}_${item.year}_${item.bidAmount || 0}`;
     if (seen.has(key)) {
       const existingIdx = seen.get(key);
       const existing = cleanedData[existingIdx];
