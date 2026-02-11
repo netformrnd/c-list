@@ -1115,7 +1115,132 @@ tr.selected { background: var(--primary-light); }
       <button class="btn btn-primary" onclick="openReportModal('본사')">📋 본사 보고서</button>
       <button class="btn" onclick="openReportModal('외주')" style="background:#9c27b0;color:white;">📋 외주 보고서</button>
       <button class="btn btn-success" onclick="downloadSettlementExcel()">📥 엑셀 다운로드</button>
-      <button class="btn" onclick="batchSettlement()" style="background:#c62828;color:white;margin-left:auto;font-weight:700;">🔒 일괄정산 실행</button>
+      <button class="btn" onclick="openBatchWizard()" style="background:#c62828;color:white;margin-left:auto;font-weight:700;">🔒 일괄정산 실행</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 일괄정산 위저드 모달 ========== -->
+<div class="modal" id="batchWizardModal" style="z-index:10001;">
+  <div class="modal-content" style="max-width:960px;max-height:92vh;display:flex;flex-direction:column;">
+    <div class="modal-header" style="background:#c62828;color:white;">
+      <div class="modal-title" id="batchWizardTitle">🔒 일괄정산 실행</div>
+      <button class="modal-close" onclick="closeBatchWizard()" style="color:white;">×</button>
+    </div>
+    <div class="modal-body" style="flex:1;overflow-y:auto;padding:1rem;">
+      <!-- Step 1: 기간/담당자 선택 -->
+      <div id="batchStep1">
+        <div style="margin-bottom:1rem;">
+          <h3 style="margin-bottom:0.5rem;font-size:1rem;">📅 Step 1. 정산 기간 및 담당자 선택</h3>
+          <p style="color:#666;font-size:0.85rem;">정산 기간을 선택하고, 정산할 담당자를 체크해주세요.</p>
+        </div>
+        <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem;">정산 기간</label>
+            <select id="batchYearFilter" onchange="updateBatchManagerList()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+              <option value="2024+2025">2024 미정산 + 2025년</option>
+              <option value="2024">2024년</option>
+              <option value="2025">2025년</option>
+              <option value="2026-1H">2026년 상반기 (1~6월 입금)</option>
+              <option value="2026-2H">2026년 하반기 (7~12월 입금)</option>
+              <option value="2026">2026년 전체</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:200px;">
+            <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:0.3rem;">구분</label>
+            <select id="batchTypeFilter" onchange="updateBatchManagerList()" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+              <option value="">전체</option>
+              <option value="본사">본사</option>
+              <option value="외주">외주</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+          <label style="font-weight:600;font-size:0.85rem;">담당자 선택</label>
+          <label style="font-size:0.8rem;cursor:pointer;color:#1976d2;">
+            <input type="checkbox" id="batchSelectAllManagers" onchange="toggleBatchAllManagers(this.checked)"> 전체 선택
+          </label>
+        </div>
+        <div id="batchManagerList" style="border:1px solid #e0e0e0;border-radius:8px;max-height:320px;overflow-y:auto;padding:0.5rem;">
+          <!-- 담당자 목록이 여기에 렌더링됨 -->
+        </div>
+        <div id="batchStep1Summary" style="margin-top:0.8rem;padding:0.6rem;background:#e3f2fd;border-radius:6px;font-size:0.85rem;display:none;">
+        </div>
+      </div>
+
+      <!-- Step 2: 담당자별 현장 확인 -->
+      <div id="batchStep2" style="display:none;">
+        <div style="margin-bottom:0.8rem;">
+          <h3 style="margin-bottom:0.3rem;font-size:1rem;">🏗️ Step 2. 담당자별 현장 확인 및 정산</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
+            <div id="batchManagerProgress" style="font-size:0.85rem;color:#666;"></div>
+            <div id="batchProgressBar" style="flex:1;max-width:300px;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+              <div id="batchProgressFill" style="height:100%;background:#4caf50;border-radius:4px;transition:width 0.3s;width:0%;"></div>
+            </div>
+          </div>
+        </div>
+        <div id="batchCurrentManager" style="padding:0.6rem;background:#fff3e0;border-radius:8px;margin-bottom:0.8rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;font-size:1.05rem;" id="batchCurrentManagerName">👤 담당자명</span>
+            <span style="font-size:0.8rem;color:#666;" id="batchCurrentManagerInfo"></span>
+          </div>
+        </div>
+        <div style="margin-bottom:0.5rem;display:flex;justify-content:space-between;align-items:center;">
+          <label style="font-size:0.8rem;cursor:pointer;color:#1976d2;">
+            <input type="checkbox" id="batchSelectAllProjects" checked onchange="toggleBatchAllProjects(this.checked)"> 전체 선택
+          </label>
+          <span id="batchSelectedCount" style="font-size:0.8rem;color:#666;"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem;" id="batchProjectTable">
+            <thead>
+              <tr style="background:#f5f5f5;">
+                <th style="padding:0.4rem;border:1px solid #ddd;width:35px;">✓</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:45px;">년도</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:40px;">NO</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;">현장명</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:90px;text-align:right;">공사금액</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:90px;text-align:right;">이익금</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:50px;text-align:right;">이익률</th>
+                <th style="padding:0.4rem;border:1px solid #ddd;width:90px;text-align:right;color:#c62828;font-weight:700;">정산(15%)</th>
+              </tr>
+            </thead>
+            <tbody id="batchProjectBody">
+            </tbody>
+          </table>
+        </div>
+        <div id="batchStep2Summary" style="margin-top:0.8rem;padding:0.6rem;background:#e8f5e9;border-radius:6px;font-size:0.85rem;">
+        </div>
+      </div>
+
+      <!-- Step 3: 완료/발송 -->
+      <div id="batchStep3" style="display:none;">
+        <div style="margin-bottom:1rem;">
+          <h3 style="margin-bottom:0.3rem;font-size:1rem;">✅ Step 3. 정산 완료 및 발송</h3>
+          <p style="color:#666;font-size:0.85rem;">정산이 완료되었습니다. 아래 결과를 확인하고 담당자에게 PDF와 이메일을 발송할 수 있습니다.</p>
+        </div>
+        <div id="batchResultSummary" style="margin-bottom:1rem;">
+        </div>
+        <div id="batchSendSection" style="border:1px solid #e0e0e0;border-radius:8px;padding:1rem;display:none;">
+          <h4 style="margin-bottom:0.5rem;font-size:0.9rem;">📧 PDF 생성 + 이메일 발송</h4>
+          <div id="batchSendProgress" style="margin-bottom:0.5rem;font-size:0.85rem;color:#666;"></div>
+          <div id="batchSendCurrentManager" style="padding:0.5rem;background:#f5f5f5;border-radius:6px;margin-bottom:0.5rem;display:none;">
+          </div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn" onclick="sendNextManagerPDF()" id="btnSendNextPDF" style="background:#1976d2;color:white;">📄 PDF 생성</button>
+            <button class="btn" onclick="sendNextManagerEmail()" id="btnSendNextEmail" style="background:#ff9800;color:white;display:none;">📧 이메일 발송</button>
+            <button class="btn" onclick="skipToNextSendManager()" id="btnSkipSend" style="background:#9e9e9e;color:white;display:none;">다음 담당자 ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <button class="btn btn-outline" onclick="closeBatchWizard()">닫기</button>
+      <button class="btn" id="btnBatchPrev" onclick="batchWizardPrev()" style="background:#9e9e9e;color:white;display:none;">◀ 이전</button>
+      <button class="btn" id="btnBatchNext" onclick="batchWizardNext()" style="background:#1976d2;color:white;margin-left:auto;">다음 ▶</button>
+      <button class="btn" id="btnBatchExecute" onclick="executeBatchForCurrentManager()" style="background:#c62828;color:white;display:none;">✅ 이 담당자 정산 실행</button>
+      <button class="btn" id="btnBatchNextManager" onclick="moveToNextManager()" style="background:#1976d2;color:white;display:none;">다음 담당자 ▶</button>
+      <button class="btn" id="btnBatchSendAll" onclick="startBatchSend()" style="background:#ff9800;color:white;display:none;">📄 PDF + 📧 이메일 일괄 발송</button>
     </div>
   </div>
 </div>
@@ -9851,6 +9976,505 @@ async function batchSettlement() {
   renderSettlementTable(settlementData);
 
   showToast(`일괄정산 완료: ${successCount}건 처리`, 'success');
+}
+
+// ========== 일괄정산 위저드 시스템 ==========
+let batchWizardData = {
+  allItems: [],           // 전체 미정산 데이터
+  managerGroups: {},      // 담당자별 그룹 { name: [items] }
+  selectedManagers: [],   // Step1에서 선택된 담당자 목록
+  currentManagerIdx: 0,   // Step2에서 현재 담당자 인덱스
+  results: [],            // 정산 결과 { manager, count, amount, items }
+  sendQueue: [],          // 발송 대기열
+  sendIdx: 0             // 현재 발송 인덱스
+};
+
+function openBatchWizard() {
+  // 데이터 준비
+  if (!settlementData || settlementData.length === 0) {
+    settlementData = generateSettlementFromCurrentData();
+  }
+  // 상태 초기화
+  batchWizardData = {
+    allItems: [], managerGroups: {}, selectedManagers: [],
+    currentManagerIdx: 0, results: [], sendQueue: [], sendIdx: 0
+  };
+  // Step1 표시
+  document.getElementById('batchStep1').style.display = '';
+  document.getElementById('batchStep2').style.display = 'none';
+  document.getElementById('batchStep3').style.display = 'none';
+  document.getElementById('btnBatchNext').style.display = '';
+  document.getElementById('btnBatchPrev').style.display = 'none';
+  document.getElementById('btnBatchExecute').style.display = 'none';
+  document.getElementById('btnBatchNextManager').style.display = 'none';
+  document.getElementById('btnBatchSendAll').style.display = 'none';
+  document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 1/3';
+  updateBatchManagerList();
+  document.getElementById('batchWizardModal').style.display = 'flex';
+}
+
+function closeBatchWizard() {
+  document.getElementById('batchWizardModal').style.display = 'none';
+  // 정산 테이블 갱신
+  settlementData = generateSettlementFromCurrentData();
+  renderSettlementTable(settlementData);
+}
+
+function prepareBatchManagerData(yearFilter, typeFilter) {
+  let data = [...settlementData];
+  // 기간 필터
+  if (yearFilter === '2024+2025') {
+    data = data.filter(item => {
+      const is24 = String(item.year).includes('24');
+      const is25 = String(item.year).includes('25');
+      if (is24) return item.settled !== '정산완료';
+      return is25;
+    });
+  } else if (yearFilter === '2026-1H') {
+    data = data.filter(item => {
+      if (!String(item.year).includes('26')) return false;
+      const pd = item.paidDate;
+      if (!pd) return false;
+      const m = new Date(pd).getMonth() + 1;
+      return m >= 1 && m <= 6;
+    });
+  } else if (yearFilter === '2026-2H') {
+    data = data.filter(item => {
+      if (!String(item.year).includes('26')) return false;
+      const pd = item.paidDate;
+      if (!pd) return false;
+      const m = new Date(pd).getMonth() + 1;
+      return m >= 7 && m <= 12;
+    });
+  } else if (yearFilter === '2026') {
+    data = data.filter(item => String(item.year).includes('26'));
+  } else if (yearFilter) {
+    data = data.filter(item => String(item.year).includes(yearFilter.substring(2)));
+  }
+  // 구분 필터
+  if (typeFilter === '본사') data = data.filter(i => i.hqType === '본사');
+  else if (typeFilter === '외주') data = data.filter(i => i.hqType === '외주');
+  // 미정산 + 대상 필터
+  data = data.filter(item =>
+    item.settled !== '정산완료' &&
+    !item.isExcluded &&
+    !item.excludedByUser &&
+    item.hasDetailData &&
+    item.profit !== 0
+  );
+  return data;
+}
+
+function updateBatchManagerList() {
+  const yearFilter = document.getElementById('batchYearFilter').value;
+  const typeFilter = document.getElementById('batchTypeFilter').value;
+  const data = prepareBatchManagerData(yearFilter, typeFilter);
+  batchWizardData.allItems = data;
+  // 담당자별 그룹핑
+  const groups = {};
+  data.forEach(item => {
+    const mgr = item.manager || '미지정';
+    if (!groups[mgr]) groups[mgr] = [];
+    groups[mgr].push(item);
+  });
+  batchWizardData.managerGroups = groups;
+  // 렌더링
+  const container = document.getElementById('batchManagerList');
+  const managers = Object.keys(groups).sort();
+  if (managers.length === 0) {
+    container.innerHTML = '<div style="padding:1rem;text-align:center;color:#999;">미정산 대상이 없습니다.</div>';
+    document.getElementById('batchStep1Summary').style.display = 'none';
+    return;
+  }
+  let html = '';
+  managers.forEach(mgr => {
+    const items = groups[mgr];
+    const totalAmt = items.reduce((s, i) => s + (i.realSettlement || 0), 0);
+    const isExcluded = BATCH_EXCLUDE_MANAGERS.includes(mgr);
+    const totalProfit = items.reduce((s, i) => s + (i.profit || 0), 0);
+    html += `<label style="display:flex;align-items:center;padding:0.5rem 0.6rem;border-bottom:1px solid #f0f0f0;cursor:pointer;${isExcluded ? 'opacity:0.5;' : ''}">
+      <input type="checkbox" class="batchMgrCheck" value="${mgr}" ${isExcluded ? 'disabled' : 'checked'} onchange="updateBatchStep1Summary()" style="margin-right:0.6rem;">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:0.9rem;">${mgr} ${isExcluded ? '<span style="color:#c62828;font-size:0.75rem;">(제외 대상)</span>' : ''}</div>
+        <div style="font-size:0.78rem;color:#666;">미정산 ${items.length}건 · 이익금 ${totalProfit.toLocaleString()}원 · <strong style="color:#c62828;">정산(15%) ${Math.round(totalAmt).toLocaleString()}원</strong></div>
+      </div>
+    </label>`;
+  });
+  container.innerHTML = html;
+  document.getElementById('batchSelectAllManagers').checked = true;
+  updateBatchStep1Summary();
+}
+
+function toggleBatchAllManagers(checked) {
+  document.querySelectorAll('.batchMgrCheck:not(:disabled)').forEach(cb => cb.checked = checked);
+  updateBatchStep1Summary();
+}
+
+function updateBatchStep1Summary() {
+  const checked = [...document.querySelectorAll('.batchMgrCheck:checked')].map(cb => cb.value);
+  let totalCount = 0, totalAmt = 0;
+  checked.forEach(mgr => {
+    const items = batchWizardData.managerGroups[mgr] || [];
+    totalCount += items.length;
+    totalAmt += items.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
+  });
+  const summary = document.getElementById('batchStep1Summary');
+  if (checked.length > 0) {
+    summary.style.display = '';
+    summary.innerHTML = `📊 선택: <strong>${checked.length}명</strong> · 현장 <strong>${totalCount}건</strong> · 정산금액(15%) 합계 <strong style="color:#c62828;">${totalAmt.toLocaleString()}원</strong>`;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function batchWizardNext() {
+  // Step1 → Step2 전환
+  const checked = [...document.querySelectorAll('.batchMgrCheck:checked')].map(cb => cb.value);
+  if (checked.length === 0) {
+    showToast('담당자를 1명 이상 선택해주세요.', 'error');
+    return;
+  }
+  batchWizardData.selectedManagers = checked;
+  batchWizardData.currentManagerIdx = 0;
+  batchWizardData.results = [];
+  showBatchStep2();
+}
+
+function batchWizardPrev() {
+  // Step2에서 Step1으로 돌아가기 (현재 담당자가 첫번째일 때만)
+  if (batchWizardData.currentManagerIdx === 0 && batchWizardData.results.length === 0) {
+    document.getElementById('batchStep1').style.display = '';
+    document.getElementById('batchStep2').style.display = 'none';
+    document.getElementById('btnBatchNext').style.display = '';
+    document.getElementById('btnBatchPrev').style.display = 'none';
+    document.getElementById('btnBatchExecute').style.display = 'none';
+    document.getElementById('btnBatchNextManager').style.display = 'none';
+    document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 1/3';
+  }
+}
+
+function showBatchStep2() {
+  document.getElementById('batchStep1').style.display = 'none';
+  document.getElementById('batchStep2').style.display = '';
+  document.getElementById('batchStep3').style.display = 'none';
+  document.getElementById('btnBatchNext').style.display = 'none';
+  document.getElementById('btnBatchPrev').style.display = '';
+  document.getElementById('btnBatchExecute').style.display = '';
+  document.getElementById('btnBatchNextManager').style.display = 'none';
+  document.getElementById('btnBatchSendAll').style.display = 'none';
+  const total = batchWizardData.selectedManagers.length;
+  const idx = batchWizardData.currentManagerIdx;
+  document.getElementById('batchWizardTitle').textContent = `🔒 일괄정산 실행 - Step 2/3 (${idx + 1}/${total})`;
+  renderBatchManagerProjects();
+}
+
+function renderBatchManagerProjects() {
+  const managers = batchWizardData.selectedManagers;
+  const idx = batchWizardData.currentManagerIdx;
+  const mgr = managers[idx];
+  const items = batchWizardData.managerGroups[mgr] || [];
+  const total = managers.length;
+  // 진행률
+  const pct = Math.round(((idx) / total) * 100);
+  document.getElementById('batchManagerProgress').textContent = `${idx + 1} / ${total} 담당자`;
+  document.getElementById('batchProgressFill').style.width = pct + '%';
+  // 담당자 정보
+  const totalAmt = items.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
+  document.getElementById('batchCurrentManagerName').textContent = `👤 ${mgr}`;
+  document.getElementById('batchCurrentManagerInfo').textContent = `${items.length}건 · 정산(15%) ${totalAmt.toLocaleString()}원`;
+  // 테이블
+  const tbody = document.getElementById('batchProjectBody');
+  let html = '';
+  items.forEach((item, i) => {
+    const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
+    html += `<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;"><input type="checkbox" class="batchProjCheck" data-idx="${i}" checked onchange="updateBatchStep2Summary()"></td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.year}</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:center;">${item.no}</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.site}">${item.site || '-'}</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${(item.amount || 0).toLocaleString()}</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-family:monospace;">${Math.round(item.profit || 0).toLocaleString()}</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;">${rate}%</td>
+      <td style="padding:0.3rem;border:1px solid #ddd;text-align:right;font-weight:700;color:#c62828;font-family:monospace;">${Math.round(item.realSettlement || 0).toLocaleString()}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  document.getElementById('batchSelectAllProjects').checked = true;
+  updateBatchStep2Summary();
+}
+
+function toggleBatchAllProjects(checked) {
+  document.querySelectorAll('.batchProjCheck').forEach(cb => cb.checked = checked);
+  updateBatchStep2Summary();
+}
+
+function updateBatchStep2Summary() {
+  const mgr = batchWizardData.selectedManagers[batchWizardData.currentManagerIdx];
+  const items = batchWizardData.managerGroups[mgr] || [];
+  const checked = [...document.querySelectorAll('.batchProjCheck:checked')].map(cb => parseInt(cb.dataset.idx));
+  let totalAmt = 0;
+  checked.forEach(idx => { totalAmt += Math.round((items[idx]?.realSettlement) || 0); });
+  document.getElementById('batchSelectedCount').textContent = `${checked.length}/${items.length}건 선택`;
+  document.getElementById('batchStep2Summary').innerHTML = `📊 선택된 현장: <strong>${checked.length}건</strong> · 정산금액(15%) 합계: <strong style="color:#c62828;">${totalAmt.toLocaleString()}원</strong>`;
+}
+
+async function executeBatchForCurrentManager() {
+  const mgr = batchWizardData.selectedManagers[batchWizardData.currentManagerIdx];
+  const items = batchWizardData.managerGroups[mgr] || [];
+  const checkedIdxs = [...document.querySelectorAll('.batchProjCheck:checked')].map(cb => parseInt(cb.dataset.idx));
+  if (checkedIdxs.length === 0) {
+    showToast('정산할 현장을 1건 이상 선택해주세요.', 'error');
+    return;
+  }
+  const selectedItems = checkedIdxs.map(i => items[i]).filter(Boolean);
+  const totalAmt = selectedItems.reduce((s, i) => s + Math.round(i.realSettlement || 0), 0);
+  if (!confirm(`📋 ${mgr} 소장 정산 실행\n\n대상: ${selectedItems.length}건\n정산금액(15%): ${totalAmt.toLocaleString()}원\n\n진행하시겠습니까?`)) return;
+  // detailData 로드 확인
+  if (!detailData || Object.keys(detailData).length === 0) await loadDetailData();
+  let successCount = 0, failCount = 0;
+  const resultItems = [];
+  for (const item of selectedItems) {
+    try {
+      const fullYear = '20' + item.year;
+      const key = `${fullYear}_${item.no}`;
+      const detail = detailData[key];
+      if (!detail) { failCount++; resultItems.push({ ...item, success: false, reason: '총괄표 없음' }); continue; }
+      const settlementAmt = Math.round(item.realSettlement || 0);
+      // 기타경비에 영업정산 추가
+      if (!detail.expenses) detail.expenses = [];
+      detail.expenses = detail.expenses.filter(exp => !(exp.type === '기타경비' && exp.content && exp.content.includes('영업정산')));
+      const today = new Date().toISOString().split('T')[0];
+      detail.expenses.push({ type: '기타경비', date: today, amount: String(settlementAmt), content: '영업정산(15%)', payDate: '' });
+      detailData[key] = detail;
+      // 정산 상태 변경
+      const statusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+      const statusKey = `${item.year}_${item.no}`;
+      statusData[statusKey] = '정산완료';
+      localStorage.setItem('settlementStatusData', JSON.stringify(statusData));
+      const memItem = settlementData.find(d => String(d.year) === String(item.year) && String(d.no) === String(item.no));
+      if (memItem) memItem.settled = '정산완료';
+      successCount++;
+      resultItems.push({ ...item, success: true, settlementAmt });
+    } catch (e) {
+      failCount++;
+      resultItems.push({ ...item, success: false, reason: e.message });
+    }
+  }
+  // Firebase 저장
+  try {
+    await saveDetailDataToStorage();
+    const finalStatus = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+    fbSave(FB_COLLECTIONS.settlementStatusData, 'status', finalStatus);
+  } catch (e) { console.error('저장 실패:', e); }
+  // 결과 저장
+  batchWizardData.results.push({ manager: mgr, count: successCount, failCount, amount: totalAmt, items: resultItems });
+  showToast(`${mgr}: ${successCount}건 정산완료`, 'success');
+  // 버튼 전환: 정산 실행 → 다음 담당자
+  document.getElementById('btnBatchExecute').style.display = 'none';
+  document.getElementById('btnBatchPrev').style.display = 'none';
+  if (batchWizardData.currentManagerIdx < batchWizardData.selectedManagers.length - 1) {
+    document.getElementById('btnBatchNextManager').style.display = '';
+  } else {
+    // 마지막 담당자 → Step3으로
+    showBatchStep3();
+  }
+}
+
+function moveToNextManager() {
+  batchWizardData.currentManagerIdx++;
+  document.getElementById('btnBatchNextManager').style.display = 'none';
+  showBatchStep2();
+}
+
+function showBatchStep3() {
+  document.getElementById('batchStep1').style.display = 'none';
+  document.getElementById('batchStep2').style.display = 'none';
+  document.getElementById('batchStep3').style.display = '';
+  document.getElementById('btnBatchNext').style.display = 'none';
+  document.getElementById('btnBatchPrev').style.display = 'none';
+  document.getElementById('btnBatchExecute').style.display = 'none';
+  document.getElementById('btnBatchNextManager').style.display = 'none';
+  document.getElementById('btnBatchSendAll').style.display = '';
+  document.getElementById('batchWizardTitle').textContent = '🔒 일괄정산 실행 - Step 3/3 ✅';
+  // 진행률 100%
+  document.getElementById('batchProgressFill').style.width = '100%';
+  // 결과 요약 렌더링
+  let totalCount = 0, totalAmt = 0, totalFail = 0;
+  let html = '<div style="margin-bottom:0.8rem;">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+  html += '<tr style="background:#f5f5f5;"><th style="padding:0.4rem;border:1px solid #ddd;">담당자</th><th style="padding:0.4rem;border:1px solid #ddd;">정산 건수</th><th style="padding:0.4rem;border:1px solid #ddd;text-align:right;">정산금액(15%)</th><th style="padding:0.4rem;border:1px solid #ddd;">결과</th></tr>';
+  batchWizardData.results.forEach(r => {
+    totalCount += r.count;
+    totalAmt += r.amount;
+    totalFail += r.failCount;
+    html += `<tr>
+      <td style="padding:0.4rem;border:1px solid #ddd;font-weight:600;">👤 ${r.manager}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${r.count}건</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#c62828;font-weight:700;">${r.amount.toLocaleString()}원</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${r.failCount > 0 ? `✅${r.count} ❌${r.failCount}` : '✅ 완료'}</td>
+    </tr>`;
+  });
+  html += `<tr style="background:#e8f5e9;font-weight:700;">
+    <td style="padding:0.4rem;border:1px solid #ddd;">합계</td>
+    <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${totalCount}건</td>
+    <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;color:#c62828;">${totalAmt.toLocaleString()}원</td>
+    <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;">${totalFail > 0 ? `실패 ${totalFail}건` : '전체 완료'}</td>
+  </tr>`;
+  html += '</table></div>';
+  // 스킵된 담당자 표시
+  const processedManagers = batchWizardData.results.map(r => r.manager);
+  const skipped = batchWizardData.selectedManagers.filter(m => !processedManagers.includes(m));
+  if (skipped.length > 0) {
+    html += `<div style="padding:0.5rem;background:#fff3e0;border-radius:6px;font-size:0.82rem;color:#e65100;">⚠️ 미처리 담당자: ${skipped.join(', ')}</div>`;
+  }
+  document.getElementById('batchResultSummary').innerHTML = html;
+  // 발송 섹션 표시 (정산 결과가 있을 때만)
+  if (batchWizardData.results.length > 0) {
+    document.getElementById('batchSendSection').style.display = '';
+    batchWizardData.sendQueue = batchWizardData.results.filter(r => r.count > 0);
+    batchWizardData.sendIdx = 0;
+    updateBatchSendUI();
+  }
+}
+
+function startBatchSend() {
+  if (batchWizardData.sendQueue.length === 0) {
+    showToast('발송할 정산 결과가 없습니다.', 'error');
+    return;
+  }
+  batchWizardData.sendIdx = 0;
+  document.getElementById('btnBatchSendAll').style.display = 'none';
+  document.getElementById('batchSendSection').style.display = '';
+  updateBatchSendUI();
+}
+
+function updateBatchSendUI() {
+  const queue = batchWizardData.sendQueue;
+  const idx = batchWizardData.sendIdx;
+  if (idx >= queue.length) {
+    document.getElementById('batchSendProgress').textContent = '✅ 모든 담당자 발송 완료!';
+    document.getElementById('batchSendCurrentManager').style.display = 'none';
+    document.getElementById('btnSendNextPDF').style.display = 'none';
+    document.getElementById('btnSendNextEmail').style.display = 'none';
+    document.getElementById('btnSkipSend').style.display = 'none';
+    return;
+  }
+  const r = queue[idx];
+  const email = managerEmails[r.manager] || '(이메일 미등록)';
+  document.getElementById('batchSendProgress').textContent = `${idx + 1} / ${queue.length} 담당자 발송 중`;
+  document.getElementById('batchSendCurrentManager').style.display = '';
+  document.getElementById('batchSendCurrentManager').innerHTML = `<strong>👤 ${r.manager}</strong> · ${r.count}건 · ${r.amount.toLocaleString()}원 · 📧 ${email}`;
+  document.getElementById('btnSendNextPDF').style.display = '';
+  document.getElementById('btnSendNextEmail').style.display = 'none';
+  document.getElementById('btnSkipSend').style.display = '';
+}
+
+function sendNextManagerPDF() {
+  const queue = batchWizardData.sendQueue;
+  const idx = batchWizardData.sendIdx;
+  if (idx >= queue.length) return;
+  const r = queue[idx];
+  // 해당 담당자의 정산서 HTML 생성
+  const html = generateBatchPDFHTML(r);
+  if (!html) { showToast('PDF 생성 데이터가 없습니다.', 'error'); return; }
+  const title = `공사정산_확인서_${r.manager}`;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+    <style>
+      * { margin:0;padding:0;box-sizing:border-box; }
+      body { font-family:'Noto Sans KR','Malgun Gothic',sans-serif;font-size:11px;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important; }
+      table { width:100%!important;table-layout:fixed;border-collapse:collapse; }
+      th,td { word-wrap:break-word;overflow:hidden;text-overflow:ellipsis;padding:4px 6px;border:1px solid #999;font-size:10px; }
+      @media print { body{padding:0;} @page{size:A4 landscape;margin:8mm;} table{page-break-inside:auto;} tr{page-break-inside:avoid;} }
+    </style></head><body>${html}</body></html>`);
+  printWindow.document.close();
+  showToast(`${r.manager} PDF: 인쇄 창에서 "PDF로 저장" 선택`, 'info');
+  setTimeout(() => printWindow.print(), 300);
+  // PDF 후 이메일 버튼 활성화
+  document.getElementById('btnSendNextPDF').style.display = 'none';
+  document.getElementById('btnSendNextEmail').style.display = '';
+}
+
+function sendNextManagerEmail() {
+  const queue = batchWizardData.sendQueue;
+  const idx = batchWizardData.sendIdx;
+  if (idx >= queue.length) return;
+  const r = queue[idx];
+  const email = managerEmails[r.manager];
+  if (!email) {
+    showToast(`${r.manager}님의 이메일이 등록되지 않았습니다.`, 'error');
+    skipToNextSendManager();
+    return;
+  }
+  const yearFilter = document.getElementById('batchYearFilter').value;
+  let periodText = yearFilter;
+  if (yearFilter === '2024+2025') periodText = '2024 미정산 + 2025년';
+  else if (yearFilter === '2026-1H') periodText = '2026년 상반기';
+  else if (yearFilter === '2026-2H') periodText = '2026년 하반기';
+  const subject = encodeURIComponent(`[공사정산확인요청] ${r.manager}님 ${periodText} 정산내역 확인 요청드립니다`);
+  const body = encodeURIComponent(`${r.manager}님 안녕하세요.\n\n${periodText} 공사 정산 내역 확인을 요청드립니다.\n\n■ 정산 총액: ${r.amount.toLocaleString()}원\n■ 대상 건수: ${r.count}건\n\n상세 내역은 첨부된 PDF 파일을 확인해주세요.\n\n확인 완료 시 본 메일에 "확인완료" 회신 부탁드립니다.\n이상이 있는 경우 해당 현장명과 내용을 함께 회신해주세요.\n\n감사합니다.\n㈜석민이앤씨`);
+  window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+  showToast(`${r.manager}님 이메일 창이 열렸습니다. PDF를 첨부하여 발송하세요.`, 'success');
+  // 다음 담당자로 이동
+  skipToNextSendManager();
+}
+
+function skipToNextSendManager() {
+  batchWizardData.sendIdx++;
+  updateBatchSendUI();
+}
+
+function generateBatchPDFHTML(result) {
+  const items = result.items.filter(i => i.success);
+  if (items.length === 0) return '';
+  const mgr = result.manager;
+  const today = new Date();
+  const reportDate = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
+  const yearFilter = document.getElementById('batchYearFilter').value;
+  let periodText = yearFilter;
+  if (yearFilter === '2024+2025') periodText = '2024 미정산 + 2025년';
+  else if (yearFilter === '2026-1H') periodText = '2026년 상반기 (1~6월)';
+  else if (yearFilter === '2026-2H') periodText = '2026년 하반기 (7~12월)';
+  let totalAmount = 0, totalProfit = 0, totalSettlement = 0;
+  items.forEach(i => { totalAmount += i.amount || 0; totalProfit += i.profit || 0; totalSettlement += i.settlementAmt || 0; });
+  const avgRate = totalAmount > 0 ? ((totalProfit / totalAmount) * 100).toFixed(1) : '0.0';
+  // 년도별 분리
+  const data24 = items.filter(i => String(i.year).includes('24'));
+  const data25 = items.filter(i => String(i.year).includes('25'));
+  const data26 = items.filter(i => String(i.year).includes('26'));
+  let html = `<div style="padding:10px;">
+    <h2 style="text-align:center;margin-bottom:3px;font-size:16px;">공사 정산 확인서</h2>
+    <p style="text-align:center;font-size:10px;color:#666;margin-bottom:10px;">${reportDate} · ${periodText}</p>
+    <table style="margin-bottom:10px;border:none;">
+      <tr><td style="border:none;font-size:11px;"><strong>담당자:</strong> ${mgr}</td>
+      <td style="border:none;font-size:11px;text-align:right;"><strong>정산 건수:</strong> ${items.length}건 · <strong>정산금액(15%):</strong> <span style="color:#c62828;">${totalSettlement.toLocaleString()}원</span></td></tr>
+    </table>`;
+  const renderYearTable = (yearItems, yearLabel) => {
+    if (yearItems.length === 0) return '';
+    let yTotal = 0, yProfit = 0, ySettle = 0;
+    let t = `<h4 style="font-size:11px;margin:8px 0 3px;">${yearLabel}</h4>`;
+    t += '<table><tr style="background:#f0f0f0;"><th>NO</th><th>현장명</th><th style="text-align:right;">공사금액</th><th style="text-align:right;">이익금</th><th style="text-align:right;">이익률</th><th style="text-align:right;color:#c62828;">정산(15%)</th></tr>';
+    yearItems.forEach(item => {
+      const rate = item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0';
+      yTotal += item.amount || 0; yProfit += item.profit || 0; ySettle += item.settlementAmt || 0;
+      t += `<tr><td style="text-align:center;">${item.no}</td><td>${item.site || '-'}</td><td style="text-align:right;font-family:monospace;">${(item.amount||0).toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(item.profit||0).toLocaleString()}</td><td style="text-align:right;">${rate}%</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#c62828;">${(item.settlementAmt||0).toLocaleString()}</td></tr>`;
+    });
+    t += `<tr style="background:#e8f5e9;font-weight:700;"><td colspan="2">소계 (${yearItems.length}건)</td><td style="text-align:right;font-family:monospace;">${yTotal.toLocaleString()}</td><td style="text-align:right;font-family:monospace;">${Math.round(yProfit).toLocaleString()}</td><td style="text-align:right;">${yTotal > 0 ? ((yProfit/yTotal)*100).toFixed(1) : '0.0'}%</td><td style="text-align:right;font-family:monospace;color:#c62828;">${ySettle.toLocaleString()}</td></tr>`;
+    t += '</table>';
+    return t;
+  };
+  if (data24.length > 0) html += renderYearTable(data24, '2024년');
+  if (data25.length > 0) html += renderYearTable(data25, '2025년');
+  if (data26.length > 0) html += renderYearTable(data26, '2026년');
+  html += `<div style="margin-top:12px;padding:8px;background:#e3f2fd;border-radius:4px;text-align:center;">
+    <strong>총 정산금액(15%): <span style="color:#c62828;font-size:14px;">${totalSettlement.toLocaleString()}원</span></strong>
+  </div>`;
+  html += `<div style="margin-top:20px;text-align:center;font-size:10px;color:#999;">
+    <p>상기 내역을 확인합니다.</p>
+    <p style="margin-top:15px;">확인일: ${reportDate}</p>
+    <p>담당자: ${mgr} (서명)</p>
+  </div></div>`;
+  return html;
 }
 
 // 정산 상태 저장 (일괄 저장용)
