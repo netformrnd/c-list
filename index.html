@@ -5661,18 +5661,20 @@ function restoreFieldSavedData(manager) {
   const key = `${currentYear}_${item.no}`;
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
-    // 저장된 works에 실질 데이터(content나 sales가 있는 항목)가 있을 때만 복원
+    // 저장된 데이터에 실질 내용이 있을 때만 복원 (빈 배열이면 총괄표 데이터 유지)
     const hasRealWorks = saved.works && saved.works.length > 0 &&
       saved.works.some(w => w.content || w.sales);
     if (hasRealWorks) {
       fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works));
     }
-    // materials: 저장된 데이터가 있으면 복원 (빈 배열도 유효 - 사용자가 의도적으로 삭제 가능)
-    if (saved.materials && Array.isArray(saved.materials)) {
+    const hasRealMaterials = saved.materials && saved.materials.length > 0 &&
+      saved.materials.some(m => m.content || m.amount);
+    if (hasRealMaterials) {
       fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials));
     }
-    // labors: 저장된 데이터가 있으면 복원
-    if (saved.labors && Array.isArray(saved.labors)) {
+    const hasRealLabors = saved.labors && saved.labors.length > 0 &&
+      saved.labors.some(l => l.content || l.amount);
+    if (hasRealLabors) {
       fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors));
     }
     if (saved.memo) {
