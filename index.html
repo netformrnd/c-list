@@ -5633,8 +5633,8 @@ function openFieldSettlementModal() {
     document.getElementById('selectedManagerDisplay').style.display = 'block';
     document.getElementById('selectedManagerName').textContent = managers[0];
 
-    // ★ 저장된 데이터에서 메모/사진만 복원 (works/materials/labors는 항상 총괄표 100%)
-    restoreFieldMemoPhotos(managers[0]);
+    // ★ 저장된 데이터가 있으면 전체 복원
+    restoreFieldSavedData(managers[0]);
   } else if (managers.length > 1) {
     document.getElementById('field_manager').value = '';
     document.getElementById('selectedManagerDisplay').style.display = 'none';
@@ -5661,14 +5661,18 @@ function restoreFieldSavedData(manager) {
   const key = `${currentYear}_${item.no}`;
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
-    // 저장된 works/materials/labors가 있으면 전체 복원
-    if (saved.works && saved.works.length > 0) {
+    // 저장된 works에 실질 데이터(content나 sales가 있는 항목)가 있을 때만 복원
+    const hasRealWorks = saved.works && saved.works.length > 0 &&
+      saved.works.some(w => w.content || w.sales);
+    if (hasRealWorks) {
       fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works));
     }
-    if (saved.materials) {
+    // materials: 저장된 데이터가 있으면 복원 (빈 배열도 유효 - 사용자가 의도적으로 삭제 가능)
+    if (saved.materials && Array.isArray(saved.materials)) {
       fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials));
     }
-    if (saved.labors) {
+    // labors: 저장된 데이터가 있으면 복원
+    if (saved.labors && Array.isArray(saved.labors)) {
       fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors));
     }
     if (saved.memo) {
@@ -5708,6 +5712,7 @@ function initFieldSettlementFromMain() {
   });
 
   // 메인 정산서에 공사내역이 있으면 사용, 없으면 투입내역에서 계산
+  console.log('[현장소장정산] 총괄표 공사내역:', mainWorks.length, '건', mainWorks);
   if (mainWorks.length > 0) {
     fieldSettlementData.works = mainWorks;
   } else {
