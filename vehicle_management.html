@@ -1,0 +1,2660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>차량관리대장</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --primary: #4a6fa5;
+  --primary-light: #e3ecf7;
+  --success: #5ba55b;
+  --success-light: #e8f5e8;
+  --warning: #d4a029;
+  --warning-light: #fef7e0;
+  --danger: #d05050;
+  --danger-light: #fdeaea;
+  --purple: #8b6baf;
+  --purple-light: #f0eaf7;
+  --mint: #4a9e95;
+  --mint-light: #e2f3f0;
+  --gray-50: #fafbfc;
+  --gray-100: #f4f5f7;
+  --gray-200: #e8eaed;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  color: var(--gray-700);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3a5575 100%);
+  color: white;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left { display:flex; align-items:center; gap:1rem; }
+.header-title { font-size:1.5rem; font-weight:700; letter-spacing:-0.5px; }
+.header-sub { font-size:0.8rem; opacity:0.7; }
+.header-right { display:flex; gap:0.5rem; flex-wrap:wrap; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn-primary { background: var(--primary); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-outline { background: white; color: var(--gray-600); border: 1px solid var(--gray-300); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+.btn-header { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+.btn-header:hover { background: rgba(255,255,255,0.25); }
+
+/* ===== TABS ===== */
+.tab-container {
+  display: flex;
+  gap: 0;
+  background: white;
+  border-bottom: 2px solid var(--gray-200);
+  padding: 0 1.5rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 0.9rem 1.5rem;
+  border: none;
+  background: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.tab-btn:hover { color: var(--primary); }
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
+}
+.tab-content { display: none; padding: 1.5rem; }
+.tab-content.active { display: block; }
+
+/* ===== CARDS ===== */
+.container { max-width: 1400px; margin: 0 auto; }
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); }
+.card-body { padding: 1.5rem; }
+
+/* ===== STAT CARDS ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+.stat-info {}
+.stat-label { font-size: 0.75rem; color: var(--gray-500); font-weight: 500; }
+.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--gray-800); }
+
+/* ===== SEARCH ===== */
+.search-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  min-width: 200px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--primary); }
+.search-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  background: white;
+}
+.search-result { font-size: 0.8rem; color: var(--gray-500); margin-left: 0.5rem; }
+
+/* ===== TABLE ===== */
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+th {
+  background: var(--gray-50);
+  padding: 0.75rem 0.625rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-600);
+  border-bottom: 2px solid var(--gray-200);
+  white-space: nowrap;
+}
+td {
+  padding: 0.625rem;
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+tr:hover { background: var(--gray-50); }
+
+/* ===== STATUS BADGE ===== */
+.status-badge {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.status-active { background: var(--success-light); color: var(--success); }
+.status-repair { background: var(--warning-light); color: var(--warning); }
+.status-idle { background: var(--gray-100); color: var(--gray-500); }
+.status-retired { background: var(--danger-light); color: var(--danger); }
+
+/* ===== D-DAY BADGE ===== */
+.dday-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.dday-danger { background: var(--danger-light); color: var(--danger); }
+.dday-warning { background: var(--warning-light); color: var(--warning); }
+.dday-safe { background: var(--success-light); color: var(--success); }
+.dday-expired { background: var(--danger); color: white; }
+
+/* ===== MODAL ===== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal.active { display: flex; }
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title { font-size: 1.1rem; font-weight: 700; }
+.modal-close {
+  width: 32px; height: 32px;
+  border: none; background: var(--gray-100);
+  border-radius: 8px; cursor: pointer;
+  font-size: 1.2rem; color: var(--gray-500);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--gray-200); }
+.modal-body { padding: 1.5rem; overflow-y: auto; max-height: calc(90vh - 140px); }
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ===== FORM ===== */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.form-row-2 { grid-template-columns: repeat(2, 1fr); }
+.form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-group.full { grid-column: 1 / -1; }
+.form-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-600); }
+.form-input, .form-select, .form-textarea {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--primary);
+}
+.form-textarea { resize: vertical; min-height: 60px; }
+.form-section {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+}
+.form-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+
+/* ===== TOAST ===== */
+.toast-container { position: fixed; top: 80px; right: 20px; z-index: 9999; }
+.toast {
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  animation: slideIn 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.toast-success { background: var(--success); color: white; }
+.toast-error { background: var(--danger); color: white; }
+.toast-info { background: var(--primary); color: white; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ===== PAGINATION ===== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+}
+.page-btn {
+  width: 34px; height: 34px;
+  border: 1px solid var(--gray-300);
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.page-btn:hover { border-color: var(--primary); color: var(--primary); }
+.page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.page-info { font-size: 0.8rem; color: var(--gray-500); margin: 0 0.5rem; }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--gray-400);
+}
+.empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+.empty-state-text { font-size: 0.9rem; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .header { padding: 0.75rem 1rem; flex-direction: column; gap: 0.5rem; }
+  .header-right { width: 100%; justify-content: center; }
+  .tab-container { padding: 0 0.5rem; }
+  .tab-btn { padding: 0.7rem 1rem; font-size: 0.8rem; }
+  .tab-content { padding: 1rem; }
+  .form-row { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .search-bar { flex-direction: column; }
+  .search-input { width: 100%; }
+}
+
+/* ===== COST SUMMARY ===== */
+.cost-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.cost-item {
+  background: var(--gray-50);
+  padding: 0.75rem;
+  border-radius: 8px;
+  text-align: center;
+}
+.cost-item-label { font-size: 0.72rem; color: var(--gray-500); }
+.cost-item-value { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); }
+
+/* ===== ALERT CARDS ===== */
+.alert-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.alert-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.alert-danger { background: var(--danger-light); border-left: 4px solid var(--danger); }
+.alert-warning { background: var(--warning-light); border-left: 4px solid var(--warning); }
+.alert-info { background: var(--primary-light); border-left: 4px solid var(--primary); }
+
+/* ===== VEHICLE CARD GRID ===== */
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.vehicle-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 4px solid var(--gray-300);
+}
+.vehicle-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+.vehicle-card.status-active-card { border-left-color: var(--success); }
+.vehicle-card.status-repair-card { border-left-color: var(--warning); }
+.vehicle-card.status-idle-card { border-left-color: var(--gray-400); }
+.vehicle-card.status-retired-card { border-left-color: var(--danger); }
+.vc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
+.vc-no { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); }
+.vc-body { display: flex; flex-direction: column; gap: 0.3rem; }
+.vc-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--gray-600); }
+.vc-label { color: var(--gray-400); }
+.vc-actions { display: flex; gap: 0.4rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--gray-100); }
+
+/* ===== EDIT LOCK ===== */
+.lock-banner {
+  background: var(--warning-light);
+  color: var(--warning);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ===== CHART / REPORT ===== */
+.chart-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 768px) {
+  .chart-container { grid-template-columns: 1fr; }
+}
+.chart-box {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+.chart-box-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.bar-chart { display: flex; flex-direction: column; gap: 0.5rem; }
+.bar-row { display: flex; align-items: center; gap: 0.75rem; }
+.bar-label { width: 70px; font-size: 0.75rem; color: var(--gray-600); text-align: right; flex-shrink: 0; }
+.bar-track { flex: 1; height: 22px; background: var(--gray-100); border-radius: 6px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; min-width: 2px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+.bar-val { font-size: 0.68rem; font-weight: 700; color: white; white-space: nowrap; }
+.bar-val-outside { font-size: 0.68rem; font-weight: 600; color: var(--gray-600); margin-left: 6px; white-space: nowrap; }
+
+.donut-wrap { display: flex; align-items: center; justify-content: center; gap: 1.5rem; }
+.donut-svg { width: 120px; height: 120px; }
+.donut-legend { display: flex; flex-direction: column; gap: 0.4rem; }
+.legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--gray-600); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* ===== REPORT TAB ===== */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.report-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  border-top: 4px solid var(--primary);
+}
+.report-card-title { font-size: 0.85rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.75rem; }
+.report-item { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--gray-200); }
+.report-item:last-child { border-bottom: none; }
+.report-item-label { color: var(--gray-500); }
+.report-item-value { font-weight: 700; color: var(--gray-800); }
+
+/* ===== IMPORT PROGRESS ===== */
+.import-result {
+  background: var(--gray-50);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.82rem;
+}
+.import-result-item { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+.import-result-label { color: var(--gray-500); }
+.import-result-value { font-weight: 700; color: var(--success); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">차량관리대장</div>
+      <div class="header-sub">Vehicle Management System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-header" onclick="openVehicleModal()">+ 차량등록</button>
+    <button class="btn btn-header" onclick="exportExcel()">📊 Excel 내보내기</button>
+    <button class="btn btn-header" onclick="document.getElementById('importFile').click()">📥 Excel 가져오기</button>
+    <button class="btn btn-header" onclick="exportReport()">📋 월간보고서</button>
+    <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-container">
+  <button class="tab-btn active" onclick="switchTab('list')">차량목록</button>
+  <button class="tab-btn" onclick="switchTab('driving')">운행관리</button>
+  <button class="tab-btn" onclick="switchTab('maintenance')">정비/점검</button>
+  <button class="tab-btn" onclick="switchTab('cost')">비용관리</button>
+  <button class="tab-btn" onclick="switchTab('insurance')">보험/등록</button>
+  <button class="tab-btn" onclick="switchTab('report')">📈 통계/보고</button>
+</div>
+
+<!-- TAB CONTENTS -->
+<div class="container">
+
+  <!-- ===== TAB 1: 차량목록 ===== -->
+  <div class="tab-content active" id="tab-list">
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">차량 목록</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-sm btn-outline" onclick="toggleView('card')" id="viewCardBtn" style="font-weight:700;">카드뷰</button>
+          <button class="btn btn-sm btn-outline" onclick="toggleView('table')" id="viewTableBtn">테이블뷰</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="search-bar">
+          <input type="text" class="search-input" id="searchKeyword" placeholder="차량번호, 차종, 운전자 검색..." onkeyup="if(event.key==='Enter')searchVehicles()">
+          <select class="search-select" id="searchStatus" onchange="searchVehicles()">
+            <option value="">전체 상태</option>
+            <option value="운행중">운행중</option>
+            <option value="정비중">정비중</option>
+            <option value="대기">대기</option>
+            <option value="폐차">폐차</option>
+          </select>
+          <select class="search-select" id="searchDept" onchange="searchVehicles()">
+            <option value="">전체 부서</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="searchVehicles()">검색</button>
+          <button class="btn btn-sm btn-outline" onclick="resetSearch()">초기화</button>
+          <span class="search-result" id="searchResult"></span>
+        </div>
+        <div id="vehicleListArea"></div>
+        <div class="pagination" id="listPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2: 운행관리 ===== -->
+  <div class="tab-content" id="tab-driving">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">운행기록</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <select class="search-select" id="drivingVehicle" onchange="renderDrivingLog()">
+            <option value="">차량 선택</option>
+          </select>
+          <input type="month" class="search-input" id="drivingMonth" onchange="renderDrivingLog()" style="min-width:140px;">
+          <button class="btn btn-sm btn-primary" onclick="openDrivingModal()">+ 운행기록 추가</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="cost-summary" id="drivingSummary"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th><th>운전자</th><th>출발지</th><th>도착지</th><th>목적</th>
+                <th>출발(km)</th><th>도착(km)</th><th>주행거리</th><th>주유량(L)</th><th>주유비</th><th>비고</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="drivingTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="drivingPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 3: 정비/점검 ===== -->
+  <div class="tab-content" id="tab-maintenance">
+    <div id="maintenanceAlerts" style="margin-bottom:1rem;"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">정비/점검 내역</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <select class="search-select" id="maintVehicle" onchange="renderMaintenance()">
+            <option value="">전체 차량</option>
+          </select>
+          <button class="btn btn-sm btn-primary" onclick="openMaintenanceModal()">+ 정비 등록</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th><th>차량</th><th>구분</th><th>주행거리(km)</th><th>정비업체</th>
+                <th>내용</th><th>비용</th><th>다음점검일</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="maintTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="maintPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 4: 비용관리 ===== -->
+  <div class="tab-content" id="tab-cost">
+    <div class="cost-summary" id="costSummaryCards"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">비용 내역</div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <select class="search-select" id="costVehicle" onchange="renderCost()">
+            <option value="">전체 차량</option>
+          </select>
+          <select class="search-select" id="costCategory" onchange="renderCost()">
+            <option value="">전체 항목</option>
+            <option value="주유">주유</option>
+            <option value="정비">정비</option>
+            <option value="보험">보험</option>
+            <option value="세금">세금</option>
+            <option value="과태료">과태료</option>
+            <option value="주차">주차</option>
+            <option value="톨비">톨비</option>
+            <option value="기타">기타</option>
+          </select>
+          <input type="month" class="search-input" id="costMonth" onchange="renderCost()" style="min-width:140px;">
+          <button class="btn btn-sm btn-primary" onclick="openCostModal()">+ 비용 등록</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>날짜</th><th>차량</th><th>항목</th><th>내용</th><th>금액</th>
+                <th>결제수단</th><th>영수증</th><th>비고</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="costTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="costPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 5: 보험/등록 ===== -->
+  <div class="tab-content" id="tab-insurance">
+    <div id="insuranceAlerts" style="margin-bottom:1rem;"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">보험 및 등록 현황</div>
+      </div>
+      <div class="card-body">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>차량</th><th>보험사</th><th>증권번호</th><th>보험종류</th>
+                <th>보험기간</th><th>보험료</th><th>차량검사일</th><th>검사만료일</th>
+                <th>자동차세</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="insuranceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 6: 통계/보고 ===== -->
+  <div class="tab-content" id="tab-report">
+    <div class="search-bar" style="margin-bottom:1rem;">
+      <select class="search-select" id="reportYear" onchange="renderReport()"></select>
+      <select class="search-select" id="reportMonth" onchange="renderReport()">
+        <option value="">전체 월</option>
+        <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
+        <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
+        <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
+        <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+      </select>
+      <button class="btn btn-sm btn-primary" onclick="renderReport()">조회</button>
+    </div>
+    <div class="report-grid" id="reportSummary"></div>
+    <div class="chart-container" id="reportCharts"></div>
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-header"><div class="card-title">월별 비용 추이</div></div>
+      <div class="card-body" id="monthlyCostChart"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== VEHICLE MODAL ===== -->
+<div class="modal" id="vehicleModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="vehicleModalTitle">차량 등록</div>
+      <button class="modal-close" onclick="closeVehicleModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editVehicleId">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">차량번호 *</label>
+          <input type="text" class="form-input" id="vhNo" placeholder="12가1234">
+        </div>
+        <div class="form-group">
+          <label class="form-label">차종 *</label>
+          <input type="text" class="form-input" id="vhName" placeholder="포터2, 스타렉스 등">
+        </div>
+        <div class="form-group">
+          <label class="form-label">연식</label>
+          <input type="text" class="form-input" id="vhYear" placeholder="2024">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">차대번호</label>
+          <input type="text" class="form-input" id="vhVin">
+        </div>
+        <div class="form-group">
+          <label class="form-label">소유자</label>
+          <input type="text" class="form-input" id="vhOwner">
+        </div>
+        <div class="form-group">
+          <label class="form-label">등록일</label>
+          <input type="date" class="form-input" id="vhRegDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">주운전자</label>
+          <input type="text" class="form-input" id="vhDriver">
+        </div>
+        <div class="form-group">
+          <label class="form-label">소속부서</label>
+          <input type="text" class="form-input" id="vhDept" placeholder="공사1팀">
+        </div>
+        <div class="form-group">
+          <label class="form-label">용도</label>
+          <input type="text" class="form-input" id="vhPurpose" placeholder="현장운반, 영업 등">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select class="form-select" id="vhStatus">
+            <option value="운행중">운행중</option>
+            <option value="정비중">정비중</option>
+            <option value="대기">대기</option>
+            <option value="폐차">폐차</option>
+          </select>
+        </div>
+        <div class="form-group full" style="grid-column: span 2;">
+          <label class="form-label">메모</label>
+          <textarea class="form-textarea" id="vhMemo" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeVehicleModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveVehicle()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DRIVING LOG MODAL ===== -->
+<div class="modal" id="drivingModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="drivingModalTitle">운행기록 추가</div>
+      <button class="modal-close" onclick="closeDrivingModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editDrivingIdx" value="-1">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">차량 *</label>
+          <select class="form-select" id="drVehicle"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">날짜 *</label>
+          <input type="date" class="form-input" id="drDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">운전자</label>
+          <input type="text" class="form-input" id="drDriver">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">출발지</label>
+          <input type="text" class="form-input" id="drFrom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">도착지</label>
+          <input type="text" class="form-input" id="drTo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">운행목적</label>
+          <input type="text" class="form-input" id="drPurpose">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">출발 km</label>
+          <input type="number" class="form-input" id="drStartKm" onchange="calcDistance()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">도착 km</label>
+          <input type="number" class="form-input" id="drEndKm" onchange="calcDistance()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">주행거리</label>
+          <input type="number" class="form-input" id="drDistance" readonly style="background:var(--gray-50);">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">주유량(L)</label>
+          <input type="number" class="form-input" id="drFuelAmt" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">주유비(원)</label>
+          <input type="number" class="form-input" id="drFuelCost">
+        </div>
+        <div class="form-group">
+          <label class="form-label">비고</label>
+          <input type="text" class="form-input" id="drMemo">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeDrivingModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveDriving()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAINTENANCE MODAL ===== -->
+<div class="modal" id="maintModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="maintModalTitle">정비/점검 등록</div>
+      <button class="modal-close" onclick="closeMaintModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editMaintIdx" value="-1">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">차량 *</label>
+          <select class="form-select" id="mtVehicle"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">날짜 *</label>
+          <input type="date" class="form-input" id="mtDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">구분</label>
+          <select class="form-select" id="mtType">
+            <option value="정기점검">정기점검</option>
+            <option value="소모품교체">소모품교체</option>
+            <option value="수리">수리</option>
+            <option value="사고수리">사고수리</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">주행거리(km)</label>
+          <input type="number" class="form-input" id="mtKm">
+        </div>
+        <div class="form-group">
+          <label class="form-label">정비업체</label>
+          <input type="text" class="form-input" id="mtShop">
+        </div>
+        <div class="form-group">
+          <label class="form-label">비용(원)</label>
+          <input type="number" class="form-input" id="mtCost">
+        </div>
+      </div>
+      <div class="form-row form-row-2">
+        <div class="form-group">
+          <label class="form-label">정비 내용</label>
+          <textarea class="form-textarea" id="mtDesc" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">다음 점검예정일</label>
+          <input type="date" class="form-input" id="mtNextDate">
+          <label class="form-label" style="margin-top:0.5rem;">비고</label>
+          <input type="text" class="form-input" id="mtMemo">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeMaintModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveMaintenance()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== COST MODAL ===== -->
+<div class="modal" id="costModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="costModalTitle">비용 등록</div>
+      <button class="modal-close" onclick="closeCostModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editCostIdx" value="-1">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">차량 *</label>
+          <select class="form-select" id="csVehicle"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">날짜 *</label>
+          <input type="date" class="form-input" id="csDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">항목</label>
+          <select class="form-select" id="csCategory">
+            <option value="주유">주유</option>
+            <option value="정비">정비</option>
+            <option value="보험">보험</option>
+            <option value="세금">세금</option>
+            <option value="과태료">과태료</option>
+            <option value="주차">주차</option>
+            <option value="톨비">톨비</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">내용</label>
+          <input type="text" class="form-input" id="csDesc" placeholder="경유 주유, 엔진오일 교환 등">
+        </div>
+        <div class="form-group">
+          <label class="form-label">금액(원) *</label>
+          <input type="number" class="form-input" id="csAmount">
+        </div>
+        <div class="form-group">
+          <label class="form-label">결제수단</label>
+          <select class="form-select" id="csPayMethod">
+            <option value="법인카드">법인카드</option>
+            <option value="현금">현금</option>
+            <option value="개인카드">개인카드</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">영수증</label>
+          <select class="form-select" id="csReceipt">
+            <option value="true">있음</option>
+            <option value="false">없음</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column: span 2;">
+          <label class="form-label">비고</label>
+          <input type="text" class="form-input" id="csMemo">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeCostModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveCost()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INSURANCE MODAL ===== -->
+<div class="modal" id="insuranceModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">보험/등록 수정</div>
+      <button class="modal-close" onclick="closeInsuranceModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editInsVehicleId">
+      <div class="form-section">
+        <div class="form-section-title">보험 정보</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">보험사</label>
+            <input type="text" class="form-input" id="insCompany">
+          </div>
+          <div class="form-group">
+            <label class="form-label">증권번호</label>
+            <input type="text" class="form-input" id="insPolicyNo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">보험종류</label>
+            <select class="form-select" id="insType">
+              <option value="종합보험">종합보험</option>
+              <option value="책임보험">책임보험</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">보험 시작일</label>
+            <input type="date" class="form-input" id="insStart">
+          </div>
+          <div class="form-group">
+            <label class="form-label">보험 만료일</label>
+            <input type="date" class="form-input" id="insEnd">
+          </div>
+          <div class="form-group">
+            <label class="form-label">보험료(원)</label>
+            <input type="number" class="form-input" id="insPremium">
+          </div>
+        </div>
+      </div>
+      <div class="form-section" style="border-left-color:var(--mint);">
+        <div class="form-section-title" style="color:var(--mint);">차량검사</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">최근 검사일</label>
+            <input type="date" class="form-input" id="insInspDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">검사 만료일</label>
+            <input type="date" class="form-input" id="insInspDue">
+          </div>
+        </div>
+      </div>
+      <div class="form-section" style="border-left-color:var(--purple);">
+        <div class="form-section-title" style="color:var(--purple);">자동차세</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">납부일</label>
+            <input type="date" class="form-input" id="insTaxDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">자동차세(원)</label>
+            <input type="number" class="form-input" id="insTaxAmt">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">메모</label>
+          <textarea class="form-textarea" id="insMemo" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeInsuranceModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveInsurance()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// ========================================
+// DATA STORES
+// ========================================
+let vehicleData = {};
+let vehicleDrivingLog = {};
+let vehicleMaintenance = {};
+let vehicleCost = {};
+let vehicleInsurance = {};
+
+let currentTab = 'list';
+let currentView = 'card';
+let listPage = 1, drivingPage = 1, maintPage = 1, costPage = 1;
+const PAGE_SIZE = 15;
+
+// ========================================
+// FIREBASE
+// ========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain: "order-d03ce.firebaseapp.com",
+  projectId: "order-d03ce",
+  storageBucket: "order-d03ce.firebasestorage.app",
+  messagingSenderId: "930014374996",
+  appId: "1:930014374996:web:67d764f5bc946d1781d1c1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const FB_V = {
+  vehicleData: 'vehicle-data',
+  drivingLog: 'vehicle-driving-log',
+  maintenance: 'vehicle-maintenance',
+  cost: 'vehicle-cost',
+  insurance: 'vehicle-insurance'
+};
+
+async function fbSave(col, docId, data) {
+  try { await db.collection(col).doc(docId).set(data); } catch(e) { console.error('FB save err:', e); }
+}
+async function fbLoad(col, docId) {
+  try { const d = await db.collection(col).doc(docId).get(); return d.exists ? d.data() : null; } catch(e) { return null; }
+}
+async function fbSaveLarge(col, dataObj) {
+  try {
+    const batch = db.batch();
+    Object.keys(dataObj).forEach(key => {
+      batch.set(db.collection(col).doc(key), { data: JSON.stringify(dataObj[key]) });
+    });
+    await batch.commit();
+  } catch(e) { console.error('FB bulk save err:', e); }
+}
+async function fbLoadAll(col) {
+  try {
+    const snap = await db.collection(col).get();
+    const r = {};
+    snap.forEach(doc => { const d = doc.data(); r[doc.id] = d.data ? JSON.parse(d.data) : d; });
+    return r;
+  } catch(e) { return {}; }
+}
+
+// ========================================
+// STORAGE (localStorage + Firebase)
+// ========================================
+async function saveAllData() {
+  try { localStorage.setItem('vehicleData', JSON.stringify(vehicleData)); } catch(e) {}
+  try { localStorage.setItem('vehicleDrivingLog', JSON.stringify(vehicleDrivingLog)); } catch(e) {}
+  try { localStorage.setItem('vehicleMaintenance', JSON.stringify(vehicleMaintenance)); } catch(e) {}
+  try { localStorage.setItem('vehicleCost', JSON.stringify(vehicleCost)); } catch(e) {}
+  try { localStorage.setItem('vehicleInsurance', JSON.stringify(vehicleInsurance)); } catch(e) {}
+
+  await fbSave(FB_V.vehicleData, 'all', { data: JSON.stringify(vehicleData) });
+  await fbSave(FB_V.drivingLog, 'all', { data: JSON.stringify(vehicleDrivingLog) });
+  await fbSave(FB_V.maintenance, 'all', { data: JSON.stringify(vehicleMaintenance) });
+  await fbSave(FB_V.cost, 'all', { data: JSON.stringify(vehicleCost) });
+  await fbSave(FB_V.insurance, 'all', { data: JSON.stringify(vehicleInsurance) });
+}
+
+async function loadAllData() {
+  // Try Firebase first
+  try {
+    const fbVD = await fbLoad(FB_V.vehicleData, 'all');
+    if (fbVD && fbVD.data) { vehicleData = JSON.parse(fbVD.data); localStorage.setItem('vehicleData', fbVD.data); }
+    else { const ls = localStorage.getItem('vehicleData'); if(ls) vehicleData = JSON.parse(ls); }
+
+    const fbDL = await fbLoad(FB_V.drivingLog, 'all');
+    if (fbDL && fbDL.data) { vehicleDrivingLog = JSON.parse(fbDL.data); localStorage.setItem('vehicleDrivingLog', fbDL.data); }
+    else { const ls = localStorage.getItem('vehicleDrivingLog'); if(ls) vehicleDrivingLog = JSON.parse(ls); }
+
+    const fbMT = await fbLoad(FB_V.maintenance, 'all');
+    if (fbMT && fbMT.data) { vehicleMaintenance = JSON.parse(fbMT.data); localStorage.setItem('vehicleMaintenance', fbMT.data); }
+    else { const ls = localStorage.getItem('vehicleMaintenance'); if(ls) vehicleMaintenance = JSON.parse(ls); }
+
+    const fbCS = await fbLoad(FB_V.cost, 'all');
+    if (fbCS && fbCS.data) { vehicleCost = JSON.parse(fbCS.data); localStorage.setItem('vehicleCost', fbCS.data); }
+    else { const ls = localStorage.getItem('vehicleCost'); if(ls) vehicleCost = JSON.parse(ls); }
+
+    const fbIN = await fbLoad(FB_V.insurance, 'all');
+    if (fbIN && fbIN.data) { vehicleInsurance = JSON.parse(fbIN.data); localStorage.setItem('vehicleInsurance', fbIN.data); }
+    else { const ls = localStorage.getItem('vehicleInsurance'); if(ls) vehicleInsurance = JSON.parse(ls); }
+  } catch(e) {
+    console.error('Firebase load failed, using localStorage:', e);
+    const ls1 = localStorage.getItem('vehicleData'); if(ls1) vehicleData = JSON.parse(ls1);
+    const ls2 = localStorage.getItem('vehicleDrivingLog'); if(ls2) vehicleDrivingLog = JSON.parse(ls2);
+    const ls3 = localStorage.getItem('vehicleMaintenance'); if(ls3) vehicleMaintenance = JSON.parse(ls3);
+    const ls4 = localStorage.getItem('vehicleCost'); if(ls4) vehicleCost = JSON.parse(ls4);
+    const ls5 = localStorage.getItem('vehicleInsurance'); if(ls5) vehicleInsurance = JSON.parse(ls5);
+  }
+}
+
+// ========================================
+// UTILS
+// ========================================
+function showToast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function fmt(n) { return n ? Number(n).toLocaleString() : '0'; }
+function fmtDate(d) { return d || '-'; }
+
+function getDday(dateStr) {
+  if (!dateStr) return null;
+  const diff = Math.ceil((new Date(dateStr) - new Date()) / (1000*60*60*24));
+  return diff;
+}
+
+function ddayBadge(dateStr) {
+  const d = getDday(dateStr);
+  if (d === null) return '-';
+  if (d < 0) return `<span class="dday-badge dday-expired">만료 D+${Math.abs(d)}</span>`;
+  if (d <= 30) return `<span class="dday-badge dday-danger">D-${d}</span>`;
+  if (d <= 90) return `<span class="dday-badge dday-warning">D-${d}</span>`;
+  return `<span class="dday-badge dday-safe">D-${d}</span>`;
+}
+
+function statusBadge(s) {
+  const cls = s === '운행중' ? 'status-active' : s === '정비중' ? 'status-repair' : s === '대기' ? 'status-idle' : 'status-retired';
+  return `<span class="status-badge ${cls}">${s}</span>`;
+}
+
+function getVehicleLabel(id) {
+  const v = vehicleData[id];
+  return v ? `${v.vehicleNo} (${v.vehicleName})` : id;
+}
+
+function genId() { return 'V' + Date.now().toString(36).toUpperCase(); }
+
+function paginate(arr, page, size) {
+  const start = (page - 1) * size;
+  return arr.slice(start, start + size);
+}
+
+function renderPagination(containerId, total, currentPage, size, onPageFn) {
+  const totalPages = Math.ceil(total / size);
+  if (totalPages <= 1) { document.getElementById(containerId).innerHTML = ''; return; }
+  let html = '';
+  html += `<button class="page-btn" onclick="${onPageFn}(1)" ${currentPage===1?'disabled':''}>&laquo;</button>`;
+  html += `<button class="page-btn" onclick="${onPageFn}(${currentPage-1})" ${currentPage===1?'disabled':''}>&lsaquo;</button>`;
+  const startP = Math.max(1, currentPage - 2);
+  const endP = Math.min(totalPages, currentPage + 2);
+  for (let i = startP; i <= endP; i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="${onPageFn}(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="${onPageFn}(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>&rsaquo;</button>`;
+  html += `<button class="page-btn" onclick="${onPageFn}(${totalPages})" ${currentPage===totalPages?'disabled':''}>&raquo;</button>`;
+  html += `<span class="page-info">${currentPage}/${totalPages} (${total}건)</span>`;
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function populateVehicleDropdowns() {
+  const ids = Object.keys(vehicleData).sort((a,b) => {
+    const va = vehicleData[a], vb = vehicleData[b];
+    return (va.vehicleNo || '').localeCompare(vb.vehicleNo || '');
+  });
+  const opts = ids.map(id => `<option value="${id}">${getVehicleLabel(id)}</option>`).join('');
+
+  ['drivingVehicle','maintVehicle','costVehicle','drVehicle','mtVehicle','csVehicle'].forEach(selId => {
+    const el = document.getElementById(selId);
+    if (!el) return;
+    const val = el.value;
+    const firstOpt = el.querySelector('option') ? el.querySelector('option').outerHTML : '';
+    el.innerHTML = firstOpt + opts;
+    if (val) el.value = val;
+  });
+
+  // Department filter
+  const depts = [...new Set(ids.map(id => vehicleData[id].department).filter(Boolean))];
+  const deptSel = document.getElementById('searchDept');
+  const deptVal = deptSel.value;
+  deptSel.innerHTML = '<option value="">전체 부서</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+  deptSel.value = deptVal;
+}
+
+// ========================================
+// TAB 1: VEHICLE LIST
+// ========================================
+function renderVehicleList() {
+  renderStats();
+  const vehicles = getFilteredVehicles();
+  const area = document.getElementById('vehicleListArea');
+
+  if (vehicles.length === 0) {
+    area.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🚗</div><div class="empty-state-text">등록된 차량이 없습니다. "차량등록" 버튼으로 차량을 추가하세요.</div></div>';
+    document.getElementById('listPagination').innerHTML = '';
+    return;
+  }
+
+  const paged = paginate(vehicles, listPage, PAGE_SIZE);
+
+  if (currentView === 'card') {
+    area.innerHTML = '<div class="vehicle-grid">' + paged.map(([id, v]) => {
+      const cardClass = v.status === '운행중' ? 'status-active-card' : v.status === '정비중' ? 'status-repair-card' : v.status === '대기' ? 'status-idle-card' : 'status-retired-card';
+      const ins = vehicleInsurance[id] || {};
+      const insD = getDday(ins.insuranceEnd);
+      let insInfo = '';
+      if (insD !== null && insD <= 30) insInfo = `<div class="vc-row"><span class="vc-label">보험만료</span>${ddayBadge(ins.insuranceEnd)}</div>`;
+      return `<div class="vehicle-card ${cardClass}">
+        <div class="vc-header">
+          <div class="vc-no">${v.vehicleNo || '-'}</div>
+          ${statusBadge(v.status || '운행중')}
+        </div>
+        <div class="vc-body">
+          <div class="vc-row"><span class="vc-label">차종</span><span>${v.vehicleName || '-'}</span></div>
+          <div class="vc-row"><span class="vc-label">연식</span><span>${v.year || '-'}</span></div>
+          <div class="vc-row"><span class="vc-label">운전자</span><span>${v.driver || '-'}</span></div>
+          <div class="vc-row"><span class="vc-label">소속</span><span>${v.department || '-'}</span></div>
+          <div class="vc-row"><span class="vc-label">용도</span><span>${v.purpose || '-'}</span></div>
+          ${insInfo}
+        </div>
+        <div class="vc-actions">
+          <button class="btn btn-sm btn-outline" onclick="editVehicle('${id}')">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteVehicle('${id}')">삭제</button>
+        </div>
+      </div>`;
+    }).join('') + '</div>';
+  } else {
+    area.innerHTML = `<div style="overflow-x:auto;"><table>
+      <thead><tr>
+        <th>차량번호</th><th>차종</th><th>연식</th><th>소유자</th><th>운전자</th><th>소속</th><th>용도</th><th>상태</th><th>등록일</th><th>관리</th>
+      </tr></thead>
+      <tbody>${paged.map(([id, v]) => `<tr>
+        <td><strong>${v.vehicleNo || '-'}</strong></td>
+        <td>${v.vehicleName || '-'}</td>
+        <td>${v.year || '-'}</td>
+        <td>${v.owner || '-'}</td>
+        <td>${v.driver || '-'}</td>
+        <td>${v.department || '-'}</td>
+        <td>${v.purpose || '-'}</td>
+        <td>${statusBadge(v.status || '운행중')}</td>
+        <td>${fmtDate(v.registrationDate)}</td>
+        <td>
+          <button class="btn btn-sm btn-outline" onclick="editVehicle('${id}')">수정</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteVehicle('${id}')">삭제</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  }
+
+  renderPagination('listPagination', vehicles.length, listPage, PAGE_SIZE, 'goListPage');
+}
+
+function goListPage(p) { listPage = p; renderVehicleList(); }
+
+function getFilteredVehicles() {
+  let entries = Object.entries(vehicleData);
+  const keyword = (document.getElementById('searchKeyword').value || '').trim().toLowerCase();
+  const status = document.getElementById('searchStatus').value;
+  const dept = document.getElementById('searchDept').value;
+
+  if (keyword) {
+    entries = entries.filter(([id, v]) => {
+      const fields = [v.vehicleNo, v.vehicleName, v.driver, v.owner, v.department, v.purpose, v.vin].join(' ').toLowerCase();
+      return fields.includes(keyword);
+    });
+  }
+  if (status) entries = entries.filter(([id, v]) => v.status === status);
+  if (dept) entries = entries.filter(([id, v]) => v.department === dept);
+
+  const resultEl = document.getElementById('searchResult');
+  const total = Object.keys(vehicleData).length;
+  if (keyword || status || dept) {
+    resultEl.innerHTML = `<strong>${entries.length}</strong>건 / 전체 ${total}건`;
+  } else {
+    resultEl.innerHTML = '';
+  }
+
+  return entries;
+}
+
+function searchVehicles() { listPage = 1; renderVehicleList(); }
+function resetSearch() {
+  document.getElementById('searchKeyword').value = '';
+  document.getElementById('searchStatus').value = '';
+  document.getElementById('searchDept').value = '';
+  listPage = 1;
+  renderVehicleList();
+}
+
+function toggleView(view) {
+  currentView = view;
+  document.getElementById('viewCardBtn').style.fontWeight = view === 'card' ? '700' : '400';
+  document.getElementById('viewTableBtn').style.fontWeight = view === 'table' ? '700' : '400';
+  renderVehicleList();
+}
+
+function renderStats() {
+  const all = Object.values(vehicleData);
+  const active = all.filter(v => v.status === '운행중').length;
+  const repair = all.filter(v => v.status === '정비중').length;
+  const idle = all.filter(v => v.status === '대기').length;
+
+  // This month cost
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  let monthCost = 0;
+  Object.values(vehicleCost).forEach(arr => {
+    if (!Array.isArray(arr)) return;
+    arr.forEach(c => { if (c.date && c.date.startsWith(ym)) monthCost += Number(c.amount) || 0; });
+  });
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon" style="background:var(--primary-light);color:var(--primary);">🚗</div><div class="stat-info"><div class="stat-label">전체 차량</div><div class="stat-value">${all.length}대</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--success-light);color:var(--success);">✅</div><div class="stat-info"><div class="stat-label">운행중</div><div class="stat-value">${active}대</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--warning-light);color:var(--warning);">🔧</div><div class="stat-info"><div class="stat-label">정비중</div><div class="stat-value">${repair}대</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--gray-100);color:var(--gray-500);">⏸</div><div class="stat-info"><div class="stat-label">대기</div><div class="stat-value">${idle}대</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:var(--purple-light);color:var(--purple);">💰</div><div class="stat-info"><div class="stat-label">이번달 비용</div><div class="stat-value">${fmt(monthCost)}원</div></div></div>
+  `;
+}
+
+// VEHICLE MODAL
+function openVehicleModal(id) {
+  document.getElementById('editVehicleId').value = id || '';
+  document.getElementById('vehicleModalTitle').textContent = id ? '차량 수정' : '차량 등록';
+  const v = id ? vehicleData[id] : {};
+  document.getElementById('vhNo').value = v.vehicleNo || '';
+  document.getElementById('vhName').value = v.vehicleName || '';
+  document.getElementById('vhYear').value = v.year || '';
+  document.getElementById('vhVin').value = v.vin || '';
+  document.getElementById('vhOwner').value = v.owner || '';
+  document.getElementById('vhRegDate').value = v.registrationDate || '';
+  document.getElementById('vhDriver').value = v.driver || '';
+  document.getElementById('vhDept').value = v.department || '';
+  document.getElementById('vhPurpose').value = v.purpose || '';
+  document.getElementById('vhStatus').value = v.status || '운행중';
+  document.getElementById('vhMemo').value = v.memo || '';
+  document.getElementById('vehicleModal').classList.add('active');
+}
+function closeVehicleModal() { document.getElementById('vehicleModal').classList.remove('active'); }
+function editVehicle(id) { openVehicleModal(id); }
+
+async function saveVehicle() {
+  const no = document.getElementById('vhNo').value.trim();
+  const name = document.getElementById('vhName').value.trim();
+  if (!no || !name) { showToast('차량번호와 차종은 필수입니다.', 'error'); return; }
+
+  let id = document.getElementById('editVehicleId').value;
+  if (!id) id = genId();
+
+  vehicleData[id] = {
+    id, vehicleNo: no, vehicleName: name,
+    year: document.getElementById('vhYear').value.trim(),
+    vin: document.getElementById('vhVin').value.trim(),
+    owner: document.getElementById('vhOwner').value.trim(),
+    registrationDate: document.getElementById('vhRegDate').value,
+    driver: document.getElementById('vhDriver').value.trim(),
+    department: document.getElementById('vhDept').value.trim(),
+    purpose: document.getElementById('vhPurpose').value.trim(),
+    status: document.getElementById('vhStatus').value,
+    memo: document.getElementById('vhMemo').value.trim()
+  };
+
+  if (!vehicleDrivingLog[id]) vehicleDrivingLog[id] = [];
+  if (!vehicleMaintenance[id]) vehicleMaintenance[id] = [];
+  if (!vehicleCost[id]) vehicleCost[id] = [];
+  if (!vehicleInsurance[id]) vehicleInsurance[id] = {};
+
+  await saveAllData();
+  closeVehicleModal();
+  showToast('차량이 저장되었습니다.');
+  refreshCurrentTab();
+}
+
+async function deleteVehicle(id) {
+  const v = vehicleData[id];
+  if (!confirm(`"${v.vehicleNo} (${v.vehicleName})" 차량을 삭제하시겠습니까?\n관련 운행기록, 정비내역, 비용, 보험정보도 모두 삭제됩니다.`)) return;
+  delete vehicleData[id];
+  delete vehicleDrivingLog[id];
+  delete vehicleMaintenance[id];
+  delete vehicleCost[id];
+  delete vehicleInsurance[id];
+  await saveAllData();
+  showToast('차량이 삭제되었습니다.');
+  refreshCurrentTab();
+}
+
+// ========================================
+// TAB 2: DRIVING LOG
+// ========================================
+function renderDrivingLog() {
+  const vid = document.getElementById('drivingVehicle').value;
+  const month = document.getElementById('drivingMonth').value;
+
+  let allLogs = [];
+  if (vid) {
+    allLogs = (vehicleDrivingLog[vid] || []).map((log, idx) => ({ ...log, _vid: vid, _idx: idx }));
+  } else {
+    Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
+      if (!Array.isArray(logs)) return;
+      logs.forEach((log, idx) => allLogs.push({ ...log, _vid: vid, _idx: idx }));
+    });
+  }
+
+  if (month) allLogs = allLogs.filter(l => l.date && l.date.startsWith(month));
+  allLogs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // Summary
+  const totalDist = allLogs.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+  const totalFuel = allLogs.reduce((s, l) => s + (Number(l.fuelCost) || 0), 0);
+  const totalLiters = allLogs.reduce((s, l) => s + (Number(l.fuelAmount) || 0), 0);
+  document.getElementById('drivingSummary').innerHTML = `
+    <div class="cost-item"><div class="cost-item-label">총 운행건수</div><div class="cost-item-value">${allLogs.length}건</div></div>
+    <div class="cost-item"><div class="cost-item-label">총 주행거리</div><div class="cost-item-value">${fmt(totalDist)}km</div></div>
+    <div class="cost-item"><div class="cost-item-label">총 주유량</div><div class="cost-item-value">${totalLiters.toFixed(1)}L</div></div>
+    <div class="cost-item"><div class="cost-item-label">총 주유비</div><div class="cost-item-value">${fmt(totalFuel)}원</div></div>
+  `;
+
+  const paged = paginate(allLogs, drivingPage, PAGE_SIZE);
+  const tbody = document.getElementById('drivingTableBody');
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-state"><div class="empty-state-icon">📋</div><div>운행기록이 없습니다.</div></td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(l => `<tr>
+      <td>${fmtDate(l.date)}</td>
+      <td>${l.driver || '-'}</td>
+      <td>${l.departure || '-'}</td>
+      <td>${l.destination || '-'}</td>
+      <td>${l.purpose || '-'}</td>
+      <td style="text-align:right;">${fmt(l.startKm)}</td>
+      <td style="text-align:right;">${fmt(l.endKm)}</td>
+      <td style="text-align:right;font-weight:600;">${fmt(l.distance)}</td>
+      <td style="text-align:right;">${l.fuelAmount || '-'}</td>
+      <td style="text-align:right;">${fmt(l.fuelCost)}</td>
+      <td>${l.memo || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="editDriving('${l._vid}',${l._idx})">수정</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDriving('${l._vid}',${l._idx})">삭제</button>
+      </td>
+    </tr>`).join('');
+  }
+  renderPagination('drivingPagination', allLogs.length, drivingPage, PAGE_SIZE, 'goDrivingPage');
+}
+
+function goDrivingPage(p) { drivingPage = p; renderDrivingLog(); }
+
+function calcDistance() {
+  const s = Number(document.getElementById('drStartKm').value) || 0;
+  const e = Number(document.getElementById('drEndKm').value) || 0;
+  document.getElementById('drDistance').value = e > s ? e - s : 0;
+}
+
+function openDrivingModal(vid, idx) {
+  const isEdit = idx !== undefined && idx >= 0;
+  document.getElementById('drivingModalTitle').textContent = isEdit ? '운행기록 수정' : '운행기록 추가';
+  document.getElementById('editDrivingIdx').value = isEdit ? idx : -1;
+
+  const log = isEdit ? vehicleDrivingLog[vid][idx] : {};
+  const selVid = vid || document.getElementById('drivingVehicle').value || '';
+
+  populateVehicleDropdowns();
+  document.getElementById('drVehicle').value = selVid;
+  document.getElementById('drDate').value = log.date || new Date().toISOString().split('T')[0];
+  document.getElementById('drDriver').value = log.driver || (selVid && vehicleData[selVid] ? vehicleData[selVid].driver : '') || '';
+  document.getElementById('drFrom').value = log.departure || '';
+  document.getElementById('drTo').value = log.destination || '';
+  document.getElementById('drPurpose').value = log.purpose || '';
+  document.getElementById('drStartKm').value = log.startKm || '';
+  document.getElementById('drEndKm').value = log.endKm || '';
+  document.getElementById('drDistance').value = log.distance || '';
+  document.getElementById('drFuelAmt').value = log.fuelAmount || '';
+  document.getElementById('drFuelCost').value = log.fuelCost || '';
+  document.getElementById('drMemo').value = log.memo || '';
+
+  document.getElementById('drivingModal').classList.add('active');
+}
+
+function closeDrivingModal() { document.getElementById('drivingModal').classList.remove('active'); }
+
+function editDriving(vid, idx) { openDrivingModal(vid, idx); }
+
+async function saveDriving() {
+  const vid = document.getElementById('drVehicle').value;
+  const date = document.getElementById('drDate').value;
+  if (!vid || !date) { showToast('차량과 날짜는 필수입니다.', 'error'); return; }
+
+  const log = {
+    date,
+    driver: document.getElementById('drDriver').value.trim(),
+    departure: document.getElementById('drFrom').value.trim(),
+    destination: document.getElementById('drTo').value.trim(),
+    purpose: document.getElementById('drPurpose').value.trim(),
+    startKm: Number(document.getElementById('drStartKm').value) || 0,
+    endKm: Number(document.getElementById('drEndKm').value) || 0,
+    distance: Number(document.getElementById('drDistance').value) || 0,
+    fuelAmount: Number(document.getElementById('drFuelAmt').value) || 0,
+    fuelCost: Number(document.getElementById('drFuelCost').value) || 0,
+    memo: document.getElementById('drMemo').value.trim()
+  };
+
+  if (!vehicleDrivingLog[vid]) vehicleDrivingLog[vid] = [];
+  const editIdx = Number(document.getElementById('editDrivingIdx').value);
+  if (editIdx >= 0) {
+    vehicleDrivingLog[vid][editIdx] = log;
+  } else {
+    vehicleDrivingLog[vid].push(log);
+  }
+
+  await saveAllData();
+  closeDrivingModal();
+  showToast('운행기록이 저장되었습니다.');
+  renderDrivingLog();
+}
+
+async function deleteDriving(vid, idx) {
+  if (!confirm('이 운행기록을 삭제하시겠습니까?')) return;
+  vehicleDrivingLog[vid].splice(idx, 1);
+  await saveAllData();
+  showToast('운행기록이 삭제되었습니다.');
+  renderDrivingLog();
+}
+
+// ========================================
+// TAB 3: MAINTENANCE
+// ========================================
+function renderMaintenance() {
+  renderMaintenanceAlerts();
+  const vid = document.getElementById('maintVehicle').value;
+
+  let allMaint = [];
+  if (vid) {
+    allMaint = (vehicleMaintenance[vid] || []).map((m, idx) => ({ ...m, _vid: vid, _idx: idx }));
+  } else {
+    Object.entries(vehicleMaintenance).forEach(([vid, items]) => {
+      if (!Array.isArray(items)) return;
+      items.forEach((m, idx) => allMaint.push({ ...m, _vid: vid, _idx: idx }));
+    });
+  }
+  allMaint.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const paged = paginate(allMaint, maintPage, PAGE_SIZE);
+  const tbody = document.getElementById('maintTableBody');
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-state-icon">🔧</div><div>정비/점검 내역이 없습니다.</div></td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(m => `<tr>
+      <td>${fmtDate(m.date)}</td>
+      <td>${getVehicleLabel(m._vid)}</td>
+      <td><span class="status-badge" style="background:var(--purple-light);color:var(--purple);">${m.type || '-'}</span></td>
+      <td style="text-align:right;">${fmt(m.km)}</td>
+      <td>${m.shop || '-'}</td>
+      <td>${m.description || '-'}</td>
+      <td style="text-align:right;font-weight:600;">${fmt(m.cost)}원</td>
+      <td>${m.nextDate ? fmtDate(m.nextDate) + ' ' + ddayBadge(m.nextDate) : '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="editMaint('${m._vid}',${m._idx})">수정</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteMaint('${m._vid}',${m._idx})">삭제</button>
+      </td>
+    </tr>`).join('');
+  }
+  renderPagination('maintPagination', allMaint.length, maintPage, PAGE_SIZE, 'goMaintPage');
+}
+
+function goMaintPage(p) { maintPage = p; renderMaintenance(); }
+
+function renderMaintenanceAlerts() {
+  const alerts = [];
+  Object.entries(vehicleMaintenance).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(m => {
+      if (!m.nextDate) return;
+      const d = getDday(m.nextDate);
+      if (d !== null && d <= 30) {
+        alerts.push({ vid, label: getVehicleLabel(vid), desc: m.description || m.type, date: m.nextDate, dday: d });
+      }
+    });
+  });
+  alerts.sort((a, b) => a.dday - b.dday);
+  const el = document.getElementById('maintenanceAlerts');
+  if (alerts.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="card"><div class="card-header"><div class="card-title">점검 예정 알림</div></div><div class="card-body"><div class="alert-list">' +
+    alerts.map(a => {
+      const cls = a.dday < 0 ? 'alert-danger' : a.dday <= 7 ? 'alert-danger' : 'alert-warning';
+      return `<div class="alert-item ${cls}"><span>${a.label} - ${a.desc}</span><span>${fmtDate(a.date)} ${ddayBadge(a.date)}</span></div>`;
+    }).join('') + '</div></div></div>';
+}
+
+function openMaintenanceModal(vid, idx) {
+  const isEdit = idx !== undefined && idx >= 0;
+  document.getElementById('maintModalTitle').textContent = isEdit ? '정비/점검 수정' : '정비/점검 등록';
+  document.getElementById('editMaintIdx').value = isEdit ? idx : -1;
+
+  const m = isEdit ? vehicleMaintenance[vid][idx] : {};
+  const selVid = vid || document.getElementById('maintVehicle').value || '';
+
+  populateVehicleDropdowns();
+  document.getElementById('mtVehicle').value = selVid;
+  document.getElementById('mtDate').value = m.date || new Date().toISOString().split('T')[0];
+  document.getElementById('mtType').value = m.type || '정기점검';
+  document.getElementById('mtKm').value = m.km || '';
+  document.getElementById('mtShop').value = m.shop || '';
+  document.getElementById('mtCost').value = m.cost || '';
+  document.getElementById('mtDesc').value = m.description || '';
+  document.getElementById('mtNextDate').value = m.nextDate || '';
+  document.getElementById('mtMemo').value = m.memo || '';
+
+  document.getElementById('maintModal').classList.add('active');
+}
+function closeMaintModal() { document.getElementById('maintModal').classList.remove('active'); }
+function editMaint(vid, idx) { openMaintenanceModal(vid, idx); }
+
+async function saveMaintenance() {
+  const vid = document.getElementById('mtVehicle').value;
+  const date = document.getElementById('mtDate').value;
+  if (!vid || !date) { showToast('차량과 날짜는 필수입니다.', 'error'); return; }
+
+  const m = {
+    date,
+    type: document.getElementById('mtType').value,
+    km: Number(document.getElementById('mtKm').value) || 0,
+    shop: document.getElementById('mtShop').value.trim(),
+    description: document.getElementById('mtDesc').value.trim(),
+    cost: Number(document.getElementById('mtCost').value) || 0,
+    nextDate: document.getElementById('mtNextDate').value,
+    memo: document.getElementById('mtMemo').value.trim()
+  };
+
+  if (!vehicleMaintenance[vid]) vehicleMaintenance[vid] = [];
+  const editIdx = Number(document.getElementById('editMaintIdx').value);
+  if (editIdx >= 0) vehicleMaintenance[vid][editIdx] = m;
+  else vehicleMaintenance[vid].push(m);
+
+  await saveAllData();
+  closeMaintModal();
+  showToast('정비내역이 저장되었습니다.');
+  renderMaintenance();
+}
+
+async function deleteMaint(vid, idx) {
+  if (!confirm('이 정비내역을 삭제하시겠습니까?')) return;
+  vehicleMaintenance[vid].splice(idx, 1);
+  await saveAllData();
+  showToast('정비내역이 삭제되었습니다.');
+  renderMaintenance();
+}
+
+// ========================================
+// TAB 4: COST
+// ========================================
+function renderCost() {
+  const vid = document.getElementById('costVehicle').value;
+  const cat = document.getElementById('costCategory').value;
+  const month = document.getElementById('costMonth').value;
+
+  let allCosts = [];
+  if (vid) {
+    allCosts = (vehicleCost[vid] || []).map((c, idx) => ({ ...c, _vid: vid, _idx: idx }));
+  } else {
+    Object.entries(vehicleCost).forEach(([vid, items]) => {
+      if (!Array.isArray(items)) return;
+      items.forEach((c, idx) => allCosts.push({ ...c, _vid: vid, _idx: idx }));
+    });
+  }
+  if (cat) allCosts = allCosts.filter(c => c.category === cat);
+  if (month) allCosts = allCosts.filter(c => c.date && c.date.startsWith(month));
+  allCosts.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // Summary by category
+  const catTotals = {};
+  allCosts.forEach(c => { catTotals[c.category] = (catTotals[c.category] || 0) + (Number(c.amount) || 0); });
+  const totalAmount = allCosts.reduce((s, c) => s + (Number(c.amount) || 0), 0);
+  document.getElementById('costSummaryCards').innerHTML =
+    `<div class="cost-item" style="background:var(--primary-light);"><div class="cost-item-label">총 비용</div><div class="cost-item-value" style="color:var(--primary);">${fmt(totalAmount)}원</div></div>` +
+    Object.entries(catTotals).map(([k, v]) => `<div class="cost-item"><div class="cost-item-label">${k}</div><div class="cost-item-value">${fmt(v)}원</div></div>`).join('');
+
+  const paged = paginate(allCosts, costPage, PAGE_SIZE);
+  const tbody = document.getElementById('costTableBody');
+  if (paged.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-state-icon">💰</div><div>비용 내역이 없습니다.</div></td></tr>';
+  } else {
+    tbody.innerHTML = paged.map(c => `<tr>
+      <td>${fmtDate(c.date)}</td>
+      <td>${getVehicleLabel(c._vid)}</td>
+      <td><span class="status-badge" style="background:var(--mint-light);color:var(--mint);">${c.category || '-'}</span></td>
+      <td>${c.description || '-'}</td>
+      <td style="text-align:right;font-weight:600;">${fmt(c.amount)}원</td>
+      <td>${c.payMethod || '-'}</td>
+      <td>${c.receipt === true || c.receipt === 'true' ? '✓' : '-'}</td>
+      <td>${c.memo || '-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline" onclick="editCost('${c._vid}',${c._idx})">수정</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteCost('${c._vid}',${c._idx})">삭제</button>
+      </td>
+    </tr>`).join('');
+  }
+  renderPagination('costPagination', allCosts.length, costPage, PAGE_SIZE, 'goCostPage');
+}
+
+function goCostPage(p) { costPage = p; renderCost(); }
+
+function openCostModal(vid, idx) {
+  const isEdit = idx !== undefined && idx >= 0;
+  document.getElementById('costModalTitle').textContent = isEdit ? '비용 수정' : '비용 등록';
+  document.getElementById('editCostIdx').value = isEdit ? idx : -1;
+
+  const c = isEdit ? vehicleCost[vid][idx] : {};
+  const selVid = vid || document.getElementById('costVehicle').value || '';
+
+  populateVehicleDropdowns();
+  document.getElementById('csVehicle').value = selVid;
+  document.getElementById('csDate').value = c.date || new Date().toISOString().split('T')[0];
+  document.getElementById('csCategory').value = c.category || '주유';
+  document.getElementById('csDesc').value = c.description || '';
+  document.getElementById('csAmount').value = c.amount || '';
+  document.getElementById('csPayMethod').value = c.payMethod || '법인카드';
+  document.getElementById('csReceipt').value = c.receipt === true || c.receipt === 'true' ? 'true' : 'false';
+  document.getElementById('csMemo').value = c.memo || '';
+
+  document.getElementById('costModal').classList.add('active');
+}
+function closeCostModal() { document.getElementById('costModal').classList.remove('active'); }
+function editCost(vid, idx) { openCostModal(vid, idx); }
+
+async function saveCost() {
+  const vid = document.getElementById('csVehicle').value;
+  const date = document.getElementById('csDate').value;
+  const amount = document.getElementById('csAmount').value;
+  if (!vid || !date || !amount) { showToast('차량, 날짜, 금액은 필수입니다.', 'error'); return; }
+
+  const c = {
+    date,
+    category: document.getElementById('csCategory').value,
+    description: document.getElementById('csDesc').value.trim(),
+    amount: Number(amount),
+    payMethod: document.getElementById('csPayMethod').value,
+    receipt: document.getElementById('csReceipt').value === 'true',
+    memo: document.getElementById('csMemo').value.trim()
+  };
+
+  if (!vehicleCost[vid]) vehicleCost[vid] = [];
+  const editIdx = Number(document.getElementById('editCostIdx').value);
+  if (editIdx >= 0) vehicleCost[vid][editIdx] = c;
+  else vehicleCost[vid].push(c);
+
+  await saveAllData();
+  closeCostModal();
+  showToast('비용이 저장되었습니다.');
+  renderCost();
+}
+
+async function deleteCost(vid, idx) {
+  if (!confirm('이 비용내역을 삭제하시겠습니까?')) return;
+  vehicleCost[vid].splice(idx, 1);
+  await saveAllData();
+  showToast('비용이 삭제되었습니다.');
+  renderCost();
+}
+
+// ========================================
+// TAB 5: INSURANCE
+// ========================================
+function renderInsurance() {
+  renderInsuranceAlerts();
+  const entries = Object.entries(vehicleData);
+  const tbody = document.getElementById('insuranceTableBody');
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-state-icon">🛡</div><div>등록된 차량이 없습니다.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(([id, v]) => {
+    const ins = vehicleInsurance[id] || {};
+    return `<tr>
+      <td><strong>${v.vehicleNo}</strong><br><small style="color:var(--gray-400);">${v.vehicleName}</small></td>
+      <td>${ins.insuranceCompany || '-'}</td>
+      <td>${ins.policyNo || '-'}</td>
+      <td>${ins.insuranceType || '-'}</td>
+      <td>${ins.insuranceStart && ins.insuranceEnd ? fmtDate(ins.insuranceStart) + ' ~ ' + fmtDate(ins.insuranceEnd) : '-'}<br>${ins.insuranceEnd ? ddayBadge(ins.insuranceEnd) : ''}</td>
+      <td style="text-align:right;">${ins.premium ? fmt(ins.premium) + '원' : '-'}</td>
+      <td>${fmtDate(ins.inspectionDate)}</td>
+      <td>${ins.inspectionDue ? fmtDate(ins.inspectionDue) + '<br>' + ddayBadge(ins.inspectionDue) : '-'}</td>
+      <td style="text-align:right;">${ins.taxAmount ? fmt(ins.taxAmount) + '원' : '-'}</td>
+      <td><button class="btn btn-sm btn-outline" onclick="openInsuranceModal('${id}')">수정</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderInsuranceAlerts() {
+  const alerts = [];
+  Object.entries(vehicleInsurance).forEach(([vid, ins]) => {
+    if (!ins || typeof ins !== 'object') return;
+    if (ins.insuranceEnd) {
+      const d = getDday(ins.insuranceEnd);
+      if (d !== null && d <= 60) alerts.push({ vid, label: getVehicleLabel(vid), type: '보험만료', date: ins.insuranceEnd, dday: d });
+    }
+    if (ins.inspectionDue) {
+      const d = getDday(ins.inspectionDue);
+      if (d !== null && d <= 60) alerts.push({ vid, label: getVehicleLabel(vid), type: '차량검사만료', date: ins.inspectionDue, dday: d });
+    }
+  });
+  alerts.sort((a, b) => a.dday - b.dday);
+  const el = document.getElementById('insuranceAlerts');
+  if (alerts.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="card"><div class="card-header"><div class="card-title">보험/검사 만료 알림</div></div><div class="card-body"><div class="alert-list">' +
+    alerts.map(a => {
+      const cls = a.dday < 0 ? 'alert-danger' : a.dday <= 30 ? 'alert-danger' : 'alert-warning';
+      return `<div class="alert-item ${cls}"><span>${a.label} - ${a.type}</span><span>${fmtDate(a.date)} ${ddayBadge(a.date)}</span></div>`;
+    }).join('') + '</div></div></div>';
+}
+
+function openInsuranceModal(vid) {
+  document.getElementById('editInsVehicleId').value = vid;
+  const ins = vehicleInsurance[vid] || {};
+  document.getElementById('insCompany').value = ins.insuranceCompany || '';
+  document.getElementById('insPolicyNo').value = ins.policyNo || '';
+  document.getElementById('insType').value = ins.insuranceType || '종합보험';
+  document.getElementById('insStart').value = ins.insuranceStart || '';
+  document.getElementById('insEnd').value = ins.insuranceEnd || '';
+  document.getElementById('insPremium').value = ins.premium || '';
+  document.getElementById('insInspDate').value = ins.inspectionDate || '';
+  document.getElementById('insInspDue').value = ins.inspectionDue || '';
+  document.getElementById('insTaxDate').value = ins.taxDate || '';
+  document.getElementById('insTaxAmt').value = ins.taxAmount || '';
+  document.getElementById('insMemo').value = ins.memo || '';
+  document.getElementById('insuranceModal').classList.add('active');
+}
+function closeInsuranceModal() { document.getElementById('insuranceModal').classList.remove('active'); }
+
+async function saveInsurance() {
+  const vid = document.getElementById('editInsVehicleId').value;
+  if (!vid) return;
+  vehicleInsurance[vid] = {
+    insuranceCompany: document.getElementById('insCompany').value.trim(),
+    policyNo: document.getElementById('insPolicyNo').value.trim(),
+    insuranceType: document.getElementById('insType').value,
+    insuranceStart: document.getElementById('insStart').value,
+    insuranceEnd: document.getElementById('insEnd').value,
+    premium: Number(document.getElementById('insPremium').value) || 0,
+    inspectionDate: document.getElementById('insInspDate').value,
+    inspectionDue: document.getElementById('insInspDue').value,
+    taxDate: document.getElementById('insTaxDate').value,
+    taxAmount: Number(document.getElementById('insTaxAmt').value) || 0,
+    memo: document.getElementById('insMemo').value.trim()
+  };
+  await saveAllData();
+  closeInsuranceModal();
+  showToast('보험/등록 정보가 저장되었습니다.');
+  renderInsurance();
+}
+
+// ========================================
+// EXCEL EXPORT
+// ========================================
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const border = {
+    top: { style:'thin', color:{rgb:'333333'} },
+    bottom: { style:'thin', color:{rgb:'333333'} },
+    left: { style:'thin', color:{rgb:'333333'} },
+    right: { style:'thin', color:{rgb:'333333'} }
+  };
+  const headerStyle = {
+    font: { bold:true, sz:10, color:{rgb:'FFFFFF'} },
+    fill: { fgColor:{rgb:'2C3E50'} },
+    alignment: { horizontal:'center', vertical:'center', wrapText:true },
+    border
+  };
+  const cellStyle = { font:{sz:9}, alignment:{vertical:'center'}, border };
+  const amtStyle = { font:{sz:9}, numFmt:'#,##0', alignment:{horizontal:'right', vertical:'center'}, border };
+
+  // Sheet 1: Vehicle List
+  const vHeaders = ['차량번호','차종','연식','차대번호','소유자','주운전자','소속부서','용도','등록일','상태','메모'];
+  const vData = [vHeaders];
+  Object.values(vehicleData).forEach(v => {
+    vData.push([v.vehicleNo, v.vehicleName, v.year, v.vin, v.owner, v.driver, v.department, v.purpose, v.registrationDate, v.status, v.memo]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(vData);
+  for (let c = 0; c < vHeaders.length; c++) {
+    const addr = XLSX.utils.encode_cell({r:0, c});
+    if (ws1[addr]) ws1[addr].s = headerStyle;
+  }
+  ws1['!cols'] = [{wch:12},{wch:12},{wch:6},{wch:20},{wch:12},{wch:10},{wch:10},{wch:12},{wch:12},{wch:8},{wch:20}];
+  XLSX.utils.book_append_sheet(wb, ws1, '차량목록');
+
+  // Sheet 2: Driving Log
+  const dHeaders = ['차량번호','날짜','운전자','출발지','도착지','목적','출발km','도착km','주행거리','주유량(L)','주유비','비고'];
+  const dData = [dHeaders];
+  Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
+    if (!Array.isArray(logs)) return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    logs.forEach(l => dData.push([vNo, l.date, l.driver, l.departure, l.destination, l.purpose, l.startKm, l.endKm, l.distance, l.fuelAmount, l.fuelCost, l.memo]));
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(dData);
+  for (let c = 0; c < dHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(ws2[a]) ws2[a].s = headerStyle; }
+  ws2['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10},{wch:10},{wch:8},{wch:10},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws2, '운행기록');
+
+  // Sheet 3: Maintenance
+  const mHeaders = ['차량번호','날짜','구분','주행거리(km)','정비업체','내용','비용','다음점검일','비고'];
+  const mData = [mHeaders];
+  Object.entries(vehicleMaintenance).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    items.forEach(m => mData.push([vNo, m.date, m.type, m.km, m.shop, m.description, m.cost, m.nextDate, m.memo]));
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(mData);
+  for (let c = 0; c < mHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(ws3[a]) ws3[a].s = headerStyle; }
+  ws3['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:12},{wch:14},{wch:20},{wch:12},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws3, '정비점검');
+
+  // Sheet 4: Cost
+  const cHeaders = ['차량번호','날짜','항목','내용','금액','결제수단','영수증','비고'];
+  const cData = [cHeaders];
+  Object.entries(vehicleCost).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    items.forEach(c => cData.push([vNo, c.date, c.category, c.description, c.amount, c.payMethod, c.receipt ? 'O' : 'X', c.memo]));
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet(cData);
+  for (let c = 0; c < cHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(ws4[a]) ws4[a].s = headerStyle; }
+  ws4['!cols'] = [{wch:12},{wch:12},{wch:8},{wch:20},{wch:12},{wch:10},{wch:8},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws4, '비용관리');
+
+  // Sheet 5: Insurance
+  const iHeaders = ['차량번호','보험사','증권번호','보험종류','보험시작일','보험만료일','보험료','최근검사일','검사만료일','자동차세납부일','자동차세','메모'];
+  const iData = [iHeaders];
+  Object.entries(vehicleInsurance).forEach(([vid, ins]) => {
+    if (!ins || typeof ins !== 'object') return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    iData.push([vNo, ins.insuranceCompany, ins.policyNo, ins.insuranceType, ins.insuranceStart, ins.insuranceEnd, ins.premium, ins.inspectionDate, ins.inspectionDue, ins.taxDate, ins.taxAmount, ins.memo]);
+  });
+  const ws5 = XLSX.utils.aoa_to_sheet(iData);
+  for (let c = 0; c < iHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(ws5[a]) ws5[a].s = headerStyle; }
+  ws5['!cols'] = [{wch:12},{wch:12},{wch:14},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws5, '보험등록');
+
+  const today = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `차량관리대장_${today}.xlsx`);
+  showToast('엑셀 파일이 다운로드되었습니다.');
+}
+
+// ========================================
+// EXCEL IMPORT (FULL - 5 sheets)
+// ========================================
+function importExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      let importCount = { vehicle: 0, driving: 0, maint: 0, cost: 0, insurance: 0 };
+
+      // Helper: find vehicle ID by vehicleNo
+      function findVehicleId(vNo) {
+        if (!vNo) return null;
+        const vNoStr = String(vNo).trim();
+        return Object.keys(vehicleData).find(id => vehicleData[id].vehicleNo === vNoStr) || null;
+      }
+
+      // Helper: parse Excel date (could be serial number or string)
+      function parseDate(val) {
+        if (!val) return '';
+        if (typeof val === 'number') {
+          // Excel serial date
+          const d = new Date((val - 25569) * 86400 * 1000);
+          return d.toISOString().split('T')[0];
+        }
+        return String(val).trim();
+      }
+
+      // Sheet 1: Vehicle List
+      const ws1 = wb.Sheets['차량목록'] || wb.Sheets[wb.SheetNames[0]];
+      if (ws1) {
+        const rows = XLSX.utils.sheet_to_json(ws1, { header: 1 });
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r[0]) continue;
+          // Check if vehicle already exists by vehicleNo
+          const existingId = findVehicleId(r[0]);
+          const id = existingId || genId() + '_' + i;
+          vehicleData[id] = {
+            id, vehicleNo: String(r[0] || ''), vehicleName: String(r[1] || ''),
+            year: String(r[2] || ''), vin: String(r[3] || ''), owner: String(r[4] || ''),
+            driver: String(r[5] || ''), department: String(r[6] || ''), purpose: String(r[7] || ''),
+            registrationDate: parseDate(r[8]), status: String(r[9] || '운행중'), memo: String(r[10] || '')
+          };
+          if (!vehicleDrivingLog[id]) vehicleDrivingLog[id] = [];
+          if (!vehicleMaintenance[id]) vehicleMaintenance[id] = [];
+          if (!vehicleCost[id]) vehicleCost[id] = [];
+          if (!vehicleInsurance[id]) vehicleInsurance[id] = {};
+          importCount.vehicle++;
+        }
+      }
+
+      // Sheet 2: Driving Log (운행기록)
+      const ws2 = wb.Sheets['운행기록'];
+      if (ws2) {
+        const rows = XLSX.utils.sheet_to_json(ws2, { header: 1 });
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r[0]) continue;
+          const vid = findVehicleId(r[0]);
+          if (!vid) continue;
+          if (!vehicleDrivingLog[vid]) vehicleDrivingLog[vid] = [];
+          vehicleDrivingLog[vid].push({
+            date: parseDate(r[1]),
+            driver: String(r[2] || ''),
+            departure: String(r[3] || ''),
+            destination: String(r[4] || ''),
+            purpose: String(r[5] || ''),
+            startKm: Number(r[6]) || 0,
+            endKm: Number(r[7]) || 0,
+            distance: Number(r[8]) || 0,
+            fuelAmount: Number(r[9]) || 0,
+            fuelCost: Number(r[10]) || 0,
+            memo: String(r[11] || '')
+          });
+          importCount.driving++;
+        }
+      }
+
+      // Sheet 3: Maintenance (정비점검)
+      const ws3 = wb.Sheets['정비점검'];
+      if (ws3) {
+        const rows = XLSX.utils.sheet_to_json(ws3, { header: 1 });
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r[0]) continue;
+          const vid = findVehicleId(r[0]);
+          if (!vid) continue;
+          if (!vehicleMaintenance[vid]) vehicleMaintenance[vid] = [];
+          vehicleMaintenance[vid].push({
+            date: parseDate(r[1]),
+            type: String(r[2] || '정기점검'),
+            km: Number(r[3]) || 0,
+            shop: String(r[4] || ''),
+            description: String(r[5] || ''),
+            cost: Number(r[6]) || 0,
+            nextDate: parseDate(r[7]),
+            memo: String(r[8] || '')
+          });
+          importCount.maint++;
+        }
+      }
+
+      // Sheet 4: Cost (비용관리)
+      const ws4 = wb.Sheets['비용관리'];
+      if (ws4) {
+        const rows = XLSX.utils.sheet_to_json(ws4, { header: 1 });
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r[0]) continue;
+          const vid = findVehicleId(r[0]);
+          if (!vid) continue;
+          if (!vehicleCost[vid]) vehicleCost[vid] = [];
+          vehicleCost[vid].push({
+            date: parseDate(r[1]),
+            category: String(r[2] || '기타'),
+            description: String(r[3] || ''),
+            amount: Number(r[4]) || 0,
+            payMethod: String(r[5] || '법인카드'),
+            receipt: String(r[6]).toUpperCase() === 'O' || r[6] === true,
+            memo: String(r[7] || '')
+          });
+          importCount.cost++;
+        }
+      }
+
+      // Sheet 5: Insurance (보험등록)
+      const ws5 = wb.Sheets['보험등록'];
+      if (ws5) {
+        const rows = XLSX.utils.sheet_to_json(ws5, { header: 1 });
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r[0]) continue;
+          const vid = findVehicleId(r[0]);
+          if (!vid) continue;
+          vehicleInsurance[vid] = {
+            insuranceCompany: String(r[1] || ''),
+            policyNo: String(r[2] || ''),
+            insuranceType: String(r[3] || '종합보험'),
+            insuranceStart: parseDate(r[4]),
+            insuranceEnd: parseDate(r[5]),
+            premium: Number(r[6]) || 0,
+            inspectionDate: parseDate(r[7]),
+            inspectionDue: parseDate(r[8]),
+            taxDate: parseDate(r[9]),
+            taxAmount: Number(r[10]) || 0,
+            memo: String(r[11] || '')
+          };
+          importCount.insurance++;
+        }
+      }
+
+      await saveAllData();
+      const total = importCount.vehicle + importCount.driving + importCount.maint + importCount.cost + importCount.insurance;
+      showToast(`데이터 가져오기 완료! (총 ${total}건: 차량 ${importCount.vehicle}, 운행 ${importCount.driving}, 정비 ${importCount.maint}, 비용 ${importCount.cost}, 보험 ${importCount.insurance})`);
+      refreshCurrentTab();
+    } catch(err) {
+      console.error('Import error:', err);
+      showToast('엑셀 가져오기 실패: ' + err.message, 'error');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+// ========================================
+// EDIT LOCK (동시 편집 방지)
+// ========================================
+let editLocks = {};
+
+async function acquireLock(lockKey) {
+  const lockDoc = await fbLoad('vehicle-locks', lockKey);
+  const now = Date.now();
+  const LOCK_TIMEOUT = 5 * 60 * 1000; // 5분
+
+  if (lockDoc && lockDoc.lockedAt && (now - lockDoc.lockedAt) < LOCK_TIMEOUT) {
+    if (lockDoc.lockedBy !== getDeviceId()) {
+      return { locked: true, by: lockDoc.lockedBy, at: lockDoc.lockedAt };
+    }
+  }
+  // Acquire lock
+  await fbSave('vehicle-locks', lockKey, { lockedBy: getDeviceId(), lockedAt: now });
+  editLocks[lockKey] = now;
+  return { locked: false };
+}
+
+async function releaseLock(lockKey) {
+  delete editLocks[lockKey];
+  try { await db.collection('vehicle-locks').doc(lockKey).delete(); } catch(e) {}
+}
+
+function getDeviceId() {
+  let id = localStorage.getItem('vehicleDeviceId');
+  if (!id) {
+    id = 'DEV_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5);
+    localStorage.setItem('vehicleDeviceId', id);
+  }
+  return id;
+}
+
+// Override modal opens with lock check
+const _origOpenVehicleModal = openVehicleModal;
+openVehicleModal = async function(id) {
+  if (id) {
+    const lockResult = await acquireLock('vehicle_' + id);
+    if (lockResult.locked) {
+      const mins = Math.round((Date.now() - lockResult.at) / 60000);
+      showToast(`다른 기기에서 편집 중입니다. (${mins}분 전부터)`, 'error');
+      return;
+    }
+  }
+  _origOpenVehicleModal(id);
+};
+
+const _origCloseVehicleModal = closeVehicleModal;
+closeVehicleModal = function() {
+  const id = document.getElementById('editVehicleId').value;
+  if (id) releaseLock('vehicle_' + id);
+  _origCloseVehicleModal();
+};
+
+// ========================================
+// TAB 6: REPORT / STATISTICS
+// ========================================
+function renderReport() {
+  const year = document.getElementById('reportYear').value;
+  const month = document.getElementById('reportMonth').value;
+  const prefix = month ? `${year}-${month}` : year;
+
+  // Gather stats
+  const totalVehicles = Object.keys(vehicleData).length;
+  const activeV = Object.values(vehicleData).filter(v => v.status === '운행중').length;
+  const repairV = Object.values(vehicleData).filter(v => v.status === '정비중').length;
+
+  // Cost stats
+  let totalCost = 0, catCosts = {}, vehicleCosts = {};
+  Object.entries(vehicleCost).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(c => {
+      if (!c.date || !c.date.startsWith(prefix)) return;
+      const amt = Number(c.amount) || 0;
+      totalCost += amt;
+      catCosts[c.category] = (catCosts[c.category] || 0) + amt;
+      vehicleCosts[vid] = (vehicleCosts[vid] || 0) + amt;
+    });
+  });
+
+  // Driving stats
+  let totalDist = 0, totalFuelCost = 0, totalTrips = 0;
+  Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
+    if (!Array.isArray(logs)) return;
+    logs.forEach(l => {
+      if (!l.date || !l.date.startsWith(prefix)) return;
+      totalTrips++;
+      totalDist += Number(l.distance) || 0;
+      totalFuelCost += Number(l.fuelCost) || 0;
+    });
+  });
+
+  // Maintenance stats
+  let totalMaintCost = 0, maintCount = 0;
+  Object.entries(vehicleMaintenance).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(m => {
+      if (!m.date || !m.date.startsWith(prefix)) return;
+      maintCount++;
+      totalMaintCost += Number(m.cost) || 0;
+    });
+  });
+
+  // Summary cards
+  document.getElementById('reportSummary').innerHTML = `
+    <div class="report-card" style="border-top-color:var(--primary);">
+      <div class="report-card-title">🚗 차량 현황</div>
+      <div class="report-item"><span class="report-item-label">전체 차량</span><span class="report-item-value">${totalVehicles}대</span></div>
+      <div class="report-item"><span class="report-item-label">운행중</span><span class="report-item-value" style="color:var(--success);">${activeV}대</span></div>
+      <div class="report-item"><span class="report-item-label">정비중</span><span class="report-item-value" style="color:var(--warning);">${repairV}대</span></div>
+    </div>
+    <div class="report-card" style="border-top-color:var(--success);">
+      <div class="report-card-title">🛣 운행 현황</div>
+      <div class="report-item"><span class="report-item-label">총 운행건수</span><span class="report-item-value">${totalTrips}건</span></div>
+      <div class="report-item"><span class="report-item-label">총 주행거리</span><span class="report-item-value">${fmt(totalDist)}km</span></div>
+      <div class="report-item"><span class="report-item-label">총 주유비</span><span class="report-item-value">${fmt(totalFuelCost)}원</span></div>
+    </div>
+    <div class="report-card" style="border-top-color:var(--purple);">
+      <div class="report-card-title">💰 비용 현황</div>
+      <div class="report-item"><span class="report-item-label">총 비용</span><span class="report-item-value">${fmt(totalCost)}원</span></div>
+      <div class="report-item"><span class="report-item-label">정비 비용</span><span class="report-item-value">${fmt(totalMaintCost)}원</span></div>
+      <div class="report-item"><span class="report-item-label">정비 건수</span><span class="report-item-value">${maintCount}건</span></div>
+    </div>
+    <div class="report-card" style="border-top-color:var(--danger);">
+      <div class="report-card-title">⚠️ 주의 항목</div>
+      <div class="report-item"><span class="report-item-label">보험만료 임박</span><span class="report-item-value" style="color:var(--danger);">${countInsuranceAlerts()}건</span></div>
+      <div class="report-item"><span class="report-item-label">정비점검 임박</span><span class="report-item-value" style="color:var(--warning);">${countMaintAlerts()}건</span></div>
+      <div class="report-item"><span class="report-item-label">차량검사 임박</span><span class="report-item-value" style="color:var(--danger);">${countInspectionAlerts()}건</span></div>
+    </div>
+  `;
+
+  // Charts
+  const chartColors = ['#4a6fa5', '#5ba55b', '#d4a029', '#d05050', '#8b6baf', '#4a9e95', '#e67e22', '#e74c3c'];
+
+  // 1) Cost by category (bar chart)
+  const catEntries = Object.entries(catCosts).sort((a,b) => b[1] - a[1]);
+  const maxCat = catEntries.length > 0 ? catEntries[0][1] : 1;
+  let catBarHtml = '<div class="bar-chart">' + catEntries.map(([cat, amt], i) => {
+    const pct = Math.max((amt / maxCat) * 100, 3);
+    const color = chartColors[i % chartColors.length];
+    return `<div class="bar-row">
+      <span class="bar-label">${cat}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"><span class="bar-val">${pct > 20 ? fmt(amt) + '원' : ''}</span></div></div>
+      ${pct <= 20 ? `<span class="bar-val-outside">${fmt(amt)}원</span>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+  if (catEntries.length === 0) catBarHtml = '<div class="empty-state" style="padding:1rem;"><div>해당 기간 비용 데이터가 없습니다.</div></div>';
+
+  // 2) Vehicle status donut
+  const statuses = [
+    { label: '운행중', count: activeV, color: '#5ba55b' },
+    { label: '정비중', count: repairV, color: '#d4a029' },
+    { label: '대기', count: Object.values(vehicleData).filter(v => v.status === '대기').length, color: '#9ca3af' },
+    { label: '폐차', count: Object.values(vehicleData).filter(v => v.status === '폐차').length, color: '#d05050' }
+  ].filter(s => s.count > 0);
+  const donutHtml = renderDonutSVG(statuses, totalVehicles);
+
+  // 3) Cost by vehicle (bar chart)
+  const vCostEntries = Object.entries(vehicleCosts)
+    .map(([vid, amt]) => [getVehicleLabel(vid), amt])
+    .sort((a,b) => b[1] - a[1]).slice(0, 10);
+  const maxVCost = vCostEntries.length > 0 ? vCostEntries[0][1] : 1;
+  let vCostHtml = '<div class="bar-chart">' + vCostEntries.map(([label, amt], i) => {
+    const pct = Math.max((amt / maxVCost) * 100, 3);
+    const color = chartColors[i % chartColors.length];
+    const shortLabel = label.length > 12 ? label.substring(0, 12) + '..' : label;
+    return `<div class="bar-row">
+      <span class="bar-label" title="${label}">${shortLabel}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"><span class="bar-val">${pct > 25 ? fmt(amt) + '원' : ''}</span></div></div>
+      ${pct <= 25 ? `<span class="bar-val-outside">${fmt(amt)}원</span>` : ''}
+    </div>`;
+  }).join('') + '</div>';
+  if (vCostEntries.length === 0) vCostHtml = '<div class="empty-state" style="padding:1rem;"><div>해당 기간 비용 데이터가 없습니다.</div></div>';
+
+  document.getElementById('reportCharts').innerHTML = `
+    <div class="chart-box">
+      <div class="chart-box-title">📊 항목별 비용</div>
+      ${catBarHtml}
+    </div>
+    <div class="chart-box">
+      <div class="chart-box-title">🚗 차량 상태 현황</div>
+      ${donutHtml}
+    </div>
+    <div class="chart-box" style="grid-column: 1 / -1;">
+      <div class="chart-box-title">🏆 차량별 비용 TOP 10</div>
+      ${vCostHtml}
+    </div>
+  `;
+
+  // Monthly cost trend (bar chart)
+  renderMonthlyCostTrend(year);
+}
+
+function renderDonutSVG(items, total) {
+  if (total === 0) return '<div class="empty-state" style="padding:1rem;">차량 데이터가 없습니다.</div>';
+  const cx = 60, cy = 60, r = 50;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  let paths = '';
+  items.forEach(item => {
+    const pct = item.count / total;
+    const len = pct * circumference;
+    paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${item.color}" stroke-width="18"
+      stroke-dasharray="${len} ${circumference - len}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${cx} ${cy})" />`;
+    offset += len;
+  });
+  const legend = items.map(item =>
+    `<div class="legend-item"><span class="legend-dot" style="background:${item.color};"></span>${item.label}: ${item.count}대 (${total > 0 ? Math.round(item.count/total*100) : 0}%)</div>`
+  ).join('');
+  return `<div class="donut-wrap">
+    <svg class="donut-svg" viewBox="0 0 120 120">${paths}
+      <text x="${cx}" y="${cy}" text-anchor="middle" dy="0.35em" font-size="16" font-weight="700" fill="#374151">${total}</text>
+      <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="8" fill="#9ca3af">전체</text>
+    </svg>
+    <div class="donut-legend">${legend}</div>
+  </div>`;
+}
+
+function renderMonthlyCostTrend(year) {
+  const months = [];
+  for (let m = 1; m <= 12; m++) {
+    const ym = `${year}-${String(m).padStart(2, '0')}`;
+    let total = 0;
+    Object.values(vehicleCost).forEach(items => {
+      if (!Array.isArray(items)) return;
+      items.forEach(c => { if (c.date && c.date.startsWith(ym)) total += Number(c.amount) || 0; });
+    });
+    months.push({ label: `${m}월`, amount: total });
+  }
+  const maxAmt = Math.max(...months.map(m => m.amount), 1);
+  const barColors = ['#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7','#e3ecf7'];
+  const nowMonth = new Date().getMonth(); // 0-indexed
+
+  let html = '<div style="display:flex;align-items:flex-end;gap:6px;height:200px;padding:0 0.5rem;">';
+  months.forEach((m, i) => {
+    const h = Math.max((m.amount / maxAmt) * 170, 4);
+    const isNow = i === nowMonth && String(new Date().getFullYear()) === year;
+    const bg = isNow ? 'var(--primary)' : (m.amount > 0 ? 'var(--primary)' : 'var(--gray-200)');
+    const opacity = isNow ? '1' : '0.5';
+    html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <span style="font-size:0.65rem;color:var(--gray-500);font-weight:600;">${m.amount > 0 ? fmt(m.amount) : ''}</span>
+      <div style="width:100%;height:${h}px;background:${bg};opacity:${opacity};border-radius:6px 6px 0 0;transition:height 0.5s;"></div>
+      <span style="font-size:0.7rem;color:${isNow?'var(--primary)':'var(--gray-400)'};font-weight:${isNow?'700':'400'};">${m.label}</span>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('monthlyCostChart').innerHTML = html;
+}
+
+function countInsuranceAlerts() {
+  let cnt = 0;
+  Object.values(vehicleInsurance).forEach(ins => {
+    if (ins && ins.insuranceEnd) { const d = getDday(ins.insuranceEnd); if (d !== null && d <= 60) cnt++; }
+  });
+  return cnt;
+}
+function countMaintAlerts() {
+  let cnt = 0;
+  Object.values(vehicleMaintenance).forEach(items => {
+    if (!Array.isArray(items)) return;
+    items.forEach(m => { if (m.nextDate) { const d = getDday(m.nextDate); if (d !== null && d <= 30) cnt++; } });
+  });
+  return cnt;
+}
+function countInspectionAlerts() {
+  let cnt = 0;
+  Object.values(vehicleInsurance).forEach(ins => {
+    if (ins && ins.inspectionDue) { const d = getDday(ins.inspectionDue); if (d !== null && d <= 60) cnt++; }
+  });
+  return cnt;
+}
+
+// ========================================
+// EXPORT MONTHLY REPORT (월간보고서)
+// ========================================
+function exportReport() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const ym = `${year}-${month}`;
+  const wb = XLSX.utils.book_new();
+
+  const border = {
+    top: { style:'thin', color:{rgb:'333333'} },
+    bottom: { style:'thin', color:{rgb:'333333'} },
+    left: { style:'thin', color:{rgb:'333333'} },
+    right: { style:'thin', color:{rgb:'333333'} }
+  };
+  const headerStyle = { font: { bold:true, sz:11, color:{rgb:'FFFFFF'} }, fill: { fgColor:{rgb:'2C3E50'} }, alignment: { horizontal:'center', vertical:'center', wrapText:true }, border };
+  const titleStyle = { font: { bold:true, sz:14 }, alignment: { horizontal:'center' } };
+  const subStyle = { font: { bold:true, sz:10, color:{rgb:'4A6FA5'} }, fill: { fgColor:{rgb:'E3ECF7'} }, alignment: { horizontal:'center' }, border };
+  const cellStyle = { font: { sz:9 }, alignment: { vertical:'center' }, border };
+  const amtStyle = { font: { sz:9 }, numFmt:'#,##0', alignment: { horizontal:'right', vertical:'center' }, border };
+
+  // Summary sheet
+  const summaryData = [];
+  summaryData.push([`${year}년 ${parseInt(month)}월 차량관리 월간보고서`]);
+  summaryData.push([]);
+  summaryData.push(['[ 차량 현황 ]']);
+  const allV = Object.values(vehicleData);
+  summaryData.push(['전체 차량', allV.length + '대']);
+  summaryData.push(['운행중', allV.filter(v => v.status === '운행중').length + '대']);
+  summaryData.push(['정비중', allV.filter(v => v.status === '정비중').length + '대']);
+  summaryData.push(['대기', allV.filter(v => v.status === '대기').length + '대']);
+  summaryData.push([]);
+  summaryData.push(['[ 운행 현황 ]']);
+  let mTrips = 0, mDist = 0, mFuel = 0;
+  Object.values(vehicleDrivingLog).forEach(logs => {
+    if (!Array.isArray(logs)) return;
+    logs.forEach(l => { if (l.date && l.date.startsWith(ym)) { mTrips++; mDist += Number(l.distance)||0; mFuel += Number(l.fuelCost)||0; } });
+  });
+  summaryData.push(['총 운행건수', mTrips + '건']);
+  summaryData.push(['총 주행거리', fmt(mDist) + 'km']);
+  summaryData.push(['총 주유비', fmt(mFuel) + '원']);
+  summaryData.push([]);
+  summaryData.push(['[ 비용 현황 ]']);
+  let mCost = 0, mCatCosts = {};
+  Object.values(vehicleCost).forEach(items => {
+    if (!Array.isArray(items)) return;
+    items.forEach(c => { if (c.date && c.date.startsWith(ym)) { const a = Number(c.amount)||0; mCost += a; mCatCosts[c.category] = (mCatCosts[c.category]||0) + a; } });
+  });
+  summaryData.push(['총 비용', fmt(mCost) + '원']);
+  Object.entries(mCatCosts).sort((a,b) => b[1]-a[1]).forEach(([cat, amt]) => {
+    summaryData.push(['  ' + cat, fmt(amt) + '원']);
+  });
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+  wsSummary['!cols'] = [{wch: 20}, {wch: 18}];
+  if (wsSummary['A1']) wsSummary['A1'].s = titleStyle;
+  XLSX.utils.book_append_sheet(wb, wsSummary, '요약');
+
+  // Cost detail sheet for the month
+  const costHeaders = ['차량번호', '날짜', '항목', '내용', '금액', '결제수단', '영수증', '비고'];
+  const costData = [costHeaders];
+  Object.entries(vehicleCost).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    items.forEach(c => {
+      if (c.date && c.date.startsWith(ym)) {
+        costData.push([vNo, c.date, c.category, c.description, c.amount, c.payMethod, c.receipt ? 'O' : 'X', c.memo]);
+      }
+    });
+  });
+  const wsCost = XLSX.utils.aoa_to_sheet(costData);
+  for (let c = 0; c < costHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(wsCost[a]) wsCost[a].s = headerStyle; }
+  wsCost['!cols'] = [{wch:12},{wch:12},{wch:8},{wch:20},{wch:12},{wch:10},{wch:8},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsCost, '비용상세');
+
+  // Driving detail
+  const drHeaders = ['차량번호','날짜','운전자','출발지','도착지','목적','주행거리','주유비'];
+  const drData = [drHeaders];
+  Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
+    if (!Array.isArray(logs)) return;
+    const vNo = vehicleData[vid] ? vehicleData[vid].vehicleNo : vid;
+    logs.forEach(l => {
+      if (l.date && l.date.startsWith(ym)) {
+        drData.push([vNo, l.date, l.driver, l.departure, l.destination, l.purpose, l.distance, l.fuelCost]);
+      }
+    });
+  });
+  const wsDr = XLSX.utils.aoa_to_sheet(drData);
+  for (let c = 0; c < drHeaders.length; c++) { const a = XLSX.utils.encode_cell({r:0,c}); if(wsDr[a]) wsDr[a].s = headerStyle; }
+  wsDr['!cols'] = [{wch:12},{wch:12},{wch:10},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsDr, '운행상세');
+
+  XLSX.writeFile(wb, `차량관리_월간보고서_${year}${month}.xlsx`);
+  showToast('월간보고서가 다운로드되었습니다.');
+}
+
+// ========================================
+// TAB SWITCHING (updated for report tab)
+// ========================================
+function switchTab(tab) {
+  currentTab = tab;
+  const tabNames = ['list','driving','maintenance','cost','insurance','report'];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', tabNames[i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  refreshCurrentTab();
+}
+
+function refreshCurrentTab() {
+  populateVehicleDropdowns();
+  if (currentTab === 'list') renderVehicleList();
+  else if (currentTab === 'driving') renderDrivingLog();
+  else if (currentTab === 'maintenance') renderMaintenance();
+  else if (currentTab === 'cost') renderCost();
+  else if (currentTab === 'insurance') renderInsurance();
+  else if (currentTab === 'report') renderReport();
+}
+
+// ========================================
+// INIT
+// ========================================
+async function init() {
+  const now = new Date();
+  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('drivingMonth').value = ym;
+  document.getElementById('costMonth').value = ym;
+
+  // Populate report year selector
+  const yearSel = document.getElementById('reportYear');
+  if (yearSel) {
+    const curYear = now.getFullYear();
+    for (let y = curYear; y >= curYear - 3; y--) {
+      yearSel.innerHTML += `<option value="${y}" ${y===curYear?'selected':''}>${y}년</option>`;
+    }
+  }
+
+  await loadAllData();
+  refreshCurrentTab();
+}
+
+init();
+</script>
+</body>
+</html>
