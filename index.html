@@ -5529,6 +5529,7 @@ function saveFieldSettlementData() {
   }
   
   fieldSettlementByManager[key][manager] = {
+    saved: true,  // 한 번이라도 저장된 데이터임을 표시
     works: JSON.parse(JSON.stringify(fieldSettlementData.works)),
     materials: JSON.parse(JSON.stringify(fieldSettlementData.materials)),
     labors: JSON.parse(JSON.stringify(fieldSettlementData.labors)),
@@ -5661,22 +5662,37 @@ function restoreFieldSavedData(manager) {
   const key = `${currentYear}_${item.no}`;
   if (fieldSettlementByManager[key] && fieldSettlementByManager[key][manager]) {
     const saved = fieldSettlementByManager[key][manager];
-    // 저장된 데이터에 실질 내용이 있을 때만 복원 (빈 배열이면 총괄표 데이터 유지)
-    const hasRealWorks = saved.works && saved.works.length > 0 &&
-      saved.works.some(w => w.content || w.sales);
-    if (hasRealWorks) {
-      fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works));
+
+    if (saved.saved) {
+      // ★ saved 플래그 있음 = 사용자가 직접 저장한 데이터 → 그대로 복원 (빈 배열도 존중)
+      if (Array.isArray(saved.works)) {
+        fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works));
+      }
+      if (Array.isArray(saved.materials)) {
+        fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials));
+      }
+      if (Array.isArray(saved.labors)) {
+        fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors));
+      }
+    } else {
+      // ★ saved 플래그 없음 = 이전 버전에서 저장된 데이터 → 실질 데이터 있을 때만 복원
+      const hasRealWorks = saved.works && saved.works.length > 0 &&
+        saved.works.some(w => w.content || w.sales);
+      if (hasRealWorks) {
+        fieldSettlementData.works = JSON.parse(JSON.stringify(saved.works));
+      }
+      const hasRealMaterials = saved.materials && saved.materials.length > 0 &&
+        saved.materials.some(m => m.content || m.amount);
+      if (hasRealMaterials) {
+        fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials));
+      }
+      const hasRealLabors = saved.labors && saved.labors.length > 0 &&
+        saved.labors.some(l => l.content || l.amount);
+      if (hasRealLabors) {
+        fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors));
+      }
     }
-    const hasRealMaterials = saved.materials && saved.materials.length > 0 &&
-      saved.materials.some(m => m.content || m.amount);
-    if (hasRealMaterials) {
-      fieldSettlementData.materials = JSON.parse(JSON.stringify(saved.materials));
-    }
-    const hasRealLabors = saved.labors && saved.labors.length > 0 &&
-      saved.labors.some(l => l.content || l.amount);
-    if (hasRealLabors) {
-      fieldSettlementData.labors = JSON.parse(JSON.stringify(saved.labors));
-    }
+
     if (saved.memo) {
       fieldSettlementData.memo = saved.memo;
       document.getElementById('fieldMemo').value = saved.memo;
@@ -5685,9 +5701,9 @@ function restoreFieldSavedData(manager) {
       fieldSettlementData.photos = saved.photos;
       renderFieldPhotoPreview();
     }
-    return true; // 저장된 데이터 있음
+    return true;
   }
-  return false; // 저장된 데이터 없음
+  return false;
 }
 
 // ★ 메인 정산서(총괄표) 데이터에서 현장소장용 정산서 초기값 가져오기 (저장된 데이터 없을 때 기본값)
