@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>차량 운행기록 입력</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --primary: #4a6fa5;
+  --primary-light: #e3ecf7;
+  --success: #5ba55b;
+  --success-light: #e8f5e8;
+  --warning: #d4a029;
+  --warning-light: #fef7e0;
+  --danger: #d05050;
+  --danger-light: #fdeaea;
+  --gray-50: #fafbfc;
+  --gray-100: #f4f5f7;
+  --gray-200: #e8eaed;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+  --radius: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  color: var(--gray-700);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3a5575 100%);
+  color: white;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.header-title { font-size: 1.2rem; font-weight: 700; }
+.header-sub { font-size: 0.75rem; opacity: 0.7; margin-top: 0.15rem; }
+.header-driver {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+.header-driver-name {
+  background: rgba(255,255,255,0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ===== CONTAINER ===== */
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ===== STEP INDICATOR ===== */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.3s;
+}
+.step.active { background: var(--primary); color: white; transform: scale(1.15); }
+.step.done { background: var(--success); color: white; }
+.step-line { width: 30px; height: 2px; background: var(--gray-200); transition: background 0.3s; }
+.step-line.done { background: var(--success); }
+
+/* ===== PANELS ===== */
+.panel {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ===== VEHICLE SELECT ===== */
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+.vehicle-btn {
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.vehicle-btn:active { transform: scale(0.97); }
+.vehicle-btn.selected { border-color: var(--primary); background: var(--primary-light); }
+.vehicle-btn-no { font-size: 1rem; font-weight: 700; color: var(--gray-800); }
+.vehicle-btn-name { font-size: 0.75rem; color: var(--gray-500); margin-top: 0.2rem; }
+.vehicle-btn-driver { font-size: 0.68rem; color: var(--gray-400); margin-top: 0.15rem; }
+.vehicle-btn-status {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+}
+.vs-active { background: var(--success-light); color: var(--success); }
+.vs-repair { background: var(--warning-light); color: var(--warning); }
+.vs-idle { background: var(--gray-100); color: var(--gray-500); }
+
+/* ===== INPUT FORM ===== */
+.form-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+.form-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 0.35rem;
+  display: block;
+}
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.form-input:focus { border-color: var(--primary); }
+.form-input::placeholder { color: var(--gray-400); }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.km-result {
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 0.75rem;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+/* ===== QUICK BUTTONS ===== */
+.quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.quick-btn {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 20px;
+  background: white;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.quick-btn:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+/* ===== BUTTONS ===== */
+.btn-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.btn {
+  flex: 1;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--primary); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-outline { background: white; color: var(--gray-600); border: 2px solid var(--gray-300); }
+.btn-lg {
+  padding: 1rem;
+  font-size: 1.05rem;
+  border-radius: 14px;
+}
+
+/* ===== TODAY LOG ===== */
+.today-section {
+  margin-top: 1.25rem;
+}
+.today-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.today-count {
+  background: var(--primary);
+  color: white;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+}
+.log-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border-left: 4px solid var(--primary);
+}
+.log-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.log-card-vehicle { font-weight: 700; font-size: 0.9rem; color: var(--gray-800); }
+.log-card-time { font-size: 0.72rem; color: var(--gray-400); }
+.log-card-route {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--gray-600);
+  margin-bottom: 0.3rem;
+}
+.log-card-route-arrow { color: var(--primary); font-weight: 700; }
+.log-card-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-top: 0.4rem;
+}
+.log-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--gray-100);
+}
+.log-action-btn {
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 6px;
+  background: white;
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  cursor: pointer;
+  font-family: inherit;
+}
+.log-action-btn.delete { color: var(--danger); border-color: var(--danger-light); }
+
+.empty-msg {
+  text-align: center;
+  padding: 2rem;
+  color: var(--gray-400);
+  font-size: 0.85rem;
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+/* ===== NAME MODAL ===== */
+.modal-bg {
+  display: none;
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-bg.active { display: flex; }
+.modal-box {
+  background: white;
+  border-radius: 18px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+}
+.modal-emoji { font-size: 3rem; margin-bottom: 0.75rem; }
+.modal-msg { font-size: 0.95rem; font-weight: 600; color: var(--gray-800); margin-bottom: 1rem; line-height: 1.5; }
+.modal-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+  font-weight: 700;
+}
+.modal-input:focus { border-color: var(--primary); }
+.modal-btn {
+  width: 100%;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 1rem;
+}
+
+/* ===== TOAST ===== */
+.toast-container { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 999; }
+.toast {
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn 0.3s ease;
+  white-space: nowrap;
+}
+.toast-success { background: var(--success); color: white; }
+.toast-error { background: var(--danger); color: white; }
+@keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+
+/* ===== SUCCESS ANIMATION ===== */
+.success-panel {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+.success-icon {
+  font-size: 4rem;
+  animation: popIn 0.5s ease;
+}
+@keyframes popIn { 0% { transform:scale(0); } 50% { transform:scale(1.2); } 100% { transform:scale(1); } }
+.success-msg { font-size: 1.1rem; font-weight: 700; color: var(--gray-800); margin: 1rem 0 0.5rem; }
+.success-detail { font-size: 0.85rem; color: var(--gray-500); line-height: 1.6; }
+
+/* ===== LOADING ===== */
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--gray-400);
+}
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 0.75rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">🚗 차량 운행기록</div>
+  <div class="header-sub">간편입력</div>
+  <div class="header-driver">
+    <span>👤</span>
+    <span class="header-driver-name" id="driverDisplay" onclick="showNameModal()">이름 설정</span>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- CONTAINER -->
+<div class="container">
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step1">1</div>
+    <div class="step-line" id="stepLine1"></div>
+    <div class="step" id="step2">2</div>
+    <div class="step-line" id="stepLine2"></div>
+    <div class="step" id="step3">✓</div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loadingPanel" class="loading">
+    <div class="loading-spinner"></div>
+    <div>차량 정보를 불러오는 중...</div>
+  </div>
+
+  <!-- STEP 1: SELECT VEHICLE -->
+  <div class="panel" id="panel1">
+    <div class="form-card">
+      <div class="form-title">🚗 차량을 선택하세요</div>
+      <div class="vehicle-grid" id="vehicleGrid"></div>
+    </div>
+
+    <!-- TODAY'S LOGS -->
+    <div class="today-section" id="todaySection"></div>
+  </div>
+
+  <!-- STEP 2: INPUT FORM -->
+  <div class="panel" id="panel2">
+    <div class="form-card">
+      <div class="form-title">📝 운행 정보 입력</div>
+      <div id="selectedVehicleInfo" style="background:var(--primary-light);padding:0.6rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:600;color:var(--primary);margin-bottom:1rem;text-align:center;"></div>
+
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-input" id="inputDate">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">출발지</label>
+        <input type="text" class="form-input" id="inputFrom" placeholder="예: 회사, 강남현장">
+        <div class="quick-btns" id="quickFrom"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">도착지</label>
+        <input type="text" class="form-input" id="inputTo" placeholder="예: 판교현장, 본사">
+        <div class="quick-btns" id="quickTo"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">운행 목적</label>
+        <input type="text" class="form-input" id="inputPurpose" placeholder="예: 자재운반, 현장출장">
+        <div class="quick-btns" id="quickPurpose"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">출발 km</label>
+          <input type="number" class="form-input" id="inputStartKm" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="form-group">
+          <label class="form-label">도착 km</label>
+          <input type="number" class="form-input" id="inputEndKm" placeholder="0" inputmode="numeric">
+        </div>
+      </div>
+      <div class="km-result" id="kmResult" style="display:none;">주행거리: 0 km</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">주유량 (L)</label>
+          <input type="number" class="form-input" id="inputFuelAmt" placeholder="선택" inputmode="decimal" step="0.1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">주유비 (원)</label>
+          <input type="number" class="form-input" id="inputFuelCost" placeholder="선택" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">비고</label>
+        <input type="text" class="form-input" id="inputMemo" placeholder="추가 메모 (선택)">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goStep(1)">← 뒤로</button>
+      <button class="btn btn-success btn-lg" onclick="saveLog()">저장하기 ✓</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: SUCCESS -->
+  <div class="panel" id="panel3">
+    <div class="success-panel">
+      <div class="success-icon">✅</div>
+      <div class="success-msg">운행기록이 저장되었습니다!</div>
+      <div class="success-detail" id="successDetail"></div>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="goStep(1)" style="width:100%;">새 운행기록 입력</button>
+  </div>
+
+</div>
+
+<!-- NAME MODAL -->
+<div class="modal-bg" id="nameModal">
+  <div class="modal-box">
+    <div class="modal-emoji">👋</div>
+    <div class="modal-msg">안녕하세요!<br>이름을 입력해주세요</div>
+    <input type="text" class="modal-input" id="nameInput" placeholder="이름 입력" maxlength="10">
+    <button class="modal-btn" onclick="saveName()">확인</button>
+  </div>
+</div>
+
+<script>
+// ========================================
+// FIREBASE (같은 설정)
+// ========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain: "order-d03ce.firebaseapp.com",
+  projectId: "order-d03ce",
+  storageBucket: "order-d03ce.firebasestorage.app",
+  messagingSenderId: "930014374996",
+  appId: "1:930014374996:web:67d764f5bc946d1781d1c1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ========================================
+// DATA
+// ========================================
+let vehicleData = {};
+let vehicleDrivingLog = {};
+let selectedVehicleId = null;
+let driverName = localStorage.getItem('driverName') || '';
+let recentPlaces = JSON.parse(localStorage.getItem('recentPlaces') || '[]');
+let recentPurposes = JSON.parse(localStorage.getItem('recentPurposes') || '[]');
+
+// Default quick options
+const defaultPlaces = ['회사', '본사', '현장'];
+const defaultPurposes = ['현장출장', '자재운반', '업무미팅', '출퇴근', '고객방문'];
+
+// ========================================
+// FIREBASE LOAD/SAVE
+// ========================================
+async function fbLoad(col, docId) {
+  try { const d = await db.collection(col).doc(docId).get(); return d.exists ? d.data() : null; } catch(e) { return null; }
+}
+async function fbSave(col, docId, data) {
+  try { await db.collection(col).doc(docId).set(data); } catch(e) { console.error('FB save err:', e); }
+}
+
+async function loadData() {
+  try {
+    const fbVD = await fbLoad('vehicle-data', 'all');
+    if (fbVD && fbVD.data) vehicleData = JSON.parse(fbVD.data);
+    else {
+      const ls = localStorage.getItem('vehicleData');
+      if (ls) vehicleData = JSON.parse(ls);
+    }
+
+    const fbDL = await fbLoad('vehicle-driving-log', 'all');
+    if (fbDL && fbDL.data) vehicleDrivingLog = JSON.parse(fbDL.data);
+    else {
+      const ls = localStorage.getItem('vehicleDrivingLog');
+      if (ls) vehicleDrivingLog = JSON.parse(ls);
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+    const ls1 = localStorage.getItem('vehicleData');
+    if (ls1) vehicleData = JSON.parse(ls1);
+    const ls2 = localStorage.getItem('vehicleDrivingLog');
+    if (ls2) vehicleDrivingLog = JSON.parse(ls2);
+  }
+}
+
+async function saveAllDrivingLog() {
+  try {
+    localStorage.setItem('vehicleDrivingLog', JSON.stringify(vehicleDrivingLog));
+    await fbSave('vehicle-driving-log', 'all', { data: JSON.stringify(vehicleDrivingLog) });
+  } catch(e) {
+    console.error('Save error:', e);
+  }
+}
+
+// ========================================
+// UI UTILS
+// ========================================
+function showToast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; setTimeout(() => t.remove(), 300); }, 2500);
+}
+
+function fmt(n) { return n ? Number(n).toLocaleString() : '0'; }
+
+// ========================================
+// NAME MANAGEMENT
+// ========================================
+function showNameModal() {
+  document.getElementById('nameInput').value = driverName;
+  document.getElementById('nameModal').classList.add('active');
+  setTimeout(() => document.getElementById('nameInput').focus(), 300);
+}
+
+function saveName() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showToast('이름을 입력해주세요', 'error'); return; }
+  driverName = name;
+  localStorage.setItem('driverName', name);
+  document.getElementById('driverDisplay').textContent = name;
+  document.getElementById('nameModal').classList.remove('active');
+  showToast(`${name}님 환영합니다!`);
+}
+
+// ========================================
+// VEHICLE GRID
+// ========================================
+function renderVehicleGrid() {
+  const grid = document.getElementById('vehicleGrid');
+  const entries = Object.entries(vehicleData)
+    .filter(([id, v]) => v.status !== '폐차')
+    .sort((a, b) => (a[1].vehicleNo || '').localeCompare(b[1].vehicleNo || ''));
+
+  if (entries.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;" class="empty-msg"><div class="empty-icon">🚗</div>등록된 차량이 없습니다.<br><small style="color:var(--gray-400);">관리자가 차량관리대장에서 차량을 먼저 등록해야 합니다.</small></div>';
+    return;
+  }
+
+  grid.innerHTML = entries.map(([id, v]) => {
+    const statusCls = v.status === '운행중' ? 'vs-active' : v.status === '정비중' ? 'vs-repair' : 'vs-idle';
+    return `<div class="vehicle-btn ${selectedVehicleId === id ? 'selected' : ''}" onclick="selectVehicle('${id}')">
+      <div class="vehicle-btn-no">${v.vehicleNo || '-'}</div>
+      <div class="vehicle-btn-name">${v.vehicleName || ''}</div>
+      <div class="vehicle-btn-driver">${v.driver || ''}</div>
+      <div class="vehicle-btn-status ${statusCls}">${v.status || '운행중'}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectVehicle(id) {
+  selectedVehicleId = id;
+  const v = vehicleData[id];
+  document.getElementById('selectedVehicleInfo').textContent = `${v.vehicleNo} (${v.vehicleName})`;
+
+  // Auto-fill driver if available
+  if (!driverName && v.driver) {
+    driverName = v.driver;
+    localStorage.setItem('driverName', driverName);
+    document.getElementById('driverDisplay').textContent = driverName;
+  }
+
+  // Auto-fill last endKm as startKm
+  const logs = vehicleDrivingLog[id] || [];
+  if (logs.length > 0) {
+    const lastLog = logs.sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
+    if (lastLog.endKm) document.getElementById('inputStartKm').value = lastLog.endKm;
+  }
+
+  goStep(2);
+}
+
+// ========================================
+// STEP NAVIGATION
+// ========================================
+function goStep(step) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel' + step).classList.add('active');
+
+  // Update step indicators
+  for (let i = 1; i <= 3; i++) {
+    const stepEl = document.getElementById('step' + i);
+    stepEl.classList.remove('active', 'done');
+    if (i < step) stepEl.classList.add('done');
+    if (i === step) stepEl.classList.add('active');
+  }
+  for (let i = 1; i <= 2; i++) {
+    const line = document.getElementById('stepLine' + i);
+    line.classList.toggle('done', i < step);
+  }
+
+  if (step === 1) {
+    selectedVehicleId = null;
+    renderVehicleGrid();
+    renderTodayLogs();
+    clearForm();
+  }
+  if (step === 2) {
+    renderQuickButtons();
+    document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ========================================
+// QUICK BUTTONS
+// ========================================
+function renderQuickButtons() {
+  const places = [...new Set([...recentPlaces, ...defaultPlaces])].slice(0, 6);
+  const purposes = [...new Set([...recentPurposes, ...defaultPurposes])].slice(0, 6);
+
+  document.getElementById('quickFrom').innerHTML = places.map(p =>
+    `<button class="quick-btn" onclick="document.getElementById('inputFrom').value='${p}'">${p}</button>`
+  ).join('');
+  document.getElementById('quickTo').innerHTML = places.map(p =>
+    `<button class="quick-btn" onclick="document.getElementById('inputTo').value='${p}'">${p}</button>`
+  ).join('');
+  document.getElementById('quickPurpose').innerHTML = purposes.map(p =>
+    `<button class="quick-btn" onclick="document.getElementById('inputPurpose').value='${p}'">${p}</button>`
+  ).join('');
+}
+
+function saveRecentPlace(place) {
+  if (!place) return;
+  recentPlaces = [place, ...recentPlaces.filter(p => p !== place)].slice(0, 10);
+  localStorage.setItem('recentPlaces', JSON.stringify(recentPlaces));
+}
+function saveRecentPurpose(purpose) {
+  if (!purpose) return;
+  recentPurposes = [purpose, ...recentPurposes.filter(p => p !== purpose)].slice(0, 10);
+  localStorage.setItem('recentPurposes', JSON.stringify(recentPurposes));
+}
+
+// ========================================
+// KM CALCULATION
+// ========================================
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'inputStartKm' || e.target.id === 'inputEndKm') {
+    const s = Number(document.getElementById('inputStartKm').value) || 0;
+    const end = Number(document.getElementById('inputEndKm').value) || 0;
+    const dist = end > s ? end - s : 0;
+    const el = document.getElementById('kmResult');
+    if (s > 0 || end > 0) {
+      el.style.display = 'block';
+      el.textContent = `주행거리: ${fmt(dist)} km`;
+    } else {
+      el.style.display = 'none';
+    }
+  }
+});
+
+// ========================================
+// SAVE LOG
+// ========================================
+async function saveLog() {
+  if (!selectedVehicleId) { showToast('차량을 선택해주세요', 'error'); return; }
+  if (!driverName) { showNameModal(); return; }
+
+  const date = document.getElementById('inputDate').value;
+  if (!date) { showToast('날짜를 입력해주세요', 'error'); return; }
+
+  const from = document.getElementById('inputFrom').value.trim();
+  const to = document.getElementById('inputTo').value.trim();
+  const purpose = document.getElementById('inputPurpose').value.trim();
+  const startKm = Number(document.getElementById('inputStartKm').value) || 0;
+  const endKm = Number(document.getElementById('inputEndKm').value) || 0;
+  const distance = endKm > startKm ? endKm - startKm : 0;
+  const fuelAmt = Number(document.getElementById('inputFuelAmt').value) || 0;
+  const fuelCost = Number(document.getElementById('inputFuelCost').value) || 0;
+  const memo = document.getElementById('inputMemo').value.trim();
+
+  const log = {
+    date, driver: driverName, departure: from, destination: to,
+    purpose, startKm, endKm, distance, fuelAmount: fuelAmt, fuelCost, memo
+  };
+
+  if (!vehicleDrivingLog[selectedVehicleId]) vehicleDrivingLog[selectedVehicleId] = [];
+  vehicleDrivingLog[selectedVehicleId].push(log);
+
+  await saveAllDrivingLog();
+
+  // Save recent places & purposes
+  saveRecentPlace(from);
+  saveRecentPlace(to);
+  saveRecentPurpose(purpose);
+
+  // Show success
+  const v = vehicleData[selectedVehicleId];
+  document.getElementById('successDetail').innerHTML =
+    `<strong>${v.vehicleNo} (${v.vehicleName})</strong><br>` +
+    `${from || '-'} → ${to || '-'}<br>` +
+    `주행거리: ${fmt(distance)}km` +
+    (fuelCost > 0 ? ` | 주유비: ${fmt(fuelCost)}원` : '');
+
+  goStep(3);
+  showToast('저장 완료!');
+}
+
+// ========================================
+// CLEAR FORM
+// ========================================
+function clearForm() {
+  ['inputFrom','inputTo','inputPurpose','inputStartKm','inputEndKm','inputFuelAmt','inputFuelCost','inputMemo'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('kmResult').style.display = 'none';
+}
+
+// ========================================
+// TODAY'S LOGS
+// ========================================
+function renderTodayLogs() {
+  const today = new Date().toISOString().split('T')[0];
+  const section = document.getElementById('todaySection');
+  let logs = [];
+
+  Object.entries(vehicleDrivingLog).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((log, idx) => {
+      if (log.date === today && log.driver === driverName) {
+        logs.push({ ...log, _vid: vid, _idx: idx });
+      }
+    });
+  });
+
+  logs.sort((a, b) => (b._idx || 0) - (a._idx || 0));
+
+  if (logs.length === 0 && driverName) {
+    section.innerHTML = `
+      <div class="today-title"><span>📋 오늘의 운행기록</span></div>
+      <div class="empty-msg"><div class="empty-icon">📝</div>오늘 운행기록이 없습니다.<br>차량을 선택하여 기록을 시작하세요!</div>`;
+    return;
+  }
+  if (!driverName) { section.innerHTML = ''; return; }
+
+  section.innerHTML = `
+    <div class="today-title">
+      <span>📋 오늘의 운행기록</span>
+      <span class="today-count">${logs.length}건</span>
+    </div>
+    ${logs.map(l => {
+      const v = vehicleData[l._vid];
+      const vLabel = v ? `${v.vehicleNo} (${v.vehicleName})` : l._vid;
+      return `<div class="log-card">
+        <div class="log-card-header">
+          <span class="log-card-vehicle">${vLabel}</span>
+        </div>
+        <div class="log-card-route">
+          <span>${l.departure || '-'}</span>
+          <span class="log-card-route-arrow">→</span>
+          <span>${l.destination || '-'}</span>
+        </div>
+        <div class="log-card-info">
+          <span>🛣 ${fmt(l.distance)}km</span>
+          <span>📌 ${l.purpose || '-'}</span>
+          ${l.fuelCost > 0 ? `<span>⛽ ${fmt(l.fuelCost)}원</span>` : ''}
+        </div>
+        <div class="log-card-actions">
+          <button class="log-action-btn delete" onclick="deleteLog('${l._vid}',${l._idx})">삭제</button>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+async function deleteLog(vid, idx) {
+  if (!confirm('이 운행기록을 삭제하시겠습니까?')) return;
+  vehicleDrivingLog[vid].splice(idx, 1);
+  await saveAllDrivingLog();
+  showToast('삭제되었습니다.');
+  renderTodayLogs();
+}
+
+// ========================================
+// INIT
+// ========================================
+async function init() {
+  // Show name modal if no name
+  if (driverName) {
+    document.getElementById('driverDisplay').textContent = driverName;
+  }
+
+  await loadData();
+  document.getElementById('loadingPanel').style.display = 'none';
+  document.getElementById('panel1').classList.add('active');
+  renderVehicleGrid();
+  renderTodayLogs();
+
+  if (!driverName) {
+    setTimeout(() => showNameModal(), 500);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
