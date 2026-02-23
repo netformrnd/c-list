@@ -761,6 +761,7 @@ tr:hover { background: var(--gray-50); }
     <button class="btn btn-header" onclick="document.getElementById('importFile').click()">📥 Excel 가져오기</button>
     <button class="btn btn-header" onclick="exportReport()">📋 월간보고서</button>
     <button class="btn btn-header" onclick="openPasswordSetting()">🔒 직원비밀번호</button>
+    <button class="btn btn-header" onclick="loadSampleData()" style="background:#ff6b35;color:#fff;">🧪 샘플데이터</button>
     <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
   </div>
 </div>
@@ -3770,6 +3771,195 @@ function checkOilAlerts() {
       <div style="text-align:right;font-size:0.65rem;color:var(--gray-400);margin-top:0.2rem;">${a.percent}% (교체주기 ${fmt(OIL_CHANGE_INTERVAL)}km 기준)</div>
     </div>`;
   }).join('');
+}
+
+// ========================================
+// 🧪 SAMPLE DATA
+// ========================================
+async function loadSampleData() {
+  if (!confirm('⚠️ 기존 데이터가 모두 삭제되고 샘플 데이터로 대체됩니다.\n\n정말 샘플 데이터를 넣으시겠습니까?')) return;
+
+  showToast('샘플 데이터 생성 중...', 'info');
+
+  // --- 차량 3대 ---
+  vehicleData = {
+    'V001': {
+      id:'V001', vehicleNo:'12가 3456', vehicleName:'아반떼 CN7', year:'2023',
+      vin:'KMHD341CBNU123456', owner:'넷폼(주)', registrationDate:'2023-03-15',
+      company:'넷폼(주)', driver:'김민수', department:'영업팀', status:'운행중', memo:'영업용 차량'
+    },
+    'V002': {
+      id:'V002', vehicleNo:'34나 7890', vehicleName:'싼타페 MX5', year:'2022',
+      vin:'KMHS581DBLU789012', owner:'넷폼(주)', registrationDate:'2022-08-20',
+      company:'넷폼(주)', driver:'박지영', department:'관리팀', status:'운행중', memo:'관리팀 업무용'
+    },
+    'V003': {
+      id:'V003', vehicleNo:'56다 1234', vehicleName:'포터2', year:'2021',
+      vin:'KNAHP812ALU345678', owner:'넷폼(주)', registrationDate:'2021-05-10',
+      company:'넷폼(주)', driver:'이철호', department:'현장팀', status:'운행중', memo:'현장 자재운반용'
+    }
+  };
+
+  // --- 운행기록 ---
+  vehicleDrivingLog = {
+    'V001': [
+      {date:'2026-01-03',driver:'김민수',departure:'본사',destination:'강남 거래처',purpose:'거래처 미팅',startKm:15200,endKm:15245,distance:45,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-07',driver:'김민수',departure:'본사',destination:'수원 현대오피스',purpose:'계약서 전달',startKm:15245,endKm:15312,distance:67,fuelAmount:35,fuelCost:59500,memo:'주유 완료'},
+      {date:'2026-01-13',driver:'김민수',departure:'본사',destination:'분당 네이버',purpose:'프레젠테이션',startKm:15312,endKm:15350,distance:38,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-17',driver:'김민수',departure:'본사',destination:'인천 물류센터',purpose:'납품 확인',startKm:15350,endKm:15428,distance:78,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-22',driver:'김민수',departure:'본사',destination:'판교 카카오',purpose:'기술 미팅',startKm:15428,endKm:15463,distance:35,fuelAmount:30,fuelCost:51000,memo:''},
+      {date:'2026-01-28',driver:'김민수',departure:'본사',destination:'영등포 거래처',purpose:'견적 전달',startKm:15463,endKm:15508,distance:45,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-03',driver:'김민수',departure:'본사',destination:'강남 삼성SDS',purpose:'프로젝트 회의',startKm:15508,endKm:15560,distance:52,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-07',driver:'김민수',departure:'본사',destination:'일산 킨텍스',purpose:'전시회 참관',startKm:15560,endKm:15632,distance:72,fuelAmount:40,fuelCost:68000,memo:'왕복 주유'},
+      {date:'2026-02-12',driver:'김민수',departure:'본사',destination:'성남 거래처',purpose:'납품',startKm:15632,endKm:15670,distance:38,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-18',driver:'김민수',departure:'본사',destination:'용인 물류창고',purpose:'재고 확인',startKm:15670,endKm:15735,distance:65,fuelAmount:35,fuelCost:59500,memo:''},
+      {date:'2026-02-21',driver:'김민수',departure:'본사',destination:'서초 거래처',purpose:'미팅',startKm:15735,endKm:15767,distance:32,fuelAmount:0,fuelCost:0,memo:''}
+    ],
+    'V002': [
+      {date:'2026-01-05',driver:'박지영',departure:'본사',destination:'세무사 사무실',purpose:'세무 상담',startKm:32100,endKm:32125,distance:25,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-10',driver:'박지영',departure:'본사',destination:'관악 노무사',purpose:'노무 상담',startKm:32125,endKm:32168,distance:43,fuelAmount:40,fuelCost:72000,memo:'경유 주유'},
+      {date:'2026-01-16',driver:'박지영',departure:'본사',destination:'시청',purpose:'서류 제출',startKm:32168,endKm:32200,distance:32,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-21',driver:'박지영',departure:'본사',destination:'은행 본점',purpose:'대출 상담',startKm:32200,endKm:32242,distance:42,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-27',driver:'박지영',departure:'본사',destination:'세무서',purpose:'부가세 신고',startKm:32242,endKm:32280,distance:38,fuelAmount:35,fuelCost:63000,memo:''},
+      {date:'2026-02-04',driver:'박지영',departure:'본사',destination:'법원',purpose:'등기 서류',startKm:32280,endKm:32318,distance:38,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-10',driver:'박지영',departure:'본사',destination:'거래처 본사',purpose:'계약 연장',startKm:32318,endKm:32375,distance:57,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-14',driver:'박지영',departure:'본사',destination:'세무사 사무실',purpose:'결산 상담',startKm:32375,endKm:32400,distance:25,fuelAmount:40,fuelCost:72000,memo:''},
+      {date:'2026-02-19',driver:'박지영',departure:'본사',destination:'구로 노동청',purpose:'서류 제출',startKm:32400,endKm:32455,distance:55,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-22',driver:'박지영',departure:'본사',destination:'강남 은행',purpose:'업무',startKm:32455,endKm:32490,distance:35,fuelAmount:0,fuelCost:0,memo:''}
+    ],
+    'V003': [
+      {date:'2026-01-04',driver:'이철호',departure:'본사',destination:'수원 현장',purpose:'자재 운반',startKm:48500,endKm:48575,distance:75,fuelAmount:50,fuelCost:85000,memo:'경유'},
+      {date:'2026-01-09',driver:'이철호',departure:'본사',destination:'안산 공장',purpose:'자재 픽업',startKm:48575,endKm:48660,distance:85,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-14',driver:'이철호',departure:'본사',destination:'화성 현장',purpose:'장비 운반',startKm:48660,endKm:48762,distance:102,fuelAmount:55,fuelCost:93500,memo:''},
+      {date:'2026-01-18',driver:'이철호',departure:'본사',destination:'평택 현장',purpose:'자재 납품',startKm:48762,endKm:48890,distance:128,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-01-23',driver:'이철호',departure:'본사',destination:'용인 자재창고',purpose:'재고 이동',startKm:48890,endKm:48955,distance:65,fuelAmount:60,fuelCost:102000,memo:''},
+      {date:'2026-01-29',driver:'이철호',departure:'본사',destination:'이천 현장',purpose:'장비 회수',startKm:48955,endKm:49070,distance:115,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-05',driver:'이철호',departure:'본사',destination:'수원 현장',purpose:'자재 운반',startKm:49070,endKm:49148,distance:78,fuelAmount:55,fuelCost:93500,memo:''},
+      {date:'2026-02-11',driver:'이철호',departure:'본사',destination:'안양 현장',purpose:'장비 운반',startKm:49148,endKm:49215,distance:67,fuelAmount:0,fuelCost:0,memo:''},
+      {date:'2026-02-17',driver:'이철호',departure:'본사',destination:'광주 현장',purpose:'자재 납품',startKm:49215,endKm:49340,distance:125,fuelAmount:60,fuelCost:102000,memo:'장거리'},
+      {date:'2026-02-20',driver:'이철호',departure:'본사',destination:'성남 창고',purpose:'재고 정리',startKm:49340,endKm:49395,distance:55,fuelAmount:0,fuelCost:0,memo:''}
+    ]
+  };
+
+  // --- 정비이력 ---
+  vehicleMaintenance = {
+    'V001': [
+      {date:'2025-09-15',type:'소모품교체',km:12800,shop:'현대 오토큐',description:'엔진오일+필터 교체',cost:85000,nextDate:'',memo:''},
+      {date:'2025-12-20',type:'정기점검',km:14500,shop:'현대 서비스센터',description:'정기점검 (12개월)',cost:0,nextDate:'2026-06-20',memo:'이상 없음'},
+      {date:'2026-01-15',type:'소모품교체',km:15300,shop:'타이어뱅크',description:'앞타이어 2본 교체',cost:240000,nextDate:'',memo:'한국타이어 K117'}
+    ],
+    'V002': [
+      {date:'2025-06-10',type:'소모품교체',km:29500,shop:'현대 서비스센터',description:'엔진오일+에어필터 교체',cost:120000,nextDate:'',memo:''},
+      {date:'2025-10-05',type:'수리',km:31200,shop:'카센터 강남점',description:'브레이크 패드 교체',cost:180000,nextDate:'',memo:'앞뒤 모두 교체'},
+      {date:'2026-01-08',type:'정기점검',km:32150,shop:'현대 서비스센터',description:'정기점검',cost:0,nextDate:'2026-07-08',memo:'냉각수 보충 권장'},
+      {date:'2026-02-10',type:'소모품교체',km:32370,shop:'오토큐 관악점',description:'엔진오일 교체',cost:95000,nextDate:'',memo:'합성유 5W-30'}
+    ],
+    'V003': [
+      {date:'2025-04-20',type:'소모품교체',km:44800,shop:'현대 상용차센터',description:'엔진오일+미션오일 교체',cost:180000,nextDate:'',memo:''},
+      {date:'2025-08-15',type:'수리',km:46500,shop:'카센터',description:'클러치 수리',cost:450000,nextDate:'',memo:'클러치판 교체'},
+      {date:'2025-12-10',type:'소모품교체',km:48200,shop:'현대 상용차센터',description:'엔진오일 교체',cost:95000,nextDate:'',memo:''},
+      {date:'2026-01-20',type:'정기점검',km:48800,shop:'현대 상용차센터',description:'정기점검',cost:0,nextDate:'2026-07-20',memo:'타이어 마모 주의'},
+      {date:'2026-02-15',type:'사고수리',km:49250,shop:'판금도색 전문점',description:'후방 범퍼 교체',cost:350000,nextDate:'',memo:'후진시 접촉사고'}
+    ]
+  };
+
+  // --- 비용관리 ---
+  vehicleCost = {
+    'V001': [
+      {date:'2026-01-07',category:'주유',description:'주유 (본사 근처 주유소)',amount:59500,receipt:true,memo:''},
+      {date:'2026-01-15',category:'정비',description:'앞타이어 2본 교체',amount:240000,receipt:true,memo:''},
+      {date:'2026-01-20',category:'주차',description:'강남 거래처 주차비',amount:8000,receipt:true,memo:''},
+      {date:'2026-01-22',category:'주유',description:'주유',amount:51000,receipt:true,memo:''},
+      {date:'2026-01-25',category:'톨비',description:'영동고속도로 톨비',amount:4800,receipt:true,memo:''},
+      {date:'2026-02-07',category:'주유',description:'주유',amount:68000,receipt:true,memo:''},
+      {date:'2026-02-12',category:'주차',description:'성남 거래처 주차비',amount:5000,receipt:true,memo:''},
+      {date:'2026-02-18',category:'주유',description:'주유',amount:59500,receipt:true,memo:''},
+      {date:'2026-02-20',category:'세금',description:'자동차세 (1기분)',amount:130000,receipt:true,memo:''}
+    ],
+    'V002': [
+      {date:'2026-01-10',category:'주유',description:'경유 주유',amount:72000,receipt:true,memo:''},
+      {date:'2026-01-15',category:'보험',description:'자동차보험료 (월납)',amount:125000,receipt:true,memo:''},
+      {date:'2026-01-27',category:'주유',description:'경유 주유',amount:63000,receipt:true,memo:''},
+      {date:'2026-02-03',category:'주차',description:'법원 주차비',amount:6000,receipt:true,memo:''},
+      {date:'2026-02-10',category:'정비',description:'엔진오일 교체',amount:95000,receipt:true,memo:''},
+      {date:'2026-02-14',category:'주유',description:'경유 주유',amount:72000,receipt:true,memo:''},
+      {date:'2026-02-15',category:'보험',description:'자동차보험료 (월납)',amount:125000,receipt:true,memo:''},
+      {date:'2026-02-19',category:'톨비',description:'톨비',amount:3600,receipt:true,memo:''}
+    ],
+    'V003': [
+      {date:'2026-01-04',category:'주유',description:'경유 주유',amount:85000,receipt:true,memo:''},
+      {date:'2026-01-14',category:'주유',description:'경유 주유',amount:93500,receipt:true,memo:''},
+      {date:'2026-01-20',category:'정비',description:'정기점검',amount:0,receipt:true,memo:'무상점검'},
+      {date:'2026-01-23',category:'주유',description:'경유 주유',amount:102000,receipt:true,memo:''},
+      {date:'2026-01-28',category:'과태료',description:'과적 단속 과태료',amount:300000,receipt:true,memo:''},
+      {date:'2026-02-05',category:'주유',description:'경유 주유',amount:93500,receipt:true,memo:''},
+      {date:'2026-02-15',category:'정비',description:'후방 범퍼 교체 (사고수리)',amount:350000,receipt:true,memo:''},
+      {date:'2026-02-17',category:'주유',description:'경유 주유',amount:102000,receipt:true,memo:''},
+      {date:'2026-02-20',category:'세금',description:'자동차세 (1기분)',amount:65000,receipt:true,memo:''}
+    ]
+  };
+
+  // --- 보험/등록 ---
+  vehicleInsurance = {
+    'V001': {
+      insuranceCompany:'삼성화재',policyNo:'AUTO-2025-001234',insuranceType:'종합보험',
+      insuranceStart:'2025-03-15',insuranceEnd:'2026-03-14',premium:680000,
+      inspectionDate:'2025-03-10',inspectionDue:'2027-03-10',
+      taxDate:'2026-01-15',taxAmount:260000,memo:'무사고 할인 적용'
+    },
+    'V002': {
+      insuranceCompany:'현대해상',policyNo:'AUTO-2024-005678',insuranceType:'종합보험',
+      insuranceStart:'2024-08-20',insuranceEnd:'2025-08-19',premium:920000,
+      inspectionDate:'2024-08-15',inspectionDue:'2026-08-15',
+      taxDate:'2025-06-15',taxAmount:520000,memo:'보험 만료 임박 주의'
+    },
+    'V003': {
+      insuranceCompany:'DB손해보험',policyNo:'AUTO-2025-009012',insuranceType:'종합보험',
+      insuranceStart:'2025-05-10',insuranceEnd:'2026-05-09',premium:540000,
+      inspectionDate:'2025-05-01',inspectionDue:'2026-05-01',
+      taxDate:'2026-01-20',taxAmount:130000,memo:''
+    }
+  };
+
+  // --- 정비일지 ---
+  vehicleDiary = {
+    'V001': [
+      {date:'2025-09-15',writer:'김민수',category:'오일 및 액체류 교체',km:12800,cost:85000,description:'엔진오일 5W-30 합성유 + 오일필터 교체. 다음 교체 20,800km 예정.',status:'완료',memo:'',createdAt:'2025-09-15T10:30:00'},
+      {date:'2025-11-20',writer:'김민수',category:'세차',km:14000,cost:15000,description:'외부 손세차 + 실내 청소',status:'완료',memo:'',createdAt:'2025-11-20T14:00:00'},
+      {date:'2026-01-15',writer:'김민수',category:'수리',km:15300,cost:240000,description:'앞타이어 2본 교체 (한국타이어 K117 205/55R16). 마모 심해서 교체.',status:'완료',memo:'뒷타이어도 6개월 내 교체 필요',createdAt:'2026-01-15T09:00:00'},
+      {date:'2026-01-22',writer:'김민수',category:'일상점검',km:15463,cost:0,description:'타이어 공기압 체크, 워셔액 보충. 이상 없음.',status:'완료',memo:'',createdAt:'2026-01-22T08:30:00'},
+      {date:'2026-02-10',writer:'김민수',category:'세정 및 플러싱',km:15600,cost:45000,description:'에어컨 필터 교체 + 에바포레이터 세정.',status:'완료',memo:'',createdAt:'2026-02-10T11:00:00'},
+      {date:'2026-02-18',writer:'김민수',category:'첨가제 및 보호제',km:15735,cost:25000,description:'연료첨가제 주입 (불스원샷)',status:'완료',memo:'',createdAt:'2026-02-18T16:00:00'}
+    ],
+    'V002': [
+      {date:'2025-06-10',writer:'박지영',category:'오일 및 액체류 교체',km:29500,cost:120000,description:'엔진오일 + 에어필터 동시 교체. 다음 교체 37,500km.',status:'완료',memo:'',createdAt:'2025-06-10T10:00:00'},
+      {date:'2025-10-05',writer:'박지영',category:'수리',km:31200,cost:180000,description:'브레이크 패드 앞뒤 4륜 전부 교체. 디스크 상태 양호.',status:'완료',memo:'',createdAt:'2025-10-05T09:30:00'},
+      {date:'2025-12-15',writer:'박지영',category:'세차',km:31800,cost:25000,description:'외부+실내 풀세차',status:'완료',memo:'',createdAt:'2025-12-15T15:00:00'},
+      {date:'2026-01-08',writer:'박지영',category:'일상점검',km:32150,cost:0,description:'정기점검 완료. 냉각수 약간 부족하여 보충 권장받음.',status:'완료',memo:'다음 점검시 냉각수 교체',createdAt:'2026-01-08T10:00:00'},
+      {date:'2026-02-10',writer:'박지영',category:'오일 및 액체류 교체',km:32370,cost:95000,description:'엔진오일 교체 (합성유 5W-30). 오토큐 관악점에서 교체.',status:'완료',memo:'다음 교체 40,370km',createdAt:'2026-02-10T09:00:00'},
+      {date:'2026-02-14',writer:'박지영',category:'구리스 및 윤활제',km:32400,cost:15000,description:'도어힌지 및 트렁크 힌지 윤활제 도포.',status:'완료',memo:'',createdAt:'2026-02-14T14:30:00'},
+      {date:'2026-02-19',writer:'박지영',category:'오일 및 액체류 교체',km:32455,cost:35000,description:'냉각수 보충 및 부동액 농도 체크',status:'완료',memo:'',createdAt:'2026-02-19T11:00:00'}
+    ],
+    'V003': [
+      {date:'2025-04-20',writer:'이철호',category:'오일 및 액체류 교체',km:44800,cost:180000,description:'엔진오일 + 미션오일 동시 교체. 상용차 전용 오일 사용.',status:'완료',memo:'',createdAt:'2025-04-20T09:00:00'},
+      {date:'2025-08-15',writer:'이철호',category:'수리',km:46500,cost:450000,description:'클러치판 교체. 반클러치 슬립 현상으로 교체.',status:'완료',memo:'',createdAt:'2025-08-15T10:00:00'},
+      {date:'2025-12-10',writer:'이철호',category:'오일 및 액체류 교체',km:48200,cost:95000,description:'엔진오일 교체. 다음 교체 56,200km.',status:'완료',memo:'',createdAt:'2025-12-10T09:00:00'},
+      {date:'2026-01-10',writer:'이철호',category:'일상점검',km:48650,cost:0,description:'적재함 점검, 타이어 공기압 체크, 램프류 확인.',status:'완료',memo:'좌측 후미등 깜빡임 - 추후 교체',createdAt:'2026-01-10T08:00:00'},
+      {date:'2026-01-20',writer:'이철호',category:'일상점검',km:48800,cost:0,description:'정기점검 완료. 타이어 마모 주의 판정.',status:'완료',memo:'2만km 내 타이어 교체 필요',createdAt:'2026-01-20T10:30:00'},
+      {date:'2026-02-05',writer:'이철호',category:'첨가제 및 보호제',km:49070,cost:35000,description:'DPF 클리너 주입. 매연 경고등 예방 조치.',status:'완료',memo:'',createdAt:'2026-02-05T08:30:00'},
+      {date:'2026-02-15',writer:'이철호',category:'수리',km:49250,cost:350000,description:'후방 범퍼 교체 (후진시 접촉사고). 판금도색 포함.',status:'완료',memo:'보험 미처리 - 자비 수리',createdAt:'2026-02-15T14:00:00'},
+      {date:'2026-02-20',writer:'이철호',category:'세차',km:49395,cost:20000,description:'외부 세차 + 적재함 청소',status:'완료',memo:'',createdAt:'2026-02-20T16:00:00'}
+    ]
+  };
+
+  // Firebase + localStorage 저장
+  await saveAllData();
+
+  // 화면 갱신
+  refreshCurrentTab();
+  checkOilAlerts();
+
+  showToast('✅ 샘플 데이터가 성공적으로 입력되었습니다! (차량 3대, 운행기록 31건, 정비일지 21건, 비용 26건)', 'success');
 }
 
 // ========================================
