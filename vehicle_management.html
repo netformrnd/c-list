@@ -762,6 +762,7 @@ tr:hover { background: var(--gray-50); }
     <button class="btn btn-header" onclick="exportReport()">📋 월간보고서</button>
     <button class="btn btn-header" onclick="openPasswordSetting()">🔒 직원비밀번호</button>
     <button class="btn btn-header" onclick="loadSampleData()" style="background:#ff6b35;color:#fff;">🧪 샘플데이터</button>
+    <button class="btn btn-header" onclick="clearSampleData()" style="background:#dc3545;color:#fff;">🗑 샘플삭제</button>
     <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
   </div>
 </div>
@@ -3979,6 +3980,35 @@ async function loadSampleData() {
   checkOilAlerts();
 
   showToast('✅ 샘플 데이터 추가 완료! (차량 3대, 운행 31건, 일지 21건, 비용 26건) — 기존 데이터는 유지됩니다.', 'success');
+}
+
+// 🗑 샘플 데이터 삭제 (V001~V003만 삭제, 나머지 유지)
+async function clearSampleData() {
+  const sampleIds = ['V001','V002','V003'];
+  const existingOther = Object.keys(vehicleData).filter(id => !sampleIds.includes(id));
+
+  let msg = '샘플 차량 3대(V001, V002, V003)를 삭제합니다.\n';
+  if (existingOther.length > 0) {
+    msg += '다른 차량 ' + existingOther.length + '대는 유지됩니다.\n';
+  }
+  msg += '\n정말 삭제하시겠습니까?';
+
+  if (!confirm(msg)) return;
+
+  sampleIds.forEach(vid => {
+    delete vehicleData[vid];
+    delete vehicleDrivingLog[vid];
+    delete vehicleMaintenance[vid];
+    delete vehicleCost[vid];
+    delete vehicleInsurance[vid];
+    delete vehicleDiary[vid];
+  });
+
+  await saveAllData();
+  refreshCurrentTab();
+  checkOilAlerts();
+
+  showToast('🗑 샘플 데이터(V001~V003) 삭제 완료!', 'success');
 }
 
 // ========================================
