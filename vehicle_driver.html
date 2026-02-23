@@ -561,67 +561,298 @@ body {
     <!-- TAB 1: 소모품 학습 -->
     <!-- ================================================================ -->
     <div class="tab-panel" id="tab-learn">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🧴 차량 주요 케미컬류 분류</div>
-        </div>
-        <div class="card-body">
-          <p style="font-size:0.8rem;color:var(--gray-500);margin-bottom:0.85rem;">
-            정비일지 작성 전, 차량 소모품에 대해 먼저 학습해주세요.<br>
-            각 항목의 역할을 이해하면 정비 기록을 더 정확하게 작성할 수 있습니다.
-          </p>
 
-          <div class="chemical-section" style="border-left-color:#4a6fa5;">
-            <div class="chemical-title" style="color:#4a6fa5;">🛢 1. 주요 오일 및 액체류 (필수 소모품)</div>
-            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e3ecf7;color:#4a6fa5;">📝 정비구분: 오일 및 액체류 교체</span></div>
-            <div class="chemical-item"><span class="chemical-name">엔진오일</span><span class="chemical-desc">엔진 내부 윤활 및 마찰 방지</span></div>
-            <div class="chemical-item"><span class="chemical-name">브레이크액</span><span class="chemical-desc">제동력 전달 유압액</span></div>
-            <div class="chemical-item"><span class="chemical-name">냉각수(부동액)</span><span class="chemical-desc">엔진 과열 및 부식 방지</span></div>
-            <div class="chemical-item"><span class="chemical-name">미션오일</span><span class="chemical-desc">변속기 기어 마찰 감소</span></div>
+      <!-- 학습 서브탭 -->
+      <div class="record-toggle" style="margin-bottom:0.6rem;">
+        <button class="record-toggle-btn active" onclick="switchLearnSub('principle')">📋 운영원칙</button>
+        <button class="record-toggle-btn" onclick="switchLearnSub('cycle')">🔄 주기별관리</button>
+        <button class="record-toggle-btn" onclick="switchLearnSub('chemical')">🧴 소모품분류</button>
+      </div>
+
+      <!-- ===== 서브1: 운영원칙 ===== -->
+      <div class="learn-sub" id="learn-principle">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 법인차량 관리 원칙</div>
           </div>
+          <div class="card-body">
+            <div style="background:var(--warning-light);padding:0.65rem 0.85rem;border-radius:10px;margin-bottom:0.75rem;font-size:0.78rem;color:#92700c;line-height:1.5;">
+              <b>핵심:</b> 고장 나서 수리하는 게 아니라, <b>미리 점검·교체</b>하여 고장을 예방하는 것이 목표입니다.
+            </div>
 
-          <div class="chemical-section" style="border-left-color:#5ba55b;">
-            <div class="chemical-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
-            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e8f5e8;color:#5ba55b;">📝 정비구분: 세정 및 플러싱</span></div>
-            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#f8fdf8;border-radius:6px;">💡 정비 시 내부 오염물질을 제거하는 세정 작업에 사용하는 소모품</div>
-            <div class="chemical-item"><span class="chemical-name">엔진 플러싱액</span><span class="chemical-desc">엔진 내부 슬러지 제거</span></div>
-            <div class="chemical-item"><span class="chemical-name">스로틀 바디 클리너</span><span class="chemical-desc">흡기 계통 카본 제거</span></div>
-            <div class="chemical-item"><span class="chemical-name">브레이크 클리너</span><span class="chemical-desc">분진 및 기름기 제거</span></div>
-          </div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+              <div style="background:var(--gray-50);padding:0.7rem;border-radius:10px;border-left:4px solid var(--primary);">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--gray-800);margin-bottom:0.2rem;">1. 예방정비가 목표</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">주기에 맞춰 미리 교체하면 큰 고장을 막을 수 있습니다.<br>고장 후 수리비 > 예방 교체비</div>
+              </div>
+              <div style="background:var(--gray-50);padding:0.7rem;border-radius:10px;border-left:4px solid var(--success);">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--gray-800);margin-bottom:0.2rem;">2. 증빙 남기기</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">교체/점검 시 <b>계기판 km 사진 + 영수증</b>을 꼭 남겨주세요.<br>정비일지에 기록하면 관리자가 바로 확인할 수 있습니다.</div>
+              </div>
+              <div style="background:var(--gray-50);padding:0.7rem;border-radius:10px;border-left:4px solid var(--purple);">
+                <div style="font-size:0.82rem;font-weight:700;color:var(--gray-800);margin-bottom:0.2rem;">3. km 기반 관리</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">주행거리(km)를 꼭 기록해주세요.<br>다음 교체 시기를 자동으로 알 수 있습니다.</div>
+              </div>
+            </div>
 
-          <div class="chemical-section" style="border-left-color:#d4a029;">
-            <div class="chemical-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
-            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#fef7e0;color:#d4a029;">📝 정비구분: 첨가제 및 보호제</span></div>
-            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#fffdf5;border-radius:6px;">💡 연료·오일에 추가 투입하여 성능을 보호·개선하는 소모품</div>
-            <div class="chemical-item"><span class="chemical-name">연료 첨가제</span><span class="chemical-desc">엔진 세정 및 연비 개선</span></div>
-            <div class="chemical-item"><span class="chemical-name">누유 방지제</span><span class="chemical-desc">고무 씰 복원을 통한 오일 누유 방지</span></div>
-            <div class="chemical-item"><span class="chemical-name">부스터</span><span class="chemical-desc">출력 및 연소 효율 향상</span></div>
-          </div>
-
-          <div class="chemical-section" style="border-left-color:#8b6baf;">
-            <div class="chemical-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
-            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#f0eaf7;color:#8b6baf;">📝 정비구분: 구리스 및 윤활제</span></div>
-            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#faf8fd;border-radius:6px;">💡 회전·마찰 부위에 도포하여 마모를 방지하는 소모품</div>
-            <div class="chemical-item"><span class="chemical-name">구리스(Grease)</span><span class="chemical-desc">회전축/관절 부위 고점도 윤활</span></div>
-            <div class="chemical-item"><span class="chemical-name">침투성 윤활제</span><span class="chemical-desc">녹 제거 및 잡소리 방지 (WD-40 등)</span></div>
-          </div>
-
-          <!-- 정비구분 안내 -->
-          <div style="margin-top:0.75rem;padding:0.75rem;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);">
-            <div style="font-size:0.78rem;font-weight:700;color:var(--gray-700);margin-bottom:0.4rem;">📌 정비일지 작성 시 정비구분 안내</div>
-            <div style="font-size:0.72rem;color:var(--gray-500);line-height:1.6;">
-              위 케미컬류 항목은 정비일지에서 <b>해당 정비구분</b>을 선택하세요.<br>
-              그 외: <b>일상점검</b>(타이어, 등화, 외관 등) | <b>수리</b>(고장수리) | <b>세차</b> | <b>기타</b>
+            <div style="margin-top:0.75rem;background:#f0f7ff;padding:0.65rem 0.85rem;border-radius:10px;border:1px solid #d0e3f7;">
+              <div style="font-size:0.78rem;font-weight:700;color:var(--primary);margin-bottom:0.25rem;">💼 차량 구분별 책임</div>
+              <div style="font-size:0.75rem;color:var(--gray-600);line-height:1.6;">
+                <b>개인전용 차량:</b> 운행자가 1차 관리 책임 (직접 점검·기록)<br>
+                <b>공용 차량:</b> 월 1회 관리자 점검 + 운행자 이상 발견 시 즉시 보고
+              </div>
             </div>
           </div>
+        </div>
 
-          <div style="margin-top:0.5rem;padding:0.65rem;background:var(--primary-light);border-radius:10px;text-align:center;">
-            <span style="font-size:0.8rem;color:var(--primary);font-weight:600;">
-              ✅ 학습을 마치셨다면 "운행기록" 또는 "정비일지" 탭으로 이동하세요!
-            </span>
+        <!-- 이상 발견 시 행동요령 -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🚨 이런 상황이면 즉시 보고하세요!</div>
+          </div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="display:flex;flex-direction:column;gap:0.4rem;">
+              <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem;background:var(--danger-light);border-radius:8px;">
+                <span style="font-size:1.2rem;">🔴</span>
+                <div><div style="font-size:0.78rem;font-weight:700;color:var(--danger);">경고등 점등</div><div style="font-size:0.7rem;color:var(--gray-500);">엔진, 오일, 배터리, 브레이크 등</div></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem;background:var(--warning-light);border-radius:8px;">
+                <span style="font-size:1.2rem;">💧</span>
+                <div><div style="font-size:0.78rem;font-weight:700;color:#92700c;">바닥에 액체가 고임</div><div style="font-size:0.7rem;color:var(--gray-500);">오일 누유, 냉각수 누수 의심</div></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem;background:var(--purple-light);border-radius:8px;">
+                <span style="font-size:1.2rem;">🔊</span>
+                <div><div style="font-size:0.78rem;font-weight:700;color:var(--purple);">이상한 소리·진동</div><div style="font-size:0.7rem;color:var(--gray-500);">쇠 긁는 소리, 심한 진동, 이상 냄새</div></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center;padding:0.5rem;background:var(--mint-light);border-radius:8px;">
+                <span style="font-size:1.2rem;">🛞</span>
+                <div><div style="font-size:0.78rem;font-weight:700;color:var(--mint);">타이어 이상</div><div style="font-size:0.7rem;color:var(--gray-500);">공기압 부족 느낌, 한쪽 쏠림, 펑크</div></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <!-- ===== 서브2: 주기별 관리 ===== -->
+      <div class="learn-sub" id="learn-cycle" style="display:none;">
+
+        <!-- 매월 점검 -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🟢 매월 점검 (또는 1,000km마다)</div>
+            <span style="font-size:0.68rem;padding:0.15rem 0.45rem;border-radius:6px;background:var(--success-light);color:var(--success);font-weight:600;">누구나 가능</span>
+          </div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="font-size:0.75rem;color:var(--gray-500);margin-bottom:0.5rem;">운행자가 직접 눈으로 확인할 수 있는 항목입니다.</div>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;">
+              <div class="chemical-section" style="border-left-color:var(--success);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">🛞 타이어 공기압</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">운전석 문 안쪽 표기값 확인</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">부족하면 → 연비저하, 편마모 | 과다하면 → 승차감 나빠짐</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--success);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">🛞 타이어 마모</b></div>
+                  <span style="font-size:0.68rem;color:var(--danger);font-weight:600;">1.6mm 이하 = 교체</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">타이어 홈에 동전(100원) 넣어 확인. 마모선 보이면 교체 시기</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--success);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">💦 워셔액</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">부족 시 보충</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">보닛 열어서 파란 뚜껑 → 워셔액 보충 (직접 가능)</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--success);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">👀 외관 및 누유 확인</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">이상 시 보고</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">주차 후 바닥에 기름 자국 있는지 확인, 경고등 확인</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5,000~10,000km -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🟡 5,000~10,000km마다</div>
+            <span style="font-size:0.68rem;padding:0.15rem 0.45rem;border-radius:6px;background:var(--warning-light);color:var(--warning);font-weight:600;">가장 중요</span>
+          </div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="font-size:0.75rem;color:var(--gray-500);margin-bottom:0.5rem;">가장 자주 하는 교체 항목. <b>이것만 잘 해도 고장이 절반으로 줄어듭니다.</b></div>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;">
+              <div class="chemical-section" style="border-left-color:var(--warning);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">🛢 엔진오일 + 오일필터</b></div>
+                  <span style="font-size:0.68rem;padding:0.1rem 0.35rem;border-radius:4px;background:var(--danger-light);color:var(--danger);font-weight:600;">7,000~8,000km 권장</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">
+                  <b>왜?</b> 엔진의 혈액 같은 역할. 안 갈면 엔진 마모 → 큰 수리비<br>
+                  <b>팁:</b> 오일 교체 시 필터도 반드시 같이 교체!
+                </div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--warning);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">🌬 에어필터</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">약 10,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">엔진에 깨끗한 공기를 공급하는 필터. 막히면 연비가 떨어짐</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--warning);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div><b style="font-size:0.82rem;">❄️ 에어컨 필터</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">약 10,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">실내 공기를 걸러주는 필터. 악취·바람 약해지면 교체 시기<br><b>팁:</b> 에어컨 냄새나면 이걸 먼저 확인!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 20,000~30,000km -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🟠 20,000~30,000km마다</div>
+            <span style="font-size:0.68rem;padding:0.15rem 0.45rem;border-radius:6px;background:#fff3e0;color:#e65100;font-weight:600;">중요 점검</span>
+          </div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="display:flex;flex-direction:column;gap:0.35rem;">
+              <div class="chemical-section" style="border-left-color:#e65100;padding:0.6rem;margin-bottom:0;">
+                <div><b style="font-size:0.82rem;">🛞 타이어 위치교환</b> <span style="font-size:0.7rem;color:var(--gray-400);">| 10,000~15,000km마다</span></div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">앞뒤 타이어를 바꿔주면 고르게 닳아서 수명이 늘어남</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:#e65100;padding:0.6rem;margin-bottom:0;">
+                <div><b style="font-size:0.82rem;">🔴 브레이크 패드</b> <span style="font-size:0.7rem;color:var(--gray-400);">| 20,000~30,000km</span></div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">브레이크 밟을 때 "끼익" 소리 → 패드 마모 신호!<br><b>방치하면:</b> 제동 불량, 디스크까지 손상 → 수리비 급증</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:#e65100;padding:0.6rem;margin-bottom:0;">
+                <div><b style="font-size:0.82rem;">🔋 배터리 점검</b> <span style="font-size:0.7rem;color:var(--gray-400);">| 2년 주기</span></div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">시동 걸 때 느리게 돌아가면 교체 신호. 겨울철 특히 주의!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 40,000km 이상 -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔴 40,000km 이상</div>
+            <span style="font-size:0.68rem;padding:0.15rem 0.45rem;border-radius:6px;background:var(--danger-light);color:var(--danger);font-weight:600;">주요 교체</span>
+          </div>
+          <div class="card-body" style="padding:0.75rem;">
+            <div style="font-size:0.75rem;color:var(--gray-500);margin-bottom:0.5rem;">비용이 크지만 안 하면 더 큰 고장으로 이어지는 항목들</div>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;">
+              <div class="chemical-section" style="border-left-color:var(--danger);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div><b style="font-size:0.82rem;">🛢 브레이크 오일</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">40,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">브레이크 밟는 힘을 전달하는 액체. 수분이 차면 제동력 저하</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--danger);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div><b style="font-size:0.82rem;">⚙️ 미션오일</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">40,000~60,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">기어 변속을 부드럽게 해주는 오일. 안 갈면 변속 충격 발생</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--danger);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div><b style="font-size:0.82rem;">❄️ 냉각수(부동액)</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">40,000~50,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">엔진 과열 방지의 핵심. 오래되면 녹이 생겨 라디에이터 막힘</div>
+              </div>
+              <div class="chemical-section" style="border-left-color:var(--danger);padding:0.6rem;margin-bottom:0;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                  <div><b style="font-size:0.82rem;">⚡ 점화플러그</b></div>
+                  <span style="font-size:0.68rem;color:var(--gray-400);">40,000~60,000km</span>
+                </div>
+                <div style="font-size:0.72rem;color:var(--gray-500);margin-top:0.2rem;">연료에 불꽃을 튀기는 부품. 마모되면 시동 불량·연비 저하</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 주기 요약 -->
+        <div style="background:var(--primary-light);padding:0.65rem;border-radius:10px;text-align:center;font-size:0.78rem;color:var(--primary);font-weight:600;">
+          💡 기억하세요: "월 1회 눈으로 점검" + "km 도달 시 교체" → 고장 예방의 핵심!
+        </div>
+      </div>
+
+      <!-- ===== 서브3: 소모품 분류 (케미컬류) ===== -->
+      <div class="learn-sub" id="learn-chemical" style="display:none;">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🧴 차량 소모품 종류 알아보기</div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:0.78rem;color:var(--gray-500);margin-bottom:0.75rem;">
+              정비일지 작성 시 "정비구분"에 해당 분류를 선택하세요.<br>
+              차량에 들어가는 소모품이 어떤 역할을 하는지 알면 관리가 쉬워집니다!
+            </p>
+
+            <div class="chemical-section" style="border-left-color:#4a6fa5;">
+              <div class="chemical-title" style="color:#4a6fa5;">🛢 1. 오일 및 액체류 (필수 소모품)</div>
+              <div style="margin-bottom:0.4rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e3ecf7;color:#4a6fa5;">정비구분: 오일 및 액체류 교체</span></div>
+              <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.35rem;padding:0.25rem 0.5rem;background:#f0f4fa;border-radius:6px;">💡 차량의 혈액 같은 존재! 주기적으로 교체하지 않으면 엔진이 망가집니다.</div>
+              <div class="chemical-item"><span class="chemical-name">엔진오일</span><span class="chemical-desc">엔진 윤활 (7,000~8,000km 교체)</span></div>
+              <div class="chemical-item"><span class="chemical-name">브레이크액</span><span class="chemical-desc">제동력 전달 (40,000km 교체)</span></div>
+              <div class="chemical-item"><span class="chemical-name">냉각수(부동액)</span><span class="chemical-desc">과열 방지 (40,000~50,000km 교체)</span></div>
+              <div class="chemical-item"><span class="chemical-name">미션오일</span><span class="chemical-desc">변속 부드럽게 (40,000~60,000km 교체)</span></div>
+              <div class="chemical-item"><span class="chemical-name">워셔액</span><span class="chemical-desc">앞유리 세척 (부족 시 수시 보충)</span></div>
+            </div>
+
+            <div class="chemical-section" style="border-left-color:#5ba55b;">
+              <div class="chemical-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
+              <div style="margin-bottom:0.4rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e8f5e8;color:#5ba55b;">정비구분: 세정 및 플러싱</span></div>
+              <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.35rem;padding:0.25rem 0.5rem;background:#f3faf3;border-radius:6px;">💡 엔진·부품 내부에 쌓인 때를 제거하는 청소용 소모품 (정비소에서 진행)</div>
+              <div class="chemical-item"><span class="chemical-name">엔진 플러싱액</span><span class="chemical-desc">오일 교체 전 엔진 내부 세정</span></div>
+              <div class="chemical-item"><span class="chemical-name">스로틀 바디 클리너</span><span class="chemical-desc">공기 통로의 카본 제거</span></div>
+              <div class="chemical-item"><span class="chemical-name">브레이크 클리너</span><span class="chemical-desc">브레이크 부품 기름기 제거</span></div>
+            </div>
+
+            <div class="chemical-section" style="border-left-color:#d4a029;">
+              <div class="chemical-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
+              <div style="margin-bottom:0.4rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#fef7e0;color:#d4a029;">정비구분: 첨가제 및 보호제</span></div>
+              <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.35rem;padding:0.25rem 0.5rem;background:#fffcf0;border-radius:6px;">💡 연료·오일에 넣어서 성능을 개선하는 보조제 (비타민 같은 역할)</div>
+              <div class="chemical-item"><span class="chemical-name">연료 첨가제</span><span class="chemical-desc">주유 시 넣으면 엔진 세정·연비 개선</span></div>
+              <div class="chemical-item"><span class="chemical-name">누유 방지제</span><span class="chemical-desc">오일 약간 새는 것 방지</span></div>
+              <div class="chemical-item"><span class="chemical-name">부스터</span><span class="chemical-desc">엔진 출력 향상 보조</span></div>
+            </div>
+
+            <div class="chemical-section" style="border-left-color:#8b6baf;">
+              <div class="chemical-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
+              <div style="margin-bottom:0.4rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#f0eaf7;color:#8b6baf;">정비구분: 구리스 및 윤활제</span></div>
+              <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.35rem;padding:0.25rem 0.5rem;background:#f8f5fc;border-radius:6px;">💡 움직이는 부분에 바르는 기름. 삐걱거림·녹 방지용</div>
+              <div class="chemical-item"><span class="chemical-name">구리스(Grease)</span><span class="chemical-desc">관절·회전부위 윤활 (끈적한 기름)</span></div>
+              <div class="chemical-item"><span class="chemical-name">침투성 윤활제</span><span class="chemical-desc">녹 제거·잡소리 방지 (WD-40 등)</span></div>
+            </div>
+
+            <div class="chemical-section" style="border-left-color:var(--mint);">
+              <div class="chemical-title" style="color:var(--mint);">🔧 5. 필터류 및 기타 부품</div>
+              <div style="margin-bottom:0.4rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:var(--mint-light);color:var(--mint);">정비구분: 일상점검 또는 기타</span></div>
+              <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.35rem;padding:0.25rem 0.5rem;background:#f0faf8;border-radius:6px;">💡 오염물질을 걸러주는 필터와 소모성 부품들</div>
+              <div class="chemical-item"><span class="chemical-name">오일필터</span><span class="chemical-desc">엔진오일과 같이 교체 (세트)</span></div>
+              <div class="chemical-item"><span class="chemical-name">에어필터</span><span class="chemical-desc">엔진 흡기 공기 정화 (10,000km)</span></div>
+              <div class="chemical-item"><span class="chemical-name">에어컨필터</span><span class="chemical-desc">실내 공기 정화 (10,000km)</span></div>
+              <div class="chemical-item"><span class="chemical-name">와이퍼 블레이드</span><span class="chemical-desc">줄 생기면 교체 (6개월~1년)</span></div>
+              <div class="chemical-item"><span class="chemical-name">브레이크 패드</span><span class="chemical-desc">마모 시 교체 (20,000~30,000km)</span></div>
+              <div class="chemical-item"><span class="chemical-name">점화플러그</span><span class="chemical-desc">시동 점화용 (40,000~60,000km)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);padding:0.65rem;border-radius:10px;text-align:center;font-size:0.78rem;color:var(--primary);font-weight:600;">
+          ✅ 학습을 마치셨다면 "운행기록" 또는 "정비일지" 탭으로 이동하세요!
+        </div>
+      </div>
+
     </div>
 
     <!-- ================================================================ -->
@@ -925,6 +1156,7 @@ let selectedVehicleId = null;
 let userName = '';
 let currentTab = 'learn';
 let currentRecordView = 'driving';
+let currentLearnSub = 'principle';
 let recentPlaces = JSON.parse(localStorage.getItem('recentPlaces') || '[]');
 let recentPurposes = JSON.parse(localStorage.getItem('recentPurposes') || '[]');
 
@@ -1002,6 +1234,19 @@ function switchTab(tab) {
     renderMyRecords();
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 소모품 학습 서브탭 전환
+function switchLearnSub(sub) {
+  currentLearnSub = sub;
+  const subs = ['principle', 'cycle', 'chemical'];
+  // 서브탭 내 record-toggle-btn 업데이트
+  const learnPanel = document.getElementById('tab-learn');
+  learnPanel.querySelectorAll('.record-toggle-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', subs[i] === sub);
+  });
+  document.querySelectorAll('.learn-sub').forEach(p => p.style.display = 'none');
+  document.getElementById('learn-' + sub).style.display = 'block';
 }
 
 // ========================================
