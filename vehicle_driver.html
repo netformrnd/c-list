@@ -513,6 +513,77 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+/* ===== OIL ALERT BANNER ===== */
+.oil-alert-banner {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 2px solid #ff9800;
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.75rem;
+  animation: alertPulse 2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+.oil-alert-banner::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff9800, #f44336);
+}
+.oil-alert-banner.critical {
+  background: linear-gradient(135deg, #fdeaea 0%, #ffcdd2 100%);
+  border-color: #f44336;
+}
+.oil-alert-banner.critical::before {
+  background: linear-gradient(90deg, #f44336, #d32f2f);
+}
+.oil-alert-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e65100;
+  margin-bottom: 0.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.oil-alert-banner.critical .oil-alert-title { color: #c62828; }
+.oil-alert-body {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+.oil-alert-km {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255,255,255,0.7);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+}
+.oil-alert-progress {
+  height: 6px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 3px;
+  margin-top: 0.45rem;
+  overflow: hidden;
+}
+.oil-alert-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: #ff9800;
+  transition: width 0.5s ease;
+}
+.oil-alert-banner.critical .oil-alert-progress-bar { background: #f44336; }
+@keyframes alertPulse {
+  0% { transform: scale(0.98); opacity: 0; }
+  50% { transform: scale(1.01); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 400px) {
   .form-row { grid-template-columns: 1fr; }
@@ -871,6 +942,10 @@ body {
 
       <!-- STEP 1: 차량 선택 -->
       <div class="drive-panel active" id="drivePanel1">
+
+        <!-- 🛢 엔진오일 교체 알림 배너 -->
+        <div id="oilAlertArea"></div>
+
         <div class="card">
           <div class="card-header">
             <div class="card-title">🚗 차량을 선택하세요</div>
@@ -1467,6 +1542,7 @@ async function saveDriveLog() {
 
   goDriveStep(3);
   showToast('운행기록 저장 완료!');
+  checkOilAlerts(); // 새 km 입력 시 알림 재체크
 }
 
 function clearDriveForm() {
@@ -1639,6 +1715,7 @@ async function saveDiary() {
 
   await saveDiaryData();
   resetDiaryForm();
+  checkOilAlerts(); // 정비일지 저장 후 알림 재체크 (교체 기록이면 알림 해제)
 }
 
 function editDiary(vid, idx) {
@@ -1817,6 +1894,112 @@ function renderMyDiaryRecords(area) {
 }
 
 // ========================================
+// 🛢 엔진오일 교체 알림 (8,000km 기준)
+// ========================================
+const OIL_CHANGE_INTERVAL = 8000; // 교체 주기 km
+
+function checkOilAlerts() {
+  const alertArea = document.getElementById('oilAlertArea');
+  if (!alertArea) return;
+
+  const alerts = [];
+
+  Object.entries(vehicleData).forEach(([vid, v]) => {
+    if (v.status === '폐차') return;
+
+    // 1. 해당 차량의 정비일지에서 마지막 엔진오일 교체 기록 찾기
+    const diaries = vehicleDiary[vid] || [];
+    const oilChanges = diaries
+      .map((d, idx) => ({ ...d, _idx: idx }))
+      .filter(d => {
+        // 카테고리가 "오일 및 액체류 교체"이고, 내용에 엔진오일 관련 키워드가 있는 경우
+        const isOilCategory = (d.category || '').includes('오일') && (d.category || '').includes('액체류');
+        const descLower = (d.description || '').toLowerCase();
+        const hasEngineOilKeyword = descLower.includes('엔진오일') || descLower.includes('엔진 오일') || descLower.includes('engine oil');
+        return isOilCategory && hasEngineOilKeyword && d.km > 0;
+      })
+      .sort((a, b) => (b.km || 0) - (a.km || 0)); // km 큰 순 (최근 교체)
+
+    if (oilChanges.length === 0) return; // 교체 기록 없으면 스킵
+
+    const lastOilChange = oilChanges[0];
+    const lastChangeKm = lastOilChange.km;
+
+    // 2. 해당 차량의 최신 주행거리 구하기 (운행기록 도착km 중 가장 큰 값)
+    const driveLogs = vehicleDrivingLog[vid] || [];
+    let currentKm = 0;
+
+    // 운행기록에서 최대 km
+    driveLogs.forEach(log => {
+      if (log.endKm && log.endKm > currentKm) currentKm = log.endKm;
+    });
+
+    // 정비일지에서 더 큰 km가 있으면 사용
+    diaries.forEach(d => {
+      if (d.km && d.km > currentKm) currentKm = d.km;
+    });
+
+    if (currentKm <= 0) return; // 현재 km 모르면 스킵
+
+    // 3. 교체 후 주행거리 계산
+    const kmSinceChange = currentKm - lastChangeKm;
+    if (kmSinceChange < 0) return; // 데이터 오류 방지
+
+    const remaining = OIL_CHANGE_INTERVAL - kmSinceChange;
+    const percent = Math.min(100, Math.round((kmSinceChange / OIL_CHANGE_INTERVAL) * 100));
+
+    // 4. 알림 기준: 6,000km 이상 주행 시 주의, 8,000km 이상 시 긴급
+    if (kmSinceChange >= 6000) {
+      alerts.push({
+        vid,
+        vehicleNo: v.vehicleNo || '-',
+        vehicleName: v.vehicleName || '',
+        lastChangeKm,
+        lastChangeDate: lastOilChange.date || '-',
+        currentKm,
+        kmSinceChange,
+        remaining,
+        percent,
+        critical: kmSinceChange >= OIL_CHANGE_INTERVAL
+      });
+    }
+  });
+
+  // 긴급(초과) → 주의 순으로 정렬
+  alerts.sort((a, b) => b.kmSinceChange - a.kmSinceChange);
+
+  if (alerts.length === 0) {
+    alertArea.innerHTML = '';
+    return;
+  }
+
+  alertArea.innerHTML = alerts.map(a => {
+    const criticalCls = a.critical ? ' critical' : '';
+    const statusText = a.critical ? '🚨 교체 시기 초과!' : '⚠️ 교체 시기 임박';
+    const remainText = a.critical
+      ? `${fmt(Math.abs(a.remaining))}km 초과`
+      : `잔여 ${fmt(a.remaining)}km`;
+
+    return `<div class="oil-alert-banner${criticalCls}">
+      <div class="oil-alert-title">${statusText} 엔진오일 교체 알림</div>
+      <div class="oil-alert-body">
+        <b>${a.vehicleNo}</b> (${a.vehicleName})<br>
+        마지막 교체: ${a.lastChangeDate} (${fmt(a.lastChangeKm)}km) → 현재: ${fmt(a.currentKm)}km
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.3rem;">
+        <div class="oil-alert-km" style="${a.critical ? 'color:#c62828;' : 'color:#e65100;'}">
+          🛢 교체 후 ${fmt(a.kmSinceChange)}km 주행 | ${remainText}
+        </div>
+      </div>
+      <div class="oil-alert-progress">
+        <div class="oil-alert-progress-bar" style="width:${Math.min(100, a.percent)}%;"></div>
+      </div>
+      <div style="text-align:right;font-size:0.65rem;color:var(--gray-400);margin-top:0.2rem;">${a.percent}% (교체주기 ${fmt(OIL_CHANGE_INTERVAL)}km 기준)</div>
+    </div>`;
+  }).join('');
+}
+
+// ========================================
 // INIT (비밀번호 확인 후 실행)
 // ========================================
 async function initApp() {
@@ -1832,6 +2015,9 @@ async function initApp() {
   populateVehicleSelect();
   document.getElementById('dyDate').value = new Date().toISOString().split('T')[0];
   showCategoryHint();
+
+  // 🛢 엔진오일 교체 알림 체크
+  checkOilAlerts();
 }
 
 // 최초 실행: 비밀번호 확인부터 시작
