@@ -964,43 +964,62 @@ tr:hover { background: var(--gray-50); }
     <div class="card">
       <div class="card-header">
         <div class="card-title">🧴 차량 주요 케미컬류 분류</div>
+        <div style="font-size:0.75rem;color:var(--gray-400);">정비일지 작성 시 "정비구분"에 해당 분류를 선택하세요</div>
       </div>
       <div class="card-body">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;">
-          <!-- 1. 주요 오일 및 액체류 -->
+          <!-- 1. 오일 및 액체류 -->
           <div class="form-section" style="border-left-color:#4a6fa5;">
-            <div class="form-section-title" style="color:#4a6fa5;">1. 주요 오일 및 액체류 (필수 소모품)</div>
-            <table style="font-size:0.82rem;">
-              <tr><td style="padding:0.4rem;font-weight:600;">엔진오일</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 내부 윤활 및 마찰 방지</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">브레이크액</td><td style="padding:0.4rem;color:var(--gray-500);">제동력 전달 유압액</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">냉각수(부동액)</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 과열 및 부식 방지</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">미션오일</td><td style="padding:0.4rem;color:var(--gray-500);">변속기 기어 마찰 감소</td></tr>
+            <div class="form-section-title" style="color:#4a6fa5;">🛢 1. 오일 및 액체류 (필수 소모품)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e3ecf7;color:#4a6fa5;">정비구분: 오일 및 액체류 교체</span></div>
+            <table style="font-size:0.82rem;width:100%;">
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">엔진오일</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 윤활 및 마찰 방지</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">7,000~8,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">브레이크액</td><td style="padding:0.4rem;color:var(--gray-500);">제동력 전달 유압액</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">40,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">냉각수(부동액)</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 과열 및 부식 방지</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">40,000~50,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">미션오일</td><td style="padding:0.4rem;color:var(--gray-500);">변속기 기어 마찰 감소</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">40,000~60,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">워셔액</td><td style="padding:0.4rem;color:var(--gray-500);">앞유리 세척</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">수시 보충</td></tr>
             </table>
           </div>
           <!-- 2. 세정 및 플러싱류 -->
           <div class="form-section" style="border-left-color:#5ba55b;">
-            <div class="form-section-title" style="color:#5ba55b;">2. 세정 및 플러싱류 (클리너)</div>
-            <table style="font-size:0.82rem;">
-              <tr><td style="padding:0.4rem;font-weight:600;">엔진 플러싱액</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 내부 슬러지 제거</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">스로틀 바디 클리너</td><td style="padding:0.4rem;color:var(--gray-500);">흡기 계통 카본 제거</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">브레이크 클리너</td><td style="padding:0.4rem;color:var(--gray-500);">분진 및 기름기 제거</td></tr>
+            <div class="form-section-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e8f5e8;color:#5ba55b;">정비구분: 세정 및 플러싱</span></div>
+            <table style="font-size:0.82rem;width:100%;">
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">엔진 플러싱액</td><td style="padding:0.4rem;color:var(--gray-500);">오일 교체 전 엔진 내부 세정</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">스로틀 바디 클리너</td><td style="padding:0.4rem;color:var(--gray-500);">흡기 계통 카본 제거</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">브레이크 클리너</td><td style="padding:0.4rem;color:var(--gray-500);">브레이크 부품 기름기 제거</td></tr>
             </table>
           </div>
           <!-- 3. 첨가제 및 보호제 -->
           <div class="form-section" style="border-left-color:#d4a029;">
-            <div class="form-section-title" style="color:#d4a029;">3. 첨가제 및 보호제 (영양제)</div>
-            <table style="font-size:0.82rem;">
-              <tr><td style="padding:0.4rem;font-weight:600;">연료 첨가제</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 세정 및 연비 개선</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">누유 방지제</td><td style="padding:0.4rem;color:var(--gray-500);">고무 씰 복원을 통한 오일 누유 방지</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">부스터</td><td style="padding:0.4rem;color:var(--gray-500);">출력 및 연소 효율 향상</td></tr>
+            <div class="form-section-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#fef7e0;color:#d4a029;">정비구분: 첨가제 및 보호제</span></div>
+            <table style="font-size:0.82rem;width:100%;">
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">연료 첨가제</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 세정 및 연비 개선</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">누유 방지제</td><td style="padding:0.4rem;color:var(--gray-500);">고무 씰 복원을 통한 오일 누유 방지</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">부스터</td><td style="padding:0.4rem;color:var(--gray-500);">출력 및 연소 효율 향상</td></tr>
             </table>
           </div>
           <!-- 4. 구리스 및 윤활제 -->
           <div class="form-section" style="border-left-color:#8b6baf;">
-            <div class="form-section-title" style="color:#8b6baf;">4. 구리스 및 윤활제</div>
-            <table style="font-size:0.82rem;">
-              <tr><td style="padding:0.4rem;font-weight:600;">구리스(Grease)</td><td style="padding:0.4rem;color:var(--gray-500);">회전축/관절 부위 고점도 윤활</td></tr>
-              <tr><td style="padding:0.4rem;font-weight:600;">침투성 윤활제</td><td style="padding:0.4rem;color:var(--gray-500);">녹 제거 및 잡소리 방지 (WD-40 등)</td></tr>
+            <div class="form-section-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#f0eaf7;color:#8b6baf;">정비구분: 구리스 및 윤활제</span></div>
+            <table style="font-size:0.82rem;width:100%;">
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">구리스(Grease)</td><td style="padding:0.4rem;color:var(--gray-500);">회전축/관절 부위 고점도 윤활</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">침투성 윤활제</td><td style="padding:0.4rem;color:var(--gray-500);">녹 제거 및 잡소리 방지 (WD-40 등)</td></tr>
+            </table>
+          </div>
+          <!-- 5. 필터류 및 기타 부품 -->
+          <div class="form-section" style="border-left-color:#2ea8a2;">
+            <div class="form-section-title" style="color:#2ea8a2;">🔧 5. 필터류 및 기타 부품</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e0f5f3;color:#2ea8a2;">정비구분: 일상점검 또는 기타</span></div>
+            <table style="font-size:0.82rem;width:100%;">
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">오일필터</td><td style="padding:0.4rem;color:var(--gray-500);">엔진오일과 같이 교체 (세트)</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">오일교체 시</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">에어필터</td><td style="padding:0.4rem;color:var(--gray-500);">엔진 흡기 공기 정화</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">10,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">에어컨필터</td><td style="padding:0.4rem;color:var(--gray-500);">실내 공기 정화</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">10,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">와이퍼 블레이드</td><td style="padding:0.4rem;color:var(--gray-500);">줄 생기면 교체</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">6개월~1년</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">브레이크 패드</td><td style="padding:0.4rem;color:var(--gray-500);">마모 시 교체</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">20,000~30,000km</td></tr>
+              <tr><td style="padding:0.4rem;font-weight:600;white-space:nowrap;">점화플러그</td><td style="padding:0.4rem;color:var(--gray-500);">시동 점화용</td><td style="padding:0.4rem;color:var(--primary);font-size:0.75rem;white-space:nowrap;">40,000~60,000km</td></tr>
             </table>
           </div>
         </div>
