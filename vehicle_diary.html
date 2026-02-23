@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>정비일지 작성 | 차량관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --primary: #4a6fa5;
+  --primary-light: #e3ecf7;
+  --success: #5ba55b;
+  --success-light: #e8f5e8;
+  --warning: #d4a029;
+  --warning-light: #fef7e0;
+  --danger: #d05050;
+  --danger-light: #fdeaea;
+  --purple: #8b6baf;
+  --purple-light: #f0eaf7;
+  --mint: #4a9e95;
+  --mint-light: #e2f3f0;
+  --gray-50: #fafbfc;
+  --gray-100: #f4f5f7;
+  --gray-200: #e8eaed;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+  --radius: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  color: var(--gray-700);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3a5575 100%);
+  color: white;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.header-title { font-size: 1.2rem; font-weight: 700; }
+.header-sub { font-size: 0.75rem; opacity: 0.7; margin-top: 0.15rem; }
+.header-user {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+.header-user-name {
+  background: rgba(255,255,255,0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ===== CONTAINER ===== */
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* ===== TAB NAV ===== */
+.tab-nav {
+  display: flex;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.tab-nav-btn {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+.tab-nav-btn.active {
+  color: var(--primary);
+  font-weight: 700;
+  border-bottom-color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); }
+.card-body { padding: 1.25rem; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-outline { background: white; color: var(--gray-600); border: 1px solid var(--gray-300); }
+.btn-sm { padding: 0.35rem 0.7rem; font-size: 0.75rem; }
+.btn-full { width: 100%; justify-content: center; padding: 0.85rem; font-size: 0.9rem; }
+
+/* ===== FORM ===== */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 0.3rem;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--primary);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ===== CHEMICAL SECTION ===== */
+.chemical-section {
+  background: var(--gray-50);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--primary);
+}
+.chemical-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.chemical-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed var(--gray-200);
+  font-size: 0.82rem;
+}
+.chemical-item:last-child { border-bottom: none; }
+.chemical-name { font-weight: 600; color: var(--gray-800); }
+.chemical-desc { color: var(--gray-500); text-align: right; flex: 1; margin-left: 0.5rem; }
+
+/* ===== DIARY LIST ===== */
+.diary-item {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  border-left: 4px solid var(--primary);
+  transition: all 0.2s;
+}
+.diary-item:active { transform: scale(0.99); }
+.diary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.diary-date { font-size: 0.82rem; font-weight: 700; color: var(--gray-800); }
+.diary-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.diary-badge-done { background: var(--success-light); color: var(--success); }
+.diary-badge-progress { background: var(--warning-light); color: var(--warning); }
+.diary-badge-wait { background: var(--gray-100); color: var(--gray-500); }
+.diary-body { font-size: 0.82rem; color: var(--gray-600); }
+.diary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+}
+.diary-label { color: var(--gray-400); }
+.diary-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--gray-100);
+}
+
+/* ===== TOAST ===== */
+.toast-container { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); z-index: 9999; }
+.toast {
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  animation: slideDown 0.3s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+.toast-success { background: var(--success); color: white; }
+.toast-error { background: var(--danger); color: white; }
+@keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--gray-400);
+}
+.empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.empty-text { font-size: 0.85rem; }
+
+/* ===== NAME INPUT OVERLAY ===== */
+.name-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.name-box {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+.name-box-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.name-box-desc { font-size: 0.82rem; color: var(--gray-500); margin-bottom: 1.25rem; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 400px) {
+  .form-row { grid-template-columns: 1fr; }
+  .chemical-item { flex-direction: column; gap: 0.15rem; }
+  .chemical-desc { text-align: left; margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-title">📝 정비일지 작성</div>
+  <div class="header-sub">차량 소모품 학습 & 정비 기록</div>
+  <div class="header-user">
+    <span>작성자:</span>
+    <span class="header-user-name" id="currentUser" onclick="changeUser()">이름 설정</span>
+  </div>
+</div>
+
+<!-- TAB NAV -->
+<div class="container">
+  <div class="tab-nav">
+    <button class="tab-nav-btn active" onclick="switchTab('learn')">📚 소모품 학습</button>
+    <button class="tab-nav-btn" onclick="switchTab('write')">✍️ 일지 작성</button>
+    <button class="tab-nav-btn" onclick="switchTab('list')">📋 내 일지</button>
+  </div>
+
+  <!-- TAB: 소모품 학습 -->
+  <div class="tab-panel" id="tab-learn">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🧴 차량 주요 케미컬류 분류</div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:0.82rem;color:var(--gray-500);margin-bottom:1rem;">
+          정비일지 작성 전, 차량 소모품에 대해 먼저 학습해주세요.<br>
+          각 항목의 역할을 이해하면 정비 기록을 더 정확하게 작성할 수 있습니다.
+        </p>
+
+        <!-- 1. 오일 및 액체류 -->
+        <div class="chemical-section" style="border-left-color:#4a6fa5;">
+          <div class="chemical-title" style="color:#4a6fa5;">🛢 1. 주요 오일 및 액체류 (필수 소모품)</div>
+          <div class="chemical-item"><span class="chemical-name">엔진오일</span><span class="chemical-desc">엔진 내부 윤활 및 마찰 방지</span></div>
+          <div class="chemical-item"><span class="chemical-name">브레이크액</span><span class="chemical-desc">제동력 전달 유압액</span></div>
+          <div class="chemical-item"><span class="chemical-name">냉각수(부동액)</span><span class="chemical-desc">엔진 과열 및 부식 방지</span></div>
+          <div class="chemical-item"><span class="chemical-name">미션오일</span><span class="chemical-desc">변속기 기어 마찰 감소</span></div>
+        </div>
+
+        <!-- 2. 세정 및 플러싱류 -->
+        <div class="chemical-section" style="border-left-color:#5ba55b;">
+          <div class="chemical-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
+          <div class="chemical-item"><span class="chemical-name">엔진 플러싱액</span><span class="chemical-desc">엔진 내부 슬러지 제거</span></div>
+          <div class="chemical-item"><span class="chemical-name">스로틀 바디 클리너</span><span class="chemical-desc">흡기 계통 카본 제거</span></div>
+          <div class="chemical-item"><span class="chemical-name">브레이크 클리너</span><span class="chemical-desc">분진 및 기름기 제거</span></div>
+        </div>
+
+        <!-- 3. 첨가제 및 보호제 -->
+        <div class="chemical-section" style="border-left-color:#d4a029;">
+          <div class="chemical-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
+          <div class="chemical-item"><span class="chemical-name">연료 첨가제</span><span class="chemical-desc">엔진 세정 및 연비 개선</span></div>
+          <div class="chemical-item"><span class="chemical-name">누유 방지제</span><span class="chemical-desc">고무 씰 복원을 통한 오일 누유 방지</span></div>
+          <div class="chemical-item"><span class="chemical-name">부스터</span><span class="chemical-desc">출력 및 연소 효율 향상</span></div>
+        </div>
+
+        <!-- 4. 구리스 및 윤활제 -->
+        <div class="chemical-section" style="border-left-color:#8b6baf;">
+          <div class="chemical-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
+          <div class="chemical-item"><span class="chemical-name">구리스(Grease)</span><span class="chemical-desc">회전축/관절 부위 고점도 윤활</span></div>
+          <div class="chemical-item"><span class="chemical-name">침투성 윤활제</span><span class="chemical-desc">녹 제거 및 잡소리 방지 (WD-40 등)</span></div>
+        </div>
+
+        <div style="margin-top:1rem;padding:0.75rem;background:var(--primary-light);border-radius:10px;text-align:center;">
+          <span style="font-size:0.82rem;color:var(--primary);font-weight:600;">
+            ✅ 학습을 마치셨다면 "일지 작성" 탭에서 정비일지를 작성해주세요!
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: 일지 작성 -->
+  <div class="tab-panel" id="tab-write" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">✍️ 정비일지 작성</div>
+      </div>
+      <div class="card-body">
+        <input type="hidden" id="editIdx" value="-1">
+        <input type="hidden" id="editVid" value="">
+
+        <div class="form-group">
+          <label class="form-label">차량 선택 *</label>
+          <select class="form-select" id="dyVehicle">
+            <option value="">-- 차량을 선택하세요 --</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">작성일 *</label>
+            <input type="date" class="form-input" id="dyDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">정비구분</label>
+            <select class="form-select" id="dyCategory">
+              <option value="일상점검">일상점검</option>
+              <option value="소모품교체">소모품교체</option>
+              <option value="수리">수리</option>
+              <option value="세차">세차</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">주행거리 (km)</label>
+            <input type="number" class="form-input" id="dyKm" placeholder="현재 주행거리">
+          </div>
+          <div class="form-group">
+            <label class="form-label">비용 (원)</label>
+            <input type="number" class="form-input" id="dyCost" placeholder="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">정비 내용 *</label>
+          <textarea class="form-textarea" id="dyDesc" placeholder="어떤 정비/점검을 했는지 상세하게 적어주세요.&#10;예) 엔진오일 교체 (5W-30, 4L), 에어필터 교체"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">상태</label>
+            <select class="form-select" id="dyStatus">
+              <option value="완료">완료</option>
+              <option value="진행중">진행중</option>
+              <option value="대기">대기</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">비고</label>
+            <input type="text" class="form-input" id="dyMemo" placeholder="추가 메모">
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="saveDiary()" id="saveBtn">
+          📝 정비일지 저장
+        </button>
+        <button class="btn btn-outline btn-full" onclick="resetForm()" style="margin-top:0.5rem;" id="cancelBtn" style="display:none;">
+          초기화
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: 내 일지 목록 -->
+  <div class="tab-panel" id="tab-list" style="display:none;">
+    <div id="diaryListArea"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- NAME INPUT OVERLAY -->
+<div class="name-overlay" id="nameOverlay" style="display:none;">
+  <div class="name-box">
+    <div class="name-box-title">👤 이름을 입력해주세요</div>
+    <div class="name-box-desc">정비일지 작성자로 기록됩니다</div>
+    <div class="form-group" style="margin-bottom:1rem;">
+      <input type="text" class="form-input" id="nameInput" placeholder="홍길동" style="text-align:center;font-size:1rem;">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="confirmName()">확인</button>
+  </div>
+</div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// ========================================
+// FIREBASE
+// ========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain: "order-d03ce.firebaseapp.com",
+  projectId: "order-d03ce",
+  storageBucket: "order-d03ce.firebasestorage.app",
+  messagingSenderId: "930014374996",
+  appId: "1:930014374996:web:67d764f5bc946d1781d1c1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+async function fbSave(col, docId, data) {
+  try { await db.collection(col).doc(docId).set(data); } catch(e) { console.error('FB save err:', e); }
+}
+async function fbLoad(col, docId) {
+  try { const d = await db.collection(col).doc(docId).get(); return d.exists ? d.data() : null; } catch(e) { return null; }
+}
+
+// ========================================
+// DATA
+// ========================================
+let vehicleData = {};
+let vehicleDiary = {};
+let currentUser = '';
+let currentTab = 'learn';
+
+// ========================================
+// UTILS
+// ========================================
+function showToast(msg, type='success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+function fmt(n) { return n ? Number(n).toLocaleString() : '0'; }
+
+// ========================================
+// USER NAME
+// ========================================
+function initUser() {
+  const saved = localStorage.getItem('diaryUserName');
+  if (saved) {
+    currentUser = saved;
+    document.getElementById('currentUser').textContent = currentUser;
+  } else {
+    document.getElementById('nameOverlay').style.display = 'flex';
+  }
+}
+
+function confirmName() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
+  currentUser = name;
+  localStorage.setItem('diaryUserName', name);
+  document.getElementById('currentUser').textContent = name;
+  document.getElementById('nameOverlay').style.display = 'none';
+  showToast(`${name}님, 환영합니다!`);
+}
+
+function changeUser() {
+  document.getElementById('nameInput').value = currentUser;
+  document.getElementById('nameOverlay').style.display = 'flex';
+  document.getElementById('nameInput').focus();
+}
+
+// ========================================
+// TAB SWITCHING
+// ========================================
+function switchTab(tab) {
+  currentTab = tab;
+  const tabs = ['learn', 'write', 'list'];
+  document.querySelectorAll('.tab-nav-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('tab-' + tab).style.display = 'block';
+
+  if (tab === 'list') renderMyDiaryList();
+  if (tab === 'write') populateVehicles();
+}
+
+// ========================================
+// DATA LOADING
+// ========================================
+async function loadData() {
+  try {
+    // Load vehicle data
+    const fbVD = await fbLoad('vehicle-data', 'all');
+    if (fbVD && fbVD.data) vehicleData = JSON.parse(fbVD.data);
+    else {
+      const ls = localStorage.getItem('vehicleData');
+      if (ls) vehicleData = JSON.parse(ls);
+    }
+
+    // Load diary data
+    const fbDR = await fbLoad('vehicle-diary', 'all');
+    if (fbDR && fbDR.data) vehicleDiary = JSON.parse(fbDR.data);
+    else {
+      const ls = localStorage.getItem('vehicleDiary');
+      if (ls) vehicleDiary = JSON.parse(ls);
+    }
+  } catch(e) {
+    console.error('Load error:', e);
+    const ls1 = localStorage.getItem('vehicleData'); if(ls1) vehicleData = JSON.parse(ls1);
+    const ls2 = localStorage.getItem('vehicleDiary'); if(ls2) vehicleDiary = JSON.parse(ls2);
+  }
+  populateVehicles();
+}
+
+async function saveData() {
+  try { localStorage.setItem('vehicleDiary', JSON.stringify(vehicleDiary)); } catch(e) {}
+  await fbSave('vehicle-diary', 'all', { data: JSON.stringify(vehicleDiary) });
+}
+
+function populateVehicles() {
+  const sel = document.getElementById('dyVehicle');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">-- 차량을 선택하세요 --</option>';
+  Object.entries(vehicleData)
+    .sort((a,b) => (a[1].vehicleNo||'').localeCompare(b[1].vehicleNo||''))
+    .forEach(([id, v]) => {
+      sel.innerHTML += `<option value="${id}">[${v.company||'-'}] ${v.vehicleNo} (${v.vehicleName})</option>`;
+    });
+  if (val) sel.value = val;
+}
+
+function getVehicleLabel(vid) {
+  const v = vehicleData[vid];
+  return v ? `[${v.company||'-'}] ${v.vehicleNo} (${v.vehicleName})` : vid;
+}
+
+// ========================================
+// DIARY FORM
+// ========================================
+function resetForm() {
+  document.getElementById('editIdx').value = '-1';
+  document.getElementById('editVid').value = '';
+  document.getElementById('dyVehicle').value = '';
+  document.getElementById('dyDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('dyCategory').value = '일상점검';
+  document.getElementById('dyKm').value = '';
+  document.getElementById('dyCost').value = '';
+  document.getElementById('dyDesc').value = '';
+  document.getElementById('dyStatus').value = '완료';
+  document.getElementById('dyMemo').value = '';
+  document.getElementById('saveBtn').textContent = '📝 정비일지 저장';
+}
+
+async function saveDiary() {
+  if (!currentUser) {
+    showToast('먼저 이름을 설정해주세요.', 'error');
+    document.getElementById('nameOverlay').style.display = 'flex';
+    return;
+  }
+
+  const vid = document.getElementById('dyVehicle').value;
+  const date = document.getElementById('dyDate').value;
+  const desc = document.getElementById('dyDesc').value.trim();
+
+  if (!vid) { showToast('차량을 선택해주세요.', 'error'); return; }
+  if (!date) { showToast('작성일을 입력해주세요.', 'error'); return; }
+  if (!desc) { showToast('정비 내용을 입력해주세요.', 'error'); return; }
+
+  const diary = {
+    date,
+    writer: currentUser,
+    category: document.getElementById('dyCategory').value,
+    km: Number(document.getElementById('dyKm').value) || 0,
+    cost: Number(document.getElementById('dyCost').value) || 0,
+    description: desc,
+    status: document.getElementById('dyStatus').value,
+    memo: document.getElementById('dyMemo').value.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  if (!vehicleDiary[vid]) vehicleDiary[vid] = [];
+
+  const editIdx = Number(document.getElementById('editIdx').value);
+  const editVid = document.getElementById('editVid').value;
+
+  if (editIdx >= 0 && editVid) {
+    // 수정 모드
+    vehicleDiary[editVid][editIdx] = diary;
+    showToast('정비일지가 수정되었습니다.');
+  } else {
+    vehicleDiary[vid].push(diary);
+    showToast('정비일지가 저장되었습니다!');
+  }
+
+  await saveData();
+  resetForm();
+}
+
+function editDiary(vid, idx) {
+  const d = vehicleDiary[vid][idx];
+  if (!d) return;
+  if (d.writer !== currentUser) {
+    showToast('본인이 작성한 일지만 수정할 수 있습니다.', 'error');
+    return;
+  }
+
+  switchTab('write');
+  document.getElementById('editIdx').value = idx;
+  document.getElementById('editVid').value = vid;
+  document.getElementById('dyVehicle').value = vid;
+  document.getElementById('dyDate').value = d.date || '';
+  document.getElementById('dyCategory').value = d.category || '일상점검';
+  document.getElementById('dyKm').value = d.km || '';
+  document.getElementById('dyCost').value = d.cost || '';
+  document.getElementById('dyDesc').value = d.description || '';
+  document.getElementById('dyStatus').value = d.status || '완료';
+  document.getElementById('dyMemo').value = d.memo || '';
+  document.getElementById('saveBtn').textContent = '✏️ 수정 저장';
+}
+
+async function deleteDiary(vid, idx) {
+  const d = vehicleDiary[vid][idx];
+  if (!d) return;
+  if (d.writer !== currentUser) {
+    showToast('본인이 작성한 일지만 삭제할 수 있습니다.', 'error');
+    return;
+  }
+  if (!confirm('이 정비일지를 삭제하시겠습니까?')) return;
+
+  vehicleDiary[vid].splice(idx, 1);
+  await saveData();
+  showToast('정비일지가 삭제되었습니다.');
+  renderMyDiaryList();
+}
+
+// ========================================
+// MY DIARY LIST
+// ========================================
+function renderMyDiaryList() {
+  const area = document.getElementById('diaryListArea');
+
+  // 본인 작성 일지만 필터링
+  let myDiaries = [];
+  Object.entries(vehicleDiary).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach((d, idx) => {
+      if (d.writer === currentUser) {
+        myDiaries.push({ ...d, _vid: vid, _idx: idx });
+      }
+    });
+  });
+
+  myDiaries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  if (myDiaries.length === 0) {
+    area.innerHTML = `<div class="card"><div class="card-body">
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-text">작성한 정비일지가 없습니다.<br>"일지 작성" 탭에서 새 일지를 작성해주세요.</div>
+      </div>
+    </div></div>`;
+    return;
+  }
+
+  area.innerHTML = `<div style="font-size:0.8rem;color:var(--gray-500);margin-bottom:0.75rem;text-align:right;">
+    총 ${myDiaries.length}건
+  </div>` + myDiaries.map(d => {
+    const v = vehicleData[d._vid] || {};
+    const badgeCls = d.status === '완료' ? 'diary-badge-done' : d.status === '진행중' ? 'diary-badge-progress' : 'diary-badge-wait';
+    return `<div class="diary-item">
+      <div class="diary-header">
+        <span class="diary-date">${d.date || '-'}</span>
+        <span class="diary-badge ${badgeCls}">${d.status || '대기'}</span>
+      </div>
+      <div class="diary-body">
+        <div class="diary-row"><span class="diary-label">차량</span><span>[${v.company||'-'}] ${v.vehicleNo||'-'} (${v.vehicleName||'-'})</span></div>
+        <div class="diary-row"><span class="diary-label">구분</span><span>${d.category || '-'}</span></div>
+        <div class="diary-row"><span class="diary-label">내용</span><span>${d.description || '-'}</span></div>
+        ${d.km ? `<div class="diary-row"><span class="diary-label">주행거리</span><span>${fmt(d.km)}km</span></div>` : ''}
+        ${d.cost ? `<div class="diary-row"><span class="diary-label">비용</span><span>${fmt(d.cost)}원</span></div>` : ''}
+        ${d.memo ? `<div class="diary-row"><span class="diary-label">비고</span><span>${d.memo}</span></div>` : ''}
+      </div>
+      <div class="diary-actions">
+        <button class="btn btn-sm btn-outline" onclick="editDiary('${d._vid}',${d._idx})">수정</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDiary('${d._vid}',${d._idx})">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ========================================
+// INIT
+// ========================================
+async function init() {
+  document.getElementById('dyDate').value = new Date().toISOString().split('T')[0];
+  initUser();
+  await loadData();
+}
+
+init();
+</script>
+</body>
+</html>
