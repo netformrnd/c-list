@@ -571,8 +571,8 @@ tr:hover { background: var(--gray-50); }
       <div class="card-header">
         <div class="card-title">차량 목록</div>
         <div style="display:flex;gap:0.5rem;">
-          <button class="btn btn-sm btn-outline" onclick="toggleView('card')" id="viewCardBtn" style="font-weight:700;">카드뷰</button>
-          <button class="btn btn-sm btn-outline" onclick="toggleView('table')" id="viewTableBtn">테이블뷰</button>
+          <button class="btn btn-sm btn-outline" onclick="toggleView('card')" id="viewCardBtn">카드뷰</button>
+          <button class="btn btn-sm btn-outline" onclick="toggleView('table')" id="viewTableBtn" style="font-weight:700;">테이블뷰</button>
         </div>
       </div>
       <div class="card-body">
@@ -584,6 +584,11 @@ tr:hover { background: var(--gray-50); }
             <option value="정비중">정비중</option>
             <option value="대기">대기</option>
             <option value="폐차">폐차</option>
+          </select>
+          <select class="search-select" id="searchCompany" onchange="searchVehicles()">
+            <option value="">전체 회사</option>
+            <option value="석민이앤씨">석민이앤씨</option>
+            <option value="넷폼알앤디">넷폼알앤디</option>
           </select>
           <select class="search-select" id="searchDept" onchange="searchVehicles()">
             <option value="">전체 부서</option>
@@ -635,10 +640,17 @@ tr:hover { background: var(--gray-50); }
     <div class="card">
       <div class="card-header">
         <div class="card-title">정비/점검 내역</div>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <select class="search-select" id="maintVehicle" onchange="renderMaintenance()">
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <select class="search-select" id="maintVehicle" onchange="maintPage=1;renderMaintenance()">
             <option value="">전체 차량</option>
           </select>
+          <select class="search-select" id="maintCategory" onchange="maintPage=1;renderMaintenance()">
+            <option value="">전체 구분</option>
+            <option value="점검">점검</option>
+            <option value="정비">정비</option>
+          </select>
+          <input type="text" class="search-input" id="maintSearch" placeholder="내용, 업체 검색..." onkeyup="if(event.key==='Enter'){maintPage=1;renderMaintenance();}" style="min-width:160px;">
+          <button class="btn btn-sm btn-outline" onclick="maintSearchReset()">초기화</button>
           <button class="btn btn-sm btn-primary" onclick="openMaintenanceModal()">+ 정비 등록</button>
         </div>
       </div>
@@ -787,16 +799,19 @@ tr:hover { background: var(--gray-50); }
       </div>
       <div class="form-row">
         <div class="form-group">
+          <label class="form-label">회사명</label>
+          <select class="form-select" id="vhCompany">
+            <option value="석민이앤씨">석민이앤씨</option>
+            <option value="넷폼알앤디">넷폼알앤디</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">주운전자</label>
           <input type="text" class="form-input" id="vhDriver">
         </div>
         <div class="form-group">
           <label class="form-label">소속부서</label>
           <input type="text" class="form-input" id="vhDept" placeholder="공사1팀">
-        </div>
-        <div class="form-group">
-          <label class="form-label">용도</label>
-          <input type="text" class="form-input" id="vhPurpose" placeholder="현장운반, 영업 등">
         </div>
       </div>
       <div class="form-row">
@@ -997,7 +1012,7 @@ tr:hover { background: var(--gray-50); }
         </div>
         <div class="form-group">
           <label class="form-label">금액(원) *</label>
-          <input type="number" class="form-input" id="csAmount">
+          <input type="text" class="form-input" id="csAmount" inputmode="numeric" oninput="formatAmountInput(this)" placeholder="0">
         </div>
         <div class="form-group">
           <label class="form-label">결제수단</label>
@@ -1126,7 +1141,7 @@ let vehicleCost = {};
 let vehicleInsurance = {};
 
 let currentTab = 'list';
-let currentView = 'card';
+let currentView = 'table';
 let listPage = 1, drivingPage = 1, maintPage = 1, costPage = 1;
 const PAGE_SIZE = 15;
 
@@ -1240,6 +1255,20 @@ function showToast(msg, type='success') {
 function fmt(n) { return n ? Number(n).toLocaleString() : '0'; }
 function fmtDate(d) { return d || '-'; }
 
+function formatAmountInput(el) {
+  const pos = el.selectionStart;
+  const oldLen = el.value.length;
+  let val = el.value.replace(/[^0-9]/g, '');
+  if (val) el.value = Number(val).toLocaleString();
+  else el.value = '';
+  const newLen = el.value.length;
+  const newPos = pos + (newLen - oldLen);
+  el.setSelectionRange(newPos, newPos);
+}
+function parseAmount(str) {
+  return Number((str || '').toString().replace(/[^0-9]/g, '')) || 0;
+}
+
 function getDday(dateStr) {
   if (!dateStr) return null;
   const diff = Math.ceil((new Date(dateStr) - new Date()) / (1000*60*60*24));
@@ -1342,11 +1371,10 @@ function renderVehicleList() {
           ${statusBadge(v.status || '운행중')}
         </div>
         <div class="vc-body">
+          <div class="vc-row"><span class="vc-label">회사명</span><span>${v.company || '-'}</span></div>
           <div class="vc-row"><span class="vc-label">차종</span><span>${v.vehicleName || '-'}</span></div>
-          <div class="vc-row"><span class="vc-label">연식</span><span>${v.year || '-'}</span></div>
           <div class="vc-row"><span class="vc-label">운전자</span><span>${v.driver || '-'}</span></div>
           <div class="vc-row"><span class="vc-label">소속</span><span>${v.department || '-'}</span></div>
-          <div class="vc-row"><span class="vc-label">용도</span><span>${v.purpose || '-'}</span></div>
           ${insInfo}
         </div>
         <div class="vc-actions">
@@ -1358,17 +1386,15 @@ function renderVehicleList() {
   } else {
     area.innerHTML = `<div style="overflow-x:auto;"><table>
       <thead><tr>
-        <th>차량번호</th><th>차종</th><th>연식</th><th>소유자</th><th>운전자</th><th>소속</th><th>용도</th><th>상태</th><th>등록일</th><th>관리</th>
+        <th>차량번호</th><th>회사명</th><th>차종</th><th>소유자</th><th>운전자</th><th>소속</th><th>등록일</th><th>관리</th>
       </tr></thead>
       <tbody>${paged.map(([id, v]) => `<tr>
         <td><strong>${v.vehicleNo || '-'}</strong></td>
+        <td>${v.company || '-'}</td>
         <td>${v.vehicleName || '-'}</td>
-        <td>${v.year || '-'}</td>
         <td>${v.owner || '-'}</td>
         <td>${v.driver || '-'}</td>
         <td>${v.department || '-'}</td>
-        <td>${v.purpose || '-'}</td>
-        <td>${statusBadge(v.status || '운행중')}</td>
         <td>${fmtDate(v.registrationDate)}</td>
         <td>
           <button class="btn btn-sm btn-outline" onclick="editVehicle('${id}')">수정</button>
@@ -1397,10 +1423,12 @@ function getFilteredVehicles() {
   }
   if (status) entries = entries.filter(([id, v]) => v.status === status);
   if (dept) entries = entries.filter(([id, v]) => v.department === dept);
+  const company = document.getElementById('searchCompany').value;
+  if (company) entries = entries.filter(([id, v]) => v.company === company);
 
   const resultEl = document.getElementById('searchResult');
   const total = Object.keys(vehicleData).length;
-  if (keyword || status || dept) {
+  if (keyword || status || dept || company) {
     resultEl.innerHTML = `<strong>${entries.length}</strong>건 / 전체 ${total}건`;
   } else {
     resultEl.innerHTML = '';
@@ -1414,6 +1442,7 @@ function resetSearch() {
   document.getElementById('searchKeyword').value = '';
   document.getElementById('searchStatus').value = '';
   document.getElementById('searchDept').value = '';
+  document.getElementById('searchCompany').value = '';
   listPage = 1;
   renderVehicleList();
 }
@@ -1460,9 +1489,9 @@ function openVehicleModal(id) {
   document.getElementById('vhVin').value = v.vin || '';
   document.getElementById('vhOwner').value = v.owner || '';
   document.getElementById('vhRegDate').value = v.registrationDate || '';
+  document.getElementById('vhCompany').value = v.company || '석민이앤씨';
   document.getElementById('vhDriver').value = v.driver || '';
   document.getElementById('vhDept').value = v.department || '';
-  document.getElementById('vhPurpose').value = v.purpose || '';
   document.getElementById('vhStatus').value = v.status || '운행중';
   document.getElementById('vhMemo').value = v.memo || '';
   document.getElementById('vehicleModal').classList.add('active');
@@ -1484,9 +1513,9 @@ async function saveVehicle() {
     vin: document.getElementById('vhVin').value.trim(),
     owner: document.getElementById('vhOwner').value.trim(),
     registrationDate: document.getElementById('vhRegDate').value,
+    company: document.getElementById('vhCompany').value,
     driver: document.getElementById('vhDriver').value.trim(),
     department: document.getElementById('vhDept').value.trim(),
-    purpose: document.getElementById('vhPurpose').value.trim(),
     status: document.getElementById('vhStatus').value,
     memo: document.getElementById('vhMemo').value.trim()
   };
@@ -1668,6 +1697,23 @@ function renderMaintenance() {
   }
   allMaint.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
+  // 구분 필터 (정비/점검)
+  const maintCat = document.getElementById('maintCategory').value;
+  if (maintCat === '점검') {
+    allMaint = allMaint.filter(m => m.type === '정기점검');
+  } else if (maintCat === '정비') {
+    allMaint = allMaint.filter(m => m.type !== '정기점검');
+  }
+
+  // 키워드 검색
+  const maintKeyword = (document.getElementById('maintSearch').value || '').trim().toLowerCase();
+  if (maintKeyword) {
+    allMaint = allMaint.filter(m => {
+      const fields = [m.description, m.shop, m.memo, m.type].join(' ').toLowerCase();
+      return fields.includes(maintKeyword);
+    });
+  }
+
   const paged = paginate(allMaint, maintPage, PAGE_SIZE);
   const tbody = document.getElementById('maintTableBody');
   if (paged.length === 0) {
@@ -1692,6 +1738,14 @@ function renderMaintenance() {
 }
 
 function goMaintPage(p) { maintPage = p; renderMaintenance(); }
+
+function maintSearchReset() {
+  document.getElementById('maintVehicle').value = '';
+  document.getElementById('maintCategory').value = '';
+  document.getElementById('maintSearch').value = '';
+  maintPage = 1;
+  renderMaintenance();
+}
 
 function renderMaintenanceAlerts() {
   const alerts = [];
@@ -1841,7 +1895,7 @@ function openCostModal(vid, idx) {
   document.getElementById('csDate').value = c.date || new Date().toISOString().split('T')[0];
   document.getElementById('csCategory').value = c.category || '주유';
   document.getElementById('csDesc').value = c.description || '';
-  document.getElementById('csAmount').value = c.amount || '';
+  document.getElementById('csAmount').value = c.amount ? Number(c.amount).toLocaleString() : '';
   document.getElementById('csPayMethod').value = c.payMethod || '법인카드';
   document.getElementById('csReceipt').value = c.receipt === true || c.receipt === 'true' ? 'true' : 'false';
   document.getElementById('csMemo').value = c.memo || '';
@@ -1854,14 +1908,14 @@ function editCost(vid, idx) { openCostModal(vid, idx); }
 async function saveCost() {
   const vid = document.getElementById('csVehicle').value;
   const date = document.getElementById('csDate').value;
-  const amount = document.getElementById('csAmount').value;
-  if (!vid || !date || !amount) { showToast('차량, 날짜, 금액은 필수입니다.', 'error'); return; }
+  const amountRaw = document.getElementById('csAmount').value;
+  if (!vid || !date || !amountRaw) { showToast('차량, 날짜, 금액은 필수입니다.', 'error'); return; }
 
   const c = {
     date,
     category: document.getElementById('csCategory').value,
     description: document.getElementById('csDesc').value.trim(),
-    amount: Number(amount),
+    amount: parseAmount(amountRaw),
     payMethod: document.getElementById('csPayMethod').value,
     receipt: document.getElementById('csReceipt').value === 'true',
     memo: document.getElementById('csMemo').value.trim()
