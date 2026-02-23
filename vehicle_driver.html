@@ -513,6 +513,116 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+/* ===== MY STATS ===== */
+.my-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+.my-stat-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.75rem;
+  text-align: center;
+  border-top: 3px solid var(--primary);
+}
+.my-stat-card.fuel { border-top-color: var(--success); }
+.my-stat-card.cost { border-top-color: var(--warning); }
+.my-stat-card.count { border-top-color: var(--purple); }
+.my-stat-icon { font-size: 1.3rem; margin-bottom: 0.15rem; }
+.my-stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.2;
+}
+.my-stat-label {
+  font-size: 0.68rem;
+  color: var(--gray-400);
+  margin-top: 0.15rem;
+}
+
+/* ===== OIL STATUS CARD ===== */
+.oil-status-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.65rem;
+  border-left: 4px solid var(--warning);
+}
+.oil-status-card.good { border-left-color: var(--success); }
+.oil-status-card.warn { border-left-color: #ff9800; }
+.oil-status-card.danger { border-left-color: var(--danger); }
+.oil-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+.oil-status-vehicle { font-weight: 700; font-size: 0.85rem; color: var(--gray-800); }
+.oil-status-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.12rem 0.4rem;
+  border-radius: 6px;
+}
+.oil-badge-good { background: var(--success-light); color: var(--success); }
+.oil-badge-warn { background: #fff3e0; color: #e65100; }
+.oil-badge-danger { background: var(--danger-light); color: var(--danger); }
+.oil-status-bar {
+  height: 8px;
+  background: var(--gray-100);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+.oil-status-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.oil-bar-good { background: var(--success); }
+.oil-bar-warn { background: #ff9800; }
+.oil-bar-danger { background: var(--danger); }
+.oil-status-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+}
+
+/* ===== MONTHLY TREND TABLE ===== */
+.trend-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.trend-table th {
+  background: var(--gray-50);
+  padding: 0.55rem 0.5rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  text-align: center;
+  border-bottom: 2px solid var(--gray-200);
+  font-size: 0.72rem;
+}
+.trend-table td {
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+.trend-table tr:last-child td { border-bottom: none; }
+.trend-table tr.current-month {
+  background: var(--primary-light);
+  font-weight: 600;
+}
+.trend-table .trend-month { font-weight: 600; color: var(--gray-800); }
+.trend-table .trend-zero { color: var(--gray-300); }
+
 /* ===== OIL ALERT BANNER ===== */
 .oil-alert-banner {
   background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
@@ -1119,9 +1229,10 @@ body {
     <!-- TAB 4: 내 기록 (운행기록 + 정비일지 통합) -->
     <!-- ================================================================ -->
     <div class="tab-panel" id="tab-records" style="display:none;">
-      <div class="record-toggle">
+      <div class="record-toggle" id="recordToggle">
         <button class="record-toggle-btn active" onclick="switchRecordView('driving')">🚗 운행기록</button>
         <button class="record-toggle-btn" onclick="switchRecordView('diaryList')">✍️ 정비일지</button>
+        <button class="record-toggle-btn" onclick="switchRecordView('stats')">📊 내 통계</button>
       </div>
       <div id="myRecordsArea"></div>
     </div>
@@ -1224,6 +1335,7 @@ async function checkPassword() {
 // ========================================
 // DATA
 // ========================================
+const OIL_CHANGE_INTERVAL = 8000; // 엔진오일 교체 주기 km
 let vehicleData = {};
 let vehicleDrivingLog = {};
 let vehicleDiary = {};
@@ -1760,8 +1872,13 @@ async function deleteDiary(vid, idx) {
 // ========================================
 function switchRecordView(view) {
   currentRecordView = view;
-  document.querySelectorAll('.record-toggle-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', (i === 0 && view === 'driving') || (i === 1 && view === 'diaryList'));
+  const toggleBtns = document.getElementById('recordToggle').querySelectorAll('.record-toggle-btn');
+  toggleBtns.forEach((btn, i) => {
+    btn.classList.toggle('active',
+      (i === 0 && view === 'driving') ||
+      (i === 1 && view === 'diaryList') ||
+      (i === 2 && view === 'stats')
+    );
   });
   renderMyRecords();
 }
@@ -1771,8 +1888,10 @@ function renderMyRecords() {
 
   if (currentRecordView === 'driving') {
     renderMyDrivingRecords(area);
-  } else {
+  } else if (currentRecordView === 'diaryList') {
     renderMyDiaryRecords(area);
+  } else if (currentRecordView === 'stats') {
+    renderMyStats(area);
   }
 }
 
@@ -1894,10 +2013,251 @@ function renderMyDiaryRecords(area) {
 }
 
 // ========================================
+// 📊 내 통계
+// ========================================
+function getMyVehicleIds() {
+  // 내가 운전자로 배정된 차량 + 내가 운행기록/정비일지를 작성한 차량
+  const ids = new Set();
+
+  // 차량데이터에서 운전자로 배정된 차량
+  Object.entries(vehicleData).forEach(([vid, v]) => {
+    if (v.driver === userName) ids.add(vid);
+  });
+
+  // 운행기록에서 내가 기록한 차량
+  Object.entries(vehicleDrivingLog).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(log => { if (log.driver === userName) ids.add(vid); });
+  });
+
+  // 정비일지에서 내가 작성한 차량
+  Object.entries(vehicleDiary).forEach(([vid, items]) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(d => { if (d.writer === userName) ids.add(vid); });
+  });
+
+  return [...ids];
+}
+
+function getMonthKey(date) {
+  if (!date) return '';
+  return date.substring(0, 7); // "2026-02"
+}
+
+function renderMyStats(area) {
+  if (!userName) {
+    area.innerHTML = `<div class="card"><div class="card-body"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">이름을 먼저 설정해주세요.</div></div></div></div>`;
+    return;
+  }
+
+  const myVids = getMyVehicleIds();
+  const now = new Date();
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  // ===== ① 이번달 요약 통계 =====
+  let monthDistance = 0, monthFuelCost = 0, monthMaintCost = 0, monthDriveCount = 0;
+
+  myVids.forEach(vid => {
+    // 운행기록
+    const logs = vehicleDrivingLog[vid] || [];
+    logs.forEach(log => {
+      if (log.driver === userName && getMonthKey(log.date) === currentYM) {
+        monthDistance += Number(log.distance) || 0;
+        monthFuelCost += Number(log.fuelCost) || 0;
+        monthDriveCount++;
+      }
+    });
+
+    // 정비일지 비용
+    const diaries = vehicleDiary[vid] || [];
+    diaries.forEach(d => {
+      if (d.writer === userName && getMonthKey(d.date) === currentYM) {
+        monthMaintCost += Number(d.cost) || 0;
+      }
+    });
+  });
+
+  // ===== ② 엔진오일 교체 현황 (내 차량별) =====
+  let oilStatusHtml = '';
+  myVids.forEach(vid => {
+    const v = vehicleData[vid];
+    if (!v || v.status === '폐차') return;
+
+    const diaries = vehicleDiary[vid] || [];
+    const oilChanges = diaries
+      .filter(d => {
+        const isOilCategory = (d.category || '').includes('오일') && (d.category || '').includes('액체류');
+        const descLower = (d.description || '').toLowerCase();
+        const hasKey = descLower.includes('엔진오일') || descLower.includes('엔진 오일') || descLower.includes('engine oil');
+        return isOilCategory && hasKey && d.km > 0;
+      })
+      .sort((a, b) => (b.km || 0) - (a.km || 0));
+
+    // 현재 km 구하기
+    const driveLogs = vehicleDrivingLog[vid] || [];
+    let currentKm = 0;
+    driveLogs.forEach(log => { if (log.endKm && log.endKm > currentKm) currentKm = log.endKm; });
+    diaries.forEach(d => { if (d.km && d.km > currentKm) currentKm = d.km; });
+
+    if (oilChanges.length === 0 || currentKm <= 0) {
+      // 교체 기록 없거나 km 미확인
+      oilStatusHtml += `<div class="oil-status-card good">
+        <div class="oil-status-header">
+          <span class="oil-status-vehicle">${v.vehicleNo} (${v.vehicleName})</span>
+          <span class="oil-status-badge oil-badge-good">기록 없음</span>
+        </div>
+        <div style="font-size:0.72rem;color:var(--gray-400);">엔진오일 교체 기록이 없습니다. 정비일지에 기록해주세요.</div>
+        <div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.2rem;">현재 km: ${currentKm > 0 ? fmt(currentKm) + 'km' : '미확인'}</div>
+      </div>`;
+      return;
+    }
+
+    const lastChange = oilChanges[0];
+    const kmSince = currentKm - lastChange.km;
+    const remaining = OIL_CHANGE_INTERVAL - kmSince;
+    const percent = Math.min(100, Math.round((kmSince / OIL_CHANGE_INTERVAL) * 100));
+
+    let statusCls, barCls, badgeCls, badgeText;
+    if (kmSince >= OIL_CHANGE_INTERVAL) {
+      statusCls = 'danger'; barCls = 'oil-bar-danger'; badgeCls = 'oil-badge-danger'; badgeText = '교체 필요!';
+    } else if (kmSince >= 6000) {
+      statusCls = 'warn'; barCls = 'oil-bar-warn'; badgeCls = 'oil-badge-warn'; badgeText = '교체 임박';
+    } else {
+      statusCls = 'good'; barCls = 'oil-bar-good'; badgeCls = 'oil-badge-good'; badgeText = '양호';
+    }
+
+    const remainText = remaining > 0 ? `잔여 ${fmt(remaining)}km` : `${fmt(Math.abs(remaining))}km 초과`;
+
+    oilStatusHtml += `<div class="oil-status-card ${statusCls}">
+      <div class="oil-status-header">
+        <span class="oil-status-vehicle">${v.vehicleNo} (${v.vehicleName})</span>
+        <span class="oil-status-badge ${badgeCls}">${badgeText}</span>
+      </div>
+      <div class="oil-status-bar"><div class="oil-status-bar-fill ${barCls}" style="width:${percent}%;"></div></div>
+      <div class="oil-status-info">
+        <span>교체 후 ${fmt(kmSince)}km 주행</span>
+        <span>${remainText}</span>
+      </div>
+      <div style="font-size:0.68rem;color:var(--gray-400);margin-top:0.25rem;">
+        마지막 교체: ${lastChange.date || '-'} (${fmt(lastChange.km)}km) · 현재: ${fmt(currentKm)}km
+      </div>
+    </div>`;
+  });
+
+  // ===== ③ 최근 3개월 추이 =====
+  const months = [];
+  for (let i = 2; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = `${d.getMonth()+1}월`;
+    months.push({ ym, label, distance: 0, fuelCost: 0, maintCost: 0, driveCount: 0 });
+  }
+
+  myVids.forEach(vid => {
+    const logs = vehicleDrivingLog[vid] || [];
+    logs.forEach(log => {
+      if (log.driver !== userName) return;
+      const ym = getMonthKey(log.date);
+      const m = months.find(x => x.ym === ym);
+      if (m) {
+        m.distance += Number(log.distance) || 0;
+        m.fuelCost += Number(log.fuelCost) || 0;
+        m.driveCount++;
+      }
+    });
+
+    const diaries = vehicleDiary[vid] || [];
+    diaries.forEach(d => {
+      if (d.writer !== userName) return;
+      const ym = getMonthKey(d.date);
+      const m = months.find(x => x.ym === ym);
+      if (m) {
+        m.maintCost += Number(d.cost) || 0;
+      }
+    });
+  });
+
+  // ===== 전체 HTML 조합 =====
+  const noVehicle = myVids.length === 0;
+
+  area.innerHTML = `
+    <!-- 이번달 요약 -->
+    <div style="font-size:0.72rem;color:var(--gray-400);margin-bottom:0.35rem;">📅 ${now.getFullYear()}년 ${now.getMonth()+1}월 기준</div>
+    <div class="my-stat-grid">
+      <div class="my-stat-card">
+        <div class="my-stat-icon">🛣</div>
+        <div class="my-stat-value">${fmt(monthDistance)}<span style="font-size:0.7rem;font-weight:400;">km</span></div>
+        <div class="my-stat-label">이번달 주행거리</div>
+      </div>
+      <div class="my-stat-card fuel">
+        <div class="my-stat-icon">⛽</div>
+        <div class="my-stat-value">${fmt(monthFuelCost)}<span style="font-size:0.7rem;font-weight:400;">원</span></div>
+        <div class="my-stat-label">이번달 주유비</div>
+      </div>
+      <div class="my-stat-card cost">
+        <div class="my-stat-icon">🔧</div>
+        <div class="my-stat-value">${fmt(monthMaintCost)}<span style="font-size:0.7rem;font-weight:400;">원</span></div>
+        <div class="my-stat-label">이번달 정비비</div>
+      </div>
+      <div class="my-stat-card count">
+        <div class="my-stat-icon">📝</div>
+        <div class="my-stat-value">${monthDriveCount}<span style="font-size:0.7rem;font-weight:400;">건</span></div>
+        <div class="my-stat-label">이번달 운행건수</div>
+      </div>
+    </div>
+
+    <!-- 엔진오일 교체 현황 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🛢 엔진오일 교체 현황</div>
+        <span style="font-size:0.65rem;color:var(--gray-400);">교체주기 ${fmt(OIL_CHANGE_INTERVAL)}km</span>
+      </div>
+      <div class="card-body" style="padding:0.75rem;">
+        ${noVehicle ? '<div style="font-size:0.78rem;color:var(--gray-400);text-align:center;padding:1rem;">운행 기록이 있는 차량이 없습니다.</div>' : (oilStatusHtml || '<div style="font-size:0.78rem;color:var(--gray-400);text-align:center;padding:1rem;">엔진오일 교체 기록을 정비일지에 등록해주세요.</div>')}
+      </div>
+    </div>
+
+    <!-- 최근 3개월 추이 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📈 최근 3개월 추이</div>
+      </div>
+      <div class="card-body" style="padding:0.6rem;">
+        <table class="trend-table">
+          <thead>
+            <tr>
+              <th>월</th>
+              <th>주행거리</th>
+              <th>주유비</th>
+              <th>정비비</th>
+              <th>건수</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${months.map(m => {
+              const isCurrent = m.ym === currentYM;
+              return `<tr class="${isCurrent ? 'current-month' : ''}">
+                <td class="trend-month">${m.label}${isCurrent ? ' ▸' : ''}</td>
+                <td>${m.distance > 0 ? fmt(m.distance) + 'km' : '<span class="trend-zero">-</span>'}</td>
+                <td>${m.fuelCost > 0 ? fmt(m.fuelCost) + '원' : '<span class="trend-zero">-</span>'}</td>
+                <td>${m.maintCost > 0 ? fmt(m.maintCost) + '원' : '<span class="trend-zero">-</span>'}</td>
+                <td>${m.driveCount > 0 ? m.driveCount + '건' : '<span class="trend-zero">-</span>'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    ${noVehicle ? '' : `<div style="margin-top:0.35rem;font-size:0.68rem;color:var(--gray-400);text-align:center;">
+      내 차량: ${myVids.map(vid => { const v = vehicleData[vid]; return v ? v.vehicleNo : vid; }).join(', ')}
+    </div>`}
+  `;
+}
+
+// ========================================
 // 🛢 엔진오일 교체 알림 (8,000km 기준)
 // ========================================
-const OIL_CHANGE_INTERVAL = 8000; // 교체 주기 km
-
 function checkOilAlerts() {
   const alertArea = document.getElementById('oilAlertArea');
   if (!alertArea) return;
