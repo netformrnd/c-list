@@ -189,6 +189,7 @@ tr.selected { background: var(--primary-light); }
 .manager-stats-content { padding: 1.25rem; display: block; }
 .manager-stats-content.collapsed { display: none; }
 .manager-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.manager-stats-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
 .manager-category { }
 .category-title { font-size: 1rem; font-weight: 700; color: var(--gray-700); margin-bottom: 0.75rem; padding: 0.5rem; background: var(--gray-100); border-radius: 6px; }
 .manager-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
@@ -267,7 +268,7 @@ tr.selected { background: var(--primary-light); }
   .search-group { width: 100%; }
   .search-input, .search-select { width: 100%; }
   .search-result { margin-left: 0; margin-top: 0.5rem; }
-  .manager-stats-grid { grid-template-columns: 1fr; }
+  .manager-stats-grid, .manager-stats-grid.three-col { grid-template-columns: 1fr; }
   .settlement-summary-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -620,11 +621,107 @@ tr.selected { background: var(--primary-light); }
         </select>
         <div style="margin-left:auto;display:flex;gap:0.5rem;align-items:center;">
           <span id="consultingMainCount" style="font-size:0.85rem;color:#666;">0건</span>
+          <button class="btn btn-sm" onclick="toggleConsultingManagerStats()" id="btnConsultingManagerStats" style="background:linear-gradient(135deg,#00897b,#00695c);color:white;font-weight:600;">👥 담당자별 실적</button>
           <button class="btn btn-success btn-sm" onclick="downloadConsultingListExcel()">📥 엑셀</button>
         </div>
       </div>
     </div>
-    
+
+    <!-- 담당자별 실적현황 (기술컨설팅) -->
+    <div class="manager-stats-section" id="consultingManagerStatsSection" style="display:none;">
+      <div class="manager-stats-header" style="background:linear-gradient(135deg,#00897b 0%,#004d40 100%);" onclick="toggleConsultingManagerStatsContent()">
+        <span>👥 담당자별 실적 현황 (기술컨설팅)</span>
+        <span class="toggle-icon" id="consultingManagerToggleIcon">▼</span>
+      </div>
+      <div class="manager-stats-content" id="consultingManagerStatsContent">
+        <div class="manager-stats-grid three-col">
+          <!-- 구분별: 일반 -->
+          <div class="manager-category">
+            <div class="category-title" style="background:#e8f5e9;color:#2e7d32;">< 일 반 ></div>
+            <table class="manager-table">
+              <thead>
+                <tr>
+                  <th>담당자</th>
+                  <th>건수</th>
+                  <th>낙찰금액</th>
+                  <th>실행금액</th>
+                </tr>
+              </thead>
+              <tbody id="consultingMgrNormalBody"></tbody>
+              <tfoot>
+                <tr class="subtotal-row">
+                  <td><strong>일반 합계</strong></td>
+                  <td id="consultingMgrNormalCount"><strong>0</strong></td>
+                  <td id="consultingMgrNormalBid"><strong>-</strong></td>
+                  <td id="consultingMgrNormalExec"><strong>-</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- 구분별: 시지원 -->
+          <div class="manager-category">
+            <div class="category-title" style="background:#e3f2fd;color:#1565c0;">< 시 지 원 ></div>
+            <table class="manager-table">
+              <thead>
+                <tr>
+                  <th>담당자</th>
+                  <th>건수</th>
+                  <th>낙찰금액</th>
+                  <th>실행금액</th>
+                </tr>
+              </thead>
+              <tbody id="consultingMgrCityBody"></tbody>
+              <tfoot>
+                <tr class="subtotal-row">
+                  <td><strong>시지원 합계</strong></td>
+                  <td id="consultingMgrCityCount"><strong>0</strong></td>
+                  <td id="consultingMgrCityBid"><strong>-</strong></td>
+                  <td id="consultingMgrCityExec"><strong>-</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- 구분별: 사후정산 -->
+          <div class="manager-category">
+            <div class="category-title" style="background:#f3e5f5;color:#7b1fa2;">< 사 후 정 산 ></div>
+            <table class="manager-table">
+              <thead>
+                <tr>
+                  <th>담당자</th>
+                  <th>건수</th>
+                  <th>낙찰금액</th>
+                  <th>실행금액</th>
+                </tr>
+              </thead>
+              <tbody id="consultingMgrPostBody"></tbody>
+              <tfoot>
+                <tr class="subtotal-row">
+                  <td><strong>사후정산 합계</strong></td>
+                  <td id="consultingMgrPostCount"><strong>0</strong></td>
+                  <td id="consultingMgrPostBid"><strong>-</strong></td>
+                  <td id="consultingMgrPostExec"><strong>-</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- 전체 합계 -->
+        <div class="grand-total-section">
+          <table class="manager-table grand-total-table">
+            <tr>
+              <td><strong>전체 합계</strong></td>
+              <td id="consultingMgrGrandCount"><strong>0건</strong></td>
+              <td id="consultingMgrGrandBid"><strong>-</strong></td>
+              <td id="consultingMgrGrandExec"><strong>-</strong></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- 테이블 -->
     <div class="table-container">
       <table class="data-table" id="consultingMainTable">
@@ -13918,6 +14015,118 @@ function renderConsultingMain() {
   
   tbody.innerHTML = html;
   document.getElementById('consultingMainCount').textContent = `${filtered.length}건`;
+
+  // 담당자별 실적현황이 표시 중이면 업데이트
+  if (document.getElementById('consultingManagerStatsSection').style.display !== 'none') {
+    updateConsultingManagerStats();
+  }
+}
+
+// ========== 기술컨설팅 담당자별 실적현황 ==========
+function toggleConsultingManagerStats() {
+  const section = document.getElementById('consultingManagerStatsSection');
+  if (section.style.display === 'none') {
+    section.style.display = 'block';
+    updateConsultingManagerStats();
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+function toggleConsultingManagerStatsContent() {
+  const content = document.getElementById('consultingManagerStatsContent');
+  const icon = document.getElementById('consultingManagerToggleIcon');
+  content.classList.toggle('collapsed');
+  icon.classList.toggle('collapsed');
+}
+
+function updateConsultingManagerStats() {
+  // 현재 필터 적용된 데이터 기준으로 집계
+  const searchText = (document.getElementById('consultingMainSearch').value || '').toLowerCase();
+  const yearFilter = document.getElementById('consultingMainYearFilter').value;
+  const typeFilter = document.getElementById('consultingMainTypeFilter').value;
+  const managerFilter = document.getElementById('consultingMainManagerFilter').value;
+
+  let filtered = consultingListData.filter(item => {
+    if (searchText && !(item.site || '').toLowerCase().includes(searchText) && !(item.project || '').toLowerCase().includes(searchText)) return false;
+    if (yearFilter === '2020-2021') {
+      if (item.year !== '2020' && item.year !== '2021') return false;
+    } else if (yearFilter) {
+      if (item.year !== yearFilter) return false;
+    }
+    if (typeFilter && item.type !== typeFilter) return false;
+    if (managerFilter && item.manager !== managerFilter) return false;
+    return true;
+  });
+
+  // 구분별 담당자 집계: 일반, 시지원, 사후정산
+  const normalManagers = {};  // 일반
+  const cityManagers = {};    // 시지원
+  const postManagers = {};    // 사후정산
+
+  filtered.forEach(item => {
+    const manager = item.manager || '기타';
+    const bidAmount = item.bidAmount || 0;
+    const execAmount = item.execAmount || 0;
+    const type = item.type || '일반';
+
+    let target;
+    if (type === '시지원') {
+      target = cityManagers;
+    } else if (type === '사후정산') {
+      target = postManagers;
+    } else {
+      target = normalManagers;
+    }
+
+    if (!target[manager]) {
+      target[manager] = { count: 0, bidAmount: 0, execAmount: 0 };
+    }
+    target[manager].count++;
+    target[manager].bidAmount += bidAmount;
+    target[manager].execAmount += execAmount;
+  });
+
+  // 렌더링 헬퍼
+  function renderManagerTable(managers, bodyId, countId, bidId, execId) {
+    let html = '';
+    let totalCount = 0, totalBid = 0, totalExec = 0;
+
+    const sorted = Object.entries(managers).sort((a, b) => b[1].bidAmount - a[1].bidAmount);
+
+    sorted.forEach(([name, stats]) => {
+      if (name === '기타' && stats.count === 0) return;
+      html += `<tr>
+        <td>실적 합계 [ ${name} ]</td>
+        <td style="text-align:center;">${stats.count}</td>
+        <td>${fmt(stats.bidAmount)}</td>
+        <td>${fmt(stats.execAmount)}</td>
+      </tr>`;
+      totalCount += stats.count;
+      totalBid += stats.bidAmount;
+      totalExec += stats.execAmount;
+    });
+
+    document.getElementById(bodyId).innerHTML = html || '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);">데이터 없음</td></tr>';
+    document.getElementById(countId).innerHTML = `<strong>${totalCount}</strong>`;
+    document.getElementById(bidId).innerHTML = `<strong>${fmt(totalBid)}</strong>`;
+    document.getElementById(execId).innerHTML = `<strong>${fmt(totalExec)}</strong>`;
+
+    return { totalCount, totalBid, totalExec };
+  }
+
+  const normalTotals = renderManagerTable(normalManagers, 'consultingMgrNormalBody', 'consultingMgrNormalCount', 'consultingMgrNormalBid', 'consultingMgrNormalExec');
+  const cityTotals = renderManagerTable(cityManagers, 'consultingMgrCityBody', 'consultingMgrCityCount', 'consultingMgrCityBid', 'consultingMgrCityExec');
+  const postTotals = renderManagerTable(postManagers, 'consultingMgrPostBody', 'consultingMgrPostCount', 'consultingMgrPostBid', 'consultingMgrPostExec');
+
+  // 전체 합계
+  const grandCount = normalTotals.totalCount + cityTotals.totalCount + postTotals.totalCount;
+  const grandBid = normalTotals.totalBid + cityTotals.totalBid + postTotals.totalBid;
+  const grandExec = normalTotals.totalExec + cityTotals.totalExec + postTotals.totalExec;
+
+  document.getElementById('consultingMgrGrandCount').innerHTML = `<strong>${grandCount}건</strong>`;
+  document.getElementById('consultingMgrGrandBid').innerHTML = `<strong>${fmt(grandBid)}</strong>`;
+  document.getElementById('consultingMgrGrandExec').innerHTML = `<strong>${fmt(grandExec)}</strong>`;
 }
 
 // 기술컨설팅 리스트 데이터 로드
