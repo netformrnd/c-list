@@ -583,6 +583,7 @@ body {
           <div class="chemical-section" style="border-left-color:#5ba55b;">
             <div class="chemical-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
             <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e8f5e8;color:#5ba55b;">📝 정비구분: 세정 및 플러싱</span></div>
+            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#f8fdf8;border-radius:6px;">💡 정비 시 내부 오염물질을 제거하는 세정 작업에 사용하는 소모품</div>
             <div class="chemical-item"><span class="chemical-name">엔진 플러싱액</span><span class="chemical-desc">엔진 내부 슬러지 제거</span></div>
             <div class="chemical-item"><span class="chemical-name">스로틀 바디 클리너</span><span class="chemical-desc">흡기 계통 카본 제거</span></div>
             <div class="chemical-item"><span class="chemical-name">브레이크 클리너</span><span class="chemical-desc">분진 및 기름기 제거</span></div>
@@ -591,6 +592,7 @@ body {
           <div class="chemical-section" style="border-left-color:#d4a029;">
             <div class="chemical-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
             <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#fef7e0;color:#d4a029;">📝 정비구분: 첨가제 및 보호제</span></div>
+            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#fffdf5;border-radius:6px;">💡 연료·오일에 추가 투입하여 성능을 보호·개선하는 소모품</div>
             <div class="chemical-item"><span class="chemical-name">연료 첨가제</span><span class="chemical-desc">엔진 세정 및 연비 개선</span></div>
             <div class="chemical-item"><span class="chemical-name">누유 방지제</span><span class="chemical-desc">고무 씰 복원을 통한 오일 누유 방지</span></div>
             <div class="chemical-item"><span class="chemical-name">부스터</span><span class="chemical-desc">출력 및 연소 효율 향상</span></div>
@@ -599,6 +601,7 @@ body {
           <div class="chemical-section" style="border-left-color:#8b6baf;">
             <div class="chemical-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
             <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#f0eaf7;color:#8b6baf;">📝 정비구분: 구리스 및 윤활제</span></div>
+            <div style="font-size:0.72rem;color:var(--gray-500);margin-bottom:0.4rem;padding:0.3rem 0.5rem;background:#faf8fd;border-radius:6px;">💡 회전·마찰 부위에 도포하여 마모를 방지하는 소모품</div>
             <div class="chemical-item"><span class="chemical-name">구리스(Grease)</span><span class="chemical-desc">회전축/관절 부위 고점도 윤활</span></div>
             <div class="chemical-item"><span class="chemical-name">침투성 윤활제</span><span class="chemical-desc">녹 제거 및 잡소리 방지 (WD-40 등)</span></div>
           </div>
@@ -820,6 +823,20 @@ body {
   </div><!-- /mainContent -->
 </div><!-- /container -->
 
+<!-- PASSWORD OVERLAY (접속 시 가장 먼저 표시) -->
+<div class="name-overlay" id="passwordOverlay">
+  <div class="name-box">
+    <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔒</div>
+    <div class="name-box-title">직원용 차량관리</div>
+    <div class="name-box-desc">접속 비밀번호를 입력해주세요</div>
+    <div class="form-group" style="margin-bottom:0.5rem;">
+      <input type="password" class="form-input" id="passwordInput" placeholder="비밀번호" maxlength="20" style="text-align:center;font-size:1rem;" onkeydown="if(event.key==='Enter')checkPassword()">
+    </div>
+    <div id="passwordError" style="font-size:0.75rem;color:var(--danger);margin-bottom:0.5rem;display:none;">비밀번호가 틀렸습니다.</div>
+    <button class="btn btn-primary btn-full" onclick="checkPassword()">접속하기</button>
+  </div>
+</div>
+
 <!-- NAME INPUT OVERLAY -->
 <div class="name-overlay" id="nameOverlay" style="display:none;">
   <div class="name-box">
@@ -853,6 +870,49 @@ async function fbLoad(col, docId) {
 }
 async function fbSave(col, docId, data) {
   try { await db.collection(col).doc(docId).set(data); } catch(e) { console.error('FB save err:', e); }
+}
+
+// ========================================
+// PASSWORD CHECK
+// ========================================
+let accessPassword = '';
+let isAuthenticated = false;
+
+async function loadPassword() {
+  const fbPW = await fbLoad('vehicle-settings', 'employee-access');
+  if (fbPW && fbPW.password) {
+    accessPassword = fbPW.password;
+  } else {
+    // 비밀번호 미설정 시 기본값 '1234'로 자동 생성
+    accessPassword = '1234';
+    await fbSave('vehicle-settings', 'employee-access', { password: '1234' });
+  }
+
+  // 세션 내 이미 인증된 경우 바로 통과
+  const sessionAuth = sessionStorage.getItem('vehicleAuth');
+  if (sessionAuth === 'ok') {
+    isAuthenticated = true;
+    document.getElementById('passwordOverlay').style.display = 'none';
+    await initApp();
+  } else {
+    document.getElementById('passwordOverlay').style.display = 'flex';
+    setTimeout(() => document.getElementById('passwordInput').focus(), 300);
+  }
+}
+
+async function checkPassword() {
+  const input = document.getElementById('passwordInput').value;
+  if (input === accessPassword) {
+    isAuthenticated = true;
+    sessionStorage.setItem('vehicleAuth', 'ok');
+    document.getElementById('passwordOverlay').style.display = 'none';
+    document.getElementById('passwordError').style.display = 'none';
+    await initApp();
+  } else {
+    document.getElementById('passwordError').style.display = 'block';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordInput').focus();
+  }
 }
 
 // ========================================
@@ -1512,9 +1572,9 @@ function renderMyDiaryRecords(area) {
 }
 
 // ========================================
-// INIT
+// INIT (비밀번호 확인 후 실행)
 // ========================================
-async function init() {
+async function initApp() {
   initUser();
   await loadData();
 
@@ -1526,9 +1586,11 @@ async function init() {
   renderTodayLogs();
   populateVehicleSelect();
   document.getElementById('dyDate').value = new Date().toISOString().split('T')[0];
+  showCategoryHint();
 }
 
-init();
+// 최초 실행: 비밀번호 확인부터 시작
+loadPassword();
 </script>
 </body>
 </html>

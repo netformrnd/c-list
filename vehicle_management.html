@@ -547,6 +547,7 @@ tr:hover { background: var(--gray-50); }
     <button class="btn btn-header" onclick="exportExcel()">📊 Excel 내보내기</button>
     <button class="btn btn-header" onclick="document.getElementById('importFile').click()">📥 Excel 가져오기</button>
     <button class="btn btn-header" onclick="exportReport()">📋 월간보고서</button>
+    <button class="btn btn-header" onclick="openPasswordSetting()">🔒 직원비밀번호</button>
     <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
   </div>
 </div>
@@ -3086,6 +3087,52 @@ function exportReport() {
 }
 
 // ========================================
+// ========================================
+// 직원 비밀번호 설정
+// ========================================
+async function openPasswordSetting() {
+  // 현재 비밀번호 로드
+  let currentPW = '1234';
+  try {
+    const fbPW = await fbLoad('vehicle-settings', 'employee-access');
+    if (fbPW && fbPW.password) currentPW = fbPW.password;
+  } catch(e) {}
+
+  const modalHtml = `
+    <div class="modal-header">
+      <div class="modal-title">🔒 직원용 접속 비밀번호 설정</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:1rem;">
+        직원이 차량관리 페이지에 접속할 때 입력해야 하는 비밀번호입니다.<br>
+        팀원들에게 비밀번호를 공유해주세요.
+      </p>
+      <div class="form-group">
+        <label class="form-label">현재 비밀번호</label>
+        <div style="background:var(--gray-100);padding:0.65rem 0.85rem;border-radius:10px;font-size:1rem;font-weight:700;color:var(--gray-800);letter-spacing:2px;">${currentPW}</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">새 비밀번호</label>
+        <input type="text" class="form-input" id="newPassword" placeholder="새 비밀번호 입력" value="${currentPW}">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="savePassword()">비밀번호 변경</button>
+    </div>
+  `;
+
+  document.getElementById('modalBody').innerHTML = modalHtml;
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+
+async function savePassword() {
+  const newPW = document.getElementById('newPassword').value.trim();
+  if (!newPW) { showToast('비밀번호를 입력해주세요.', 'error'); return; }
+  if (newPW.length < 4) { showToast('비밀번호는 4자리 이상이어야 합니다.', 'error'); return; }
+  await fbSave('vehicle-settings', 'employee-access', { password: newPW });
+  showToast('직원 비밀번호가 변경되었습니다.');
+  closeModal();
+}
+
 // TAB SWITCHING (updated for report tab)
 // ========================================
 function switchTab(tab) {
