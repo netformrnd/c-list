@@ -3777,31 +3777,31 @@ function checkOilAlerts() {
 // 🧪 SAMPLE DATA
 // ========================================
 async function loadSampleData() {
-  if (!confirm('⚠️ 기존 데이터가 모두 삭제되고 샘플 데이터로 대체됩니다.\n\n정말 샘플 데이터를 넣으시겠습니까?')) return;
+  if (!confirm('기존 데이터는 유지되고, 샘플 차량 3대(V001~V003)가 추가됩니다.\n\n※ 동일 ID(V001~V003)가 이미 있으면 샘플로 덮어씁니다.\n\n샘플 데이터를 추가하시겠습니까?')) return;
 
-  showToast('샘플 데이터 생성 중...', 'info');
+  showToast('샘플 데이터 추가 중...', 'info');
 
-  // --- 차량 3대 ---
-  vehicleData = {
+  // --- 샘플 차량 3대 (기존 데이터에 병합) ---
+  const sampleVehicles = {
     'V001': {
       id:'V001', vehicleNo:'12가 3456', vehicleName:'아반떼 CN7', year:'2023',
-      vin:'KMHD341CBNU123456', owner:'넷폼(주)', registrationDate:'2023-03-15',
-      company:'넷폼(주)', driver:'김민수', department:'영업팀', status:'운행중', memo:'영업용 차량'
+      vin:'KMHD341CBNU123456', owner:'넷폼알앤디', registrationDate:'2023-03-15',
+      company:'넷폼알앤디', driver:'김민수', department:'영업팀', status:'운행중', memo:'영업용 차량'
     },
     'V002': {
       id:'V002', vehicleNo:'34나 7890', vehicleName:'싼타페 MX5', year:'2022',
-      vin:'KMHS581DBLU789012', owner:'넷폼(주)', registrationDate:'2022-08-20',
-      company:'넷폼(주)', driver:'박지영', department:'관리팀', status:'운행중', memo:'관리팀 업무용'
+      vin:'KMHS581DBLU789012', owner:'넷폼알앤디', registrationDate:'2022-08-20',
+      company:'넷폼알앤디', driver:'박지영', department:'관리팀', status:'운행중', memo:'관리팀 업무용'
     },
     'V003': {
       id:'V003', vehicleNo:'56다 1234', vehicleName:'포터2', year:'2021',
-      vin:'KNAHP812ALU345678', owner:'넷폼(주)', registrationDate:'2021-05-10',
-      company:'넷폼(주)', driver:'이철호', department:'현장팀', status:'운행중', memo:'현장 자재운반용'
+      vin:'KNAHP812ALU345678', owner:'석민이앤씨', registrationDate:'2021-05-10',
+      company:'석민이앤씨', driver:'이철호', department:'현장팀', status:'운행중', memo:'현장 자재운반용'
     }
   };
 
   // --- 운행기록 ---
-  vehicleDrivingLog = {
+  const sampleDrivingLog = {
     'V001': [
       {date:'2026-01-03',driver:'김민수',departure:'본사',destination:'강남 거래처',purpose:'거래처 미팅',startKm:15200,endKm:15245,distance:45,fuelAmount:0,fuelCost:0,memo:''},
       {date:'2026-01-07',driver:'김민수',departure:'본사',destination:'수원 현대오피스',purpose:'계약서 전달',startKm:15245,endKm:15312,distance:67,fuelAmount:35,fuelCost:59500,memo:'주유 완료'},
@@ -3842,7 +3842,7 @@ async function loadSampleData() {
   };
 
   // --- 정비이력 ---
-  vehicleMaintenance = {
+  const sampleMaintenance = {
     'V001': [
       {date:'2025-09-15',type:'소모품교체',km:12800,shop:'현대 오토큐',description:'엔진오일+필터 교체',cost:85000,nextDate:'',memo:''},
       {date:'2025-12-20',type:'정기점검',km:14500,shop:'현대 서비스센터',description:'정기점검 (12개월)',cost:0,nextDate:'2026-06-20',memo:'이상 없음'},
@@ -3864,7 +3864,7 @@ async function loadSampleData() {
   };
 
   // --- 비용관리 ---
-  vehicleCost = {
+  const sampleCost = {
     'V001': [
       {date:'2026-01-07',category:'주유',description:'주유 (본사 근처 주유소)',amount:59500,receipt:true,memo:''},
       {date:'2026-01-15',category:'정비',description:'앞타이어 2본 교체',amount:240000,receipt:true,memo:''},
@@ -3900,7 +3900,7 @@ async function loadSampleData() {
   };
 
   // --- 보험/등록 ---
-  vehicleInsurance = {
+  const sampleInsurance = {
     'V001': {
       insuranceCompany:'삼성화재',policyNo:'AUTO-2025-001234',insuranceType:'종합보험',
       insuranceStart:'2025-03-15',insuranceEnd:'2026-03-14',premium:680000,
@@ -3922,7 +3922,7 @@ async function loadSampleData() {
   };
 
   // --- 정비일지 ---
-  vehicleDiary = {
+  const sampleDiary = {
     'V001': [
       {date:'2025-09-15',writer:'김민수',category:'오일 및 액체류 교체',km:12800,cost:85000,description:'엔진오일 5W-30 합성유 + 오일필터 교체. 다음 교체 20,800km 예정.',status:'완료',memo:'',createdAt:'2025-09-15T10:30:00'},
       {date:'2025-11-20',writer:'김민수',category:'세차',km:14000,cost:15000,description:'외부 손세차 + 실내 청소',status:'완료',memo:'',createdAt:'2025-11-20T14:00:00'},
@@ -3952,6 +3952,25 @@ async function loadSampleData() {
     ]
   };
 
+  // --- 기존 데이터에 샘플 병합 ---
+  Object.assign(vehicleData, sampleVehicles);
+
+  Object.keys(sampleDrivingLog).forEach(vid => {
+    vehicleDrivingLog[vid] = sampleDrivingLog[vid]; // 샘플 차량은 샘플 기록으로 세팅
+  });
+  Object.keys(sampleMaintenance).forEach(vid => {
+    vehicleMaintenance[vid] = sampleMaintenance[vid];
+  });
+  Object.keys(sampleCost).forEach(vid => {
+    vehicleCost[vid] = sampleCost[vid];
+  });
+  Object.keys(sampleInsurance).forEach(vid => {
+    vehicleInsurance[vid] = sampleInsurance[vid];
+  });
+  Object.keys(sampleDiary).forEach(vid => {
+    vehicleDiary[vid] = sampleDiary[vid];
+  });
+
   // Firebase + localStorage 저장
   await saveAllData();
 
@@ -3959,7 +3978,7 @@ async function loadSampleData() {
   refreshCurrentTab();
   checkOilAlerts();
 
-  showToast('✅ 샘플 데이터가 성공적으로 입력되었습니다! (차량 3대, 운행기록 31건, 정비일지 21건, 비용 26건)', 'success');
+  showToast('✅ 샘플 데이터 추가 완료! (차량 3대, 운행 31건, 일지 21건, 비용 26건) — 기존 데이터는 유지됩니다.', 'success');
 }
 
 // ========================================
