@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Firebase 데이터 확인</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>body{font-family:'Noto Sans KR',sans-serif;padding:2rem;background:#f5f5f5;}
+.card{background:#fff;border-radius:12px;padding:1.5rem;margin:1rem 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+h1{color:#1a73e8;}h2{color:#333;border-bottom:2px solid #eee;padding-bottom:0.5rem;}
+pre{background:#f8f9fa;padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.85rem;max-height:400px;overflow-y:auto;}
+.empty{color:#999;font-style:italic;} .count{color:#1a73e8;font-weight:bold;font-size:1.2em;}
+</style></head><body>
+<h1>Firebase 데이터 확인</h1>
+<p>현재 Firebase(order-d03ce)에 저장된 차량 관련 데이터를 확인합니다.</p>
+<div id="result">로딩 중...</div>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain:"order-d03ce.firebaseapp.com",
+  projectId:"order-d03ce"
+});
+const db = firebase.firestore();
+async function check(){
+  const cols = [
+    {name:'vehicle-data', label:'차량 데이터'},
+    {name:'vehicle-driving-log', label:'운행기록'},
+    {name:'vehicle-maintenance', label:'정비이력'},
+    {name:'vehicle-cost', label:'비용관리'},
+    {name:'vehicle-insurance', label:'보험/등록'},
+    {name:'vehicle-diary', label:'정비일지'}
+  ];
+  let html = '';
+  for(const col of cols){
+    html += '<div class="card"><h2>'+col.label+' ('+col.name+')</h2>';
+    try{
+      const doc = await db.collection(col.name).doc('all').get();
+      if(doc.exists && doc.data().data){
+        const parsed = JSON.parse(doc.data().data);
+        const keys = Object.keys(parsed);
+        html += '<p>차량 수: <span class="count">'+keys.length+'대</span> - IDs: '+keys.join(', ')+'</p>';
+        if(col.name==='vehicle-data'){
+          keys.forEach(function(k){
+            const v=parsed[k];
+            html+='<p>- <b>'+k+'</b>: '+(v.vehicleNo||'?')+' / '+(v.vehicleName||'?')+' / '+(v.company||'?')+' / '+(v.driver||'?')+' ('+(v.status||'?')+')</p>';
+          });
+        } else {
+          keys.forEach(function(k){
+            const arr = Array.isArray(parsed[k]) ? parsed[k] : [parsed[k]];
+            html+='<p>- <b>'+k+'</b>: '+arr.length+'건</p>';
+          });
+        }
+        html += '<details><summary>원본 데이터 보기 (클릭)</summary><pre>'+JSON.stringify(parsed,null,2).substring(0,10000)+'</pre></details>';
+      } else {
+        html += '<p class="empty">데이터 없음 (비어있음)</p>';
+      }
+    }catch(e){
+      html += '<p style="color:red">에러: '+e.message+'</p>';
+    }
+    html += '</div>';
+  }
+  document.getElementById('result').innerHTML = html;
+}
+check();
+</script></body></html>
