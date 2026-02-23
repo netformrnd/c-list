@@ -601,6 +601,148 @@ tr:hover { background: var(--gray-50); }
   50% { transform: scale(1.01); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* ===== VEHICLE DETAIL REPORT CARDS ===== */
+.vehicle-detail-card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+  margin-bottom: 0.85rem;
+  border-left: 4px solid var(--primary);
+}
+.vehicle-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--gray-200);
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.vehicle-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+@media (max-width: 600px) {
+  .vehicle-detail-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.vehicle-detail-item {
+  background: var(--gray-50);
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+}
+.vehicle-detail-label {
+  font-size: 0.68rem;
+  color: var(--gray-400);
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+.vehicle-detail-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  body > *:not(#printReportContainer) { display: none !important; }
+  #printReportContainer {
+    display: block !important;
+    position: static;
+    width: 100%;
+  }
+  .print-report {
+    font-family: 'Noto Sans KR', sans-serif;
+    color: #333;
+    font-size: 10pt;
+    line-height: 1.6;
+  }
+  .print-header {
+    text-align: center;
+    border-bottom: 3px solid #2c3e50;
+    padding-bottom: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+  .print-header h1 { font-size: 18pt; margin: 0; color: #2c3e50; }
+  .print-header p { font-size: 9pt; color: #666; margin-top: 0.3rem; }
+  .print-section {
+    margin-bottom: 1.2rem;
+    page-break-inside: avoid;
+  }
+  .print-section h2 {
+    font-size: 12pt;
+    color: #2c3e50;
+    border-bottom: 2px solid #4a6fa5;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.6rem;
+  }
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    margin-bottom: 0.5rem;
+  }
+  .print-table th {
+    background: #2c3e50;
+    color: white;
+    border: 1px solid #2c3e50;
+    padding: 0.35rem 0.5rem;
+    text-align: center;
+    font-weight: 600;
+  }
+  .print-table td {
+    border: 1px solid #ddd;
+    padding: 0.3rem 0.5rem;
+  }
+  .print-table td.right { text-align: right; }
+  .print-table tr:nth-child(even) { background: #f8f9fa; }
+  .print-vehicle-card {
+    border: 1px solid #ddd;
+    border-left: 4px solid #4a6fa5;
+    padding: 0.7rem 0.8rem;
+    margin-bottom: 0.6rem;
+    page-break-inside: avoid;
+  }
+  .print-vehicle-title {
+    font-size: 10.5pt;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px dashed #ddd;
+  }
+  .print-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    font-size: 8.5pt;
+    margin-bottom: 0.3rem;
+  }
+  .print-stat-item {
+    background: #f5f7fa;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+  }
+  .print-stat-label { font-size: 7.5pt; color: #888; }
+  .print-stat-value { font-weight: 700; }
+  .print-diary-row {
+    font-size: 8pt;
+    color: #555;
+    padding: 0.1rem 0;
+    border-bottom: 1px dotted #eee;
+  }
+  .print-footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #999;
+    margin-top: 1.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #ddd;
+  }
+  .print-page-break { page-break-before: always; }
+}
 </style>
 </head>
 <body>
@@ -907,6 +1049,8 @@ tr:hover { background: var(--gray-50); }
         <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
       </select>
       <button class="btn btn-sm btn-primary" onclick="renderReport()">조회</button>
+      <button class="btn btn-sm btn-success" onclick="generatePDFReport()">📄 PDF 보고서</button>
+      <button class="btn btn-sm btn-outline" onclick="exportReport()">📋 Excel</button>
     </div>
     <div class="report-grid" id="reportSummary"></div>
     <div class="chart-container" id="reportCharts"></div>
@@ -914,6 +1058,15 @@ tr:hover { background: var(--gray-50); }
       <div class="card-header"><div class="card-title">⛽ 차량별 주유비 상세</div></div>
       <div class="card-body" id="vehicleFuelDetail"></div>
     </div>
+    <!-- 차량별 상세 내역 (대표님 보고용) -->
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-header">
+        <div class="card-title">📋 차량별 상세 내역</div>
+        <span style="font-size:0.7rem;color:var(--gray-400);">대표님 보고용</span>
+      </div>
+      <div class="card-body" id="vehicleDetailReport"></div>
+    </div>
+
     <div class="card" style="margin-top:1rem;">
       <div class="card-header"><div class="card-title">월별 비용 추이</div></div>
       <div class="card-body" id="monthlyCostChart"></div>
@@ -921,6 +1074,9 @@ tr:hover { background: var(--gray-50); }
   </div>
 
 </div>
+
+<!-- PRINT-ONLY: PDF 월간보고서 컨테이너 -->
+<div id="printReportContainer" style="display:none;"></div>
 
 <!-- ===== VEHICLE MODAL ===== -->
 <div class="modal" id="vehicleModal">
@@ -2557,17 +2713,14 @@ closeVehicleModal = function() {
 // ========================================
 // TAB 6: REPORT / STATISTICS
 // ========================================
-function renderReport() {
-  const year = document.getElementById('reportYear').value;
-  const month = document.getElementById('reportMonth').value;
-  const prefix = month ? `${year}-${month}` : year;
 
-  // Gather stats
+// 공통 데이터 집계 함수 (renderReport + generatePDFReport 공용)
+function gatherReportData(prefix) {
   const totalVehicles = Object.keys(vehicleData).length;
   const activeV = Object.values(vehicleData).filter(v => v.status === '운행중').length;
   const repairV = Object.values(vehicleData).filter(v => v.status === '정비중').length;
+  const idleV = Object.values(vehicleData).filter(v => v.status === '대기').length;
 
-  // Cost stats
   let totalCost = 0, catCosts = {}, vehicleCosts = {};
   Object.entries(vehicleCost).forEach(([vid, items]) => {
     if (!Array.isArray(items)) return;
@@ -2580,19 +2733,20 @@ function renderReport() {
     });
   });
 
-  // Driving stats
   let totalDist = 0, totalFuelCost = 0, totalTrips = 0;
+  let vehicleDrivingStats = {};
   Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
     if (!Array.isArray(logs)) return;
+    let dist = 0, fuel = 0, trips = 0;
     logs.forEach(l => {
       if (!l.date || !l.date.startsWith(prefix)) return;
-      totalTrips++;
-      totalDist += Number(l.distance) || 0;
-      totalFuelCost += Number(l.fuelCost) || 0;
+      totalTrips++; trips++;
+      totalDist += Number(l.distance) || 0; dist += Number(l.distance) || 0;
+      totalFuelCost += Number(l.fuelCost) || 0; fuel += Number(l.fuelCost) || 0;
     });
+    if (trips > 0) vehicleDrivingStats[vid] = { dist, fuel, trips };
   });
 
-  // Maintenance stats
   let totalMaintCost = 0, maintCount = 0;
   Object.entries(vehicleMaintenance).forEach(([vid, items]) => {
     if (!Array.isArray(items)) return;
@@ -2603,19 +2757,56 @@ function renderReport() {
     });
   });
 
-  // 차량별 주행거리/주유비 상세
-  let vehicleDrivingStats = {};
-  Object.entries(vehicleDrivingLog).forEach(([vid, logs]) => {
-    if (!Array.isArray(logs)) return;
-    let dist = 0, fuel = 0, trips = 0;
-    logs.forEach(l => {
-      if (!l.date || !l.date.startsWith(prefix)) return;
-      trips++;
-      dist += Number(l.distance) || 0;
-      fuel += Number(l.fuelCost) || 0;
-    });
-    if (trips > 0) vehicleDrivingStats[vid] = { dist, fuel, trips };
-  });
+  return {
+    totalVehicles, activeV, repairV, idleV,
+    totalCost, catCosts, vehicleCosts,
+    totalDist, totalFuelCost, totalTrips,
+    totalMaintCost, maintCount,
+    vehicleDrivingStats
+  };
+}
+
+// 차량별 엔진오일 상태 조회 헬퍼
+function getVehicleOilStatus(vid) {
+  const allDiaries = vehicleDiary[vid] || [];
+  const oilChanges = allDiaries.filter(d => {
+    const isOilCategory = (d.category || '').includes('오일') && (d.category || '').includes('액체류');
+    const descLower = (d.description || '').toLowerCase();
+    return isOilCategory && (descLower.includes('엔진오일') || descLower.includes('엔진 오일') || descLower.includes('engine oil')) && d.km > 0;
+  }).sort((a, b) => (b.km || 0) - (a.km || 0));
+
+  if (oilChanges.length === 0) return null;
+
+  const lastOil = oilChanges[0];
+  const driveLogs = vehicleDrivingLog[vid] || [];
+  let currentKm = 0;
+  driveLogs.forEach(log => { if (log.endKm && log.endKm > currentKm) currentKm = log.endKm; });
+  allDiaries.forEach(d => { if (d.km && d.km > currentKm) currentKm = d.km; });
+
+  if (currentKm <= 0) return null;
+  const kmSince = currentKm - lastOil.km;
+  if (kmSince < 0) return null;
+
+  return {
+    lastChangeKm: lastOil.km,
+    lastChangeDate: lastOil.date || '-',
+    currentKm,
+    kmSince,
+    remaining: OIL_CHANGE_INTERVAL - kmSince,
+    percent: Math.min(100, Math.round((kmSince / OIL_CHANGE_INTERVAL) * 100)),
+    critical: kmSince >= OIL_CHANGE_INTERVAL,
+    warn: kmSince >= 6000
+  };
+}
+
+function renderReport() {
+  const year = document.getElementById('reportYear').value;
+  const month = document.getElementById('reportMonth').value;
+  const prefix = month ? `${year}-${month}` : year;
+
+  const d = gatherReportData(prefix);
+  const { totalVehicles, activeV, repairV, totalCost, catCosts, vehicleCosts,
+          totalDist, totalFuelCost, totalTrips, totalMaintCost, maintCount, vehicleDrivingStats } = d;
 
   // Summary cards
   document.getElementById('reportSummary').innerHTML = `
@@ -2707,6 +2898,9 @@ function renderReport() {
 
   // 차량별 주유비 상세 테이블
   renderVehicleFuelDetail(prefix, vehicleDrivingStats);
+
+  // 차량별 상세 내역 (대표님 보고용)
+  renderVehicleDetailReport(prefix);
 
   // Monthly cost trend (bar chart)
   renderMonthlyCostTrend(year);
@@ -2845,6 +3039,116 @@ function renderVehicleFuelDetail(prefix, drivingStats) {
     </tr>`;
   });
   html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+// 차량별 상세 내역 (대표님 보고용)
+function renderVehicleDetailReport(prefix) {
+  const el = document.getElementById('vehicleDetailReport');
+  if (!el) return;
+
+  const vehicles = Object.entries(vehicleData)
+    .filter(([vid, v]) => v.status !== '폐차')
+    .sort((a, b) => (a[1].vehicleNo || '').localeCompare(b[1].vehicleNo || ''));
+
+  if (vehicles.length === 0) {
+    el.innerHTML = '<div class="empty-state" style="padding:1rem;">차량 데이터가 없습니다.</div>';
+    return;
+  }
+
+  let html = '';
+  vehicles.forEach(([vid, v]) => {
+    // 운행기록
+    const logs = (vehicleDrivingLog[vid] || []).filter(l => l.date && l.date.startsWith(prefix));
+    let dist = 0, fuel = 0;
+    logs.forEach(l => { dist += Number(l.distance) || 0; fuel += Number(l.fuelCost) || 0; });
+
+    // 비용
+    const costs = (vehicleCost[vid] || []).filter(c => c.date && c.date.startsWith(prefix));
+    let totalCostV = 0;
+    const catBreakdown = {};
+    costs.forEach(c => {
+      const amt = Number(c.amount) || 0;
+      totalCostV += amt;
+      catBreakdown[c.category] = (catBreakdown[c.category] || 0) + amt;
+    });
+
+    // 정비일지
+    const diaries = (vehicleDiary[vid] || []).filter(d => d.date && d.date.startsWith(prefix));
+    let diaryTotalCost = 0;
+    diaries.forEach(d => { diaryTotalCost += Number(d.cost) || 0; });
+    const recentDiaries = [...diaries].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 3);
+
+    // 엔진오일 상태
+    const oil = getVehicleOilStatus(vid);
+    let oilHtml;
+    if (!oil) {
+      oilHtml = '<span style="font-size:0.78rem;color:var(--gray-400);">기록 없음</span>';
+    } else {
+      const color = oil.critical ? 'var(--danger)' : oil.warn ? 'var(--warning)' : 'var(--success)';
+      const statusTxt = oil.critical ? '교체 필요!' : oil.warn ? '교체 임박' : '양호';
+      const remainTxt = oil.remaining > 0 ? `잔여 ${fmt(oil.remaining)}km` : `${fmt(Math.abs(oil.remaining))}km 초과`;
+      oilHtml = `<span style="font-size:0.78rem;font-weight:600;color:${color};">${statusTxt}</span>
+        <span style="font-size:0.72rem;color:var(--gray-500);margin-left:0.3rem;">${fmt(oil.kmSince)}km 주행 · ${remainTxt}</span>
+        <div style="height:6px;background:var(--gray-200);border-radius:3px;margin-top:4px;">
+          <div style="height:100%;width:${oil.percent}%;background:${color};border-radius:3px;"></div>
+        </div>`;
+    }
+
+    const statusCls = v.status === '운행중' ? 'status-active' : v.status === '정비중' ? 'status-repair' : 'status-idle';
+
+    html += `<div class="vehicle-detail-card">
+      <div class="vehicle-detail-header">
+        <div>
+          <strong style="font-size:0.95rem;">${v.vehicleNo || '-'}</strong>
+          <span style="color:var(--gray-500);margin-left:0.4rem;font-size:0.82rem;">${v.vehicleName || ''}</span>
+          <span class="status-badge ${statusCls}" style="margin-left:0.4rem;">${v.status || '-'}</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--gray-400);">${v.company || ''} / ${v.driver || '미지정'}</div>
+      </div>
+      <div class="vehicle-detail-grid">
+        <div class="vehicle-detail-item">
+          <div class="vehicle-detail-label">🛣 주행거리</div>
+          <div class="vehicle-detail-value">${fmt(dist)}km <small style="font-weight:400;color:var(--gray-400);">(${logs.length}건)</small></div>
+        </div>
+        <div class="vehicle-detail-item">
+          <div class="vehicle-detail-label">⛽ 주유비</div>
+          <div class="vehicle-detail-value">${fmt(fuel)}원</div>
+        </div>
+        <div class="vehicle-detail-item">
+          <div class="vehicle-detail-label">💰 총 비용</div>
+          <div class="vehicle-detail-value" style="color:var(--primary);">${fmt(totalCostV)}원</div>
+        </div>
+        <div class="vehicle-detail-item">
+          <div class="vehicle-detail-label">🔧 정비일지</div>
+          <div class="vehicle-detail-value">${diaries.length}건 <small style="font-weight:400;color:var(--gray-400);">/ ${fmt(diaryTotalCost)}원</small></div>
+        </div>
+        <div class="vehicle-detail-item" style="grid-column: span 2;">
+          <div class="vehicle-detail-label">🛢 엔진오일 상태</div>
+          <div class="vehicle-detail-value">${oilHtml}</div>
+        </div>
+      </div>
+      ${Object.keys(catBreakdown).length > 0 ? `
+        <div style="margin-top:0.7rem;padding-top:0.6rem;border-top:1px dashed var(--gray-200);">
+          <div style="font-size:0.72rem;font-weight:600;color:var(--gray-500);margin-bottom:0.3rem;">비용 항목별</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+            ${Object.entries(catBreakdown).sort((a,b)=>b[1]-a[1]).map(([cat,amt]) =>
+              `<span style="font-size:0.7rem;background:var(--gray-100);padding:0.18rem 0.45rem;border-radius:4px;color:var(--gray-600);">${cat}: <b>${fmt(amt)}</b>원</span>`
+            ).join('')}
+          </div>
+        </div>` : ''}
+      ${recentDiaries.length > 0 ? `
+        <div style="margin-top:0.6rem;padding-top:0.5rem;border-top:1px dashed var(--gray-200);">
+          <div style="font-size:0.72rem;font-weight:600;color:var(--gray-500);margin-bottom:0.25rem;">최근 정비일지</div>
+          ${recentDiaries.map(dd =>
+            `<div style="font-size:0.7rem;color:var(--gray-500);padding:0.12rem 0;border-bottom:1px dotted var(--gray-100);">
+              ${dd.date || '-'} · <span style="color:var(--purple);">${dd.category || '-'}</span> · ${dd.description || '-'} · <b>${fmt(dd.cost)}원</b>
+            </div>`
+          ).join('')}
+        </div>` : ''}
+    </div>`;
+  });
+
   el.innerHTML = html;
 }
 
@@ -3157,6 +3461,162 @@ function exportReport() {
 
   XLSX.writeFile(wb, `차량관리_월간보고서_${year}${month}.xlsx`);
   showToast('월간보고서가 다운로드되었습니다.');
+}
+
+// ========================================
+// 📄 PDF 월간보고서 (인쇄 방식)
+// ========================================
+function generatePDFReport() {
+  const year = document.getElementById('reportYear').value;
+  const month = document.getElementById('reportMonth').value;
+  if (!month) {
+    showToast('PDF 보고서는 월을 선택해주세요.', 'error');
+    return;
+  }
+  const prefix = `${year}-${month}`;
+  const periodLabel = `${year}년 ${parseInt(month)}월`;
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  const d = gatherReportData(prefix);
+
+  // 1. 요약 테이블
+  const perKm = d.totalDist > 0 ? Math.round((d.totalCost + d.totalFuelCost) / d.totalDist) : 0;
+
+  // 2. 차량별 상세
+  const vehicles = Object.entries(vehicleData)
+    .filter(([vid, v]) => v.status !== '폐차')
+    .sort((a, b) => (a[1].vehicleNo || '').localeCompare(b[1].vehicleNo || ''));
+
+  let vehicleHtml = '';
+  vehicles.forEach(([vid, v]) => {
+    const logs = (vehicleDrivingLog[vid] || []).filter(l => l.date && l.date.startsWith(prefix));
+    let dist = 0, fuel = 0;
+    logs.forEach(l => { dist += Number(l.distance) || 0; fuel += Number(l.fuelCost) || 0; });
+
+    const costs = (vehicleCost[vid] || []).filter(c => c.date && c.date.startsWith(prefix));
+    let totalCostV = 0;
+    const catBreakdown = {};
+    costs.forEach(c => {
+      const amt = Number(c.amount) || 0;
+      totalCostV += amt;
+      catBreakdown[c.category] = (catBreakdown[c.category] || 0) + amt;
+    });
+
+    const diaries = (vehicleDiary[vid] || []).filter(dd => dd.date && dd.date.startsWith(prefix));
+    let diaryTotalCost = 0;
+    diaries.forEach(dd => { diaryTotalCost += Number(dd.cost) || 0; });
+    const recentDiaries = [...diaries].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 5);
+
+    const oil = getVehicleOilStatus(vid);
+    let oilText = '기록 없음';
+    if (oil) {
+      const statusTxt = oil.critical ? '교체 필요!' : oil.warn ? '교체 임박' : '양호';
+      const remainTxt = oil.remaining > 0 ? `잔여 ${fmt(oil.remaining)}km` : `${fmt(Math.abs(oil.remaining))}km 초과`;
+      oilText = `${statusTxt} (교체 후 ${fmt(oil.kmSince)}km 주행, ${remainTxt})`;
+    }
+
+    const catHtml = Object.entries(catBreakdown).length > 0
+      ? Object.entries(catBreakdown).sort((a,b)=>b[1]-a[1]).map(([cat,amt]) => `${cat}: ${fmt(amt)}원`).join(' / ')
+      : '-';
+
+    vehicleHtml += `<div class="print-vehicle-card">
+      <div class="print-vehicle-title">${v.vehicleNo || '-'} (${v.vehicleName || ''}) — ${v.company || ''} / ${v.driver || '미지정'} [${v.status || '-'}]</div>
+      <div class="print-stats-grid">
+        <div class="print-stat-item"><div class="print-stat-label">주행거리</div><div class="print-stat-value">${fmt(dist)}km (${logs.length}건)</div></div>
+        <div class="print-stat-item"><div class="print-stat-label">주유비</div><div class="print-stat-value">${fmt(fuel)}원</div></div>
+        <div class="print-stat-item"><div class="print-stat-label">총 비용</div><div class="print-stat-value">${fmt(totalCostV)}원</div></div>
+        <div class="print-stat-item"><div class="print-stat-label">정비일지</div><div class="print-stat-value">${diaries.length}건 / ${fmt(diaryTotalCost)}원</div></div>
+        <div class="print-stat-item" style="grid-column: span 2;"><div class="print-stat-label">엔진오일</div><div class="print-stat-value">${oilText}</div></div>
+      </div>
+      ${catHtml !== '-' ? `<div style="font-size:8pt;color:#666;margin-top:0.3rem;">비용 항목: ${catHtml}</div>` : ''}
+      ${recentDiaries.length > 0 ? `
+        <div style="margin-top:0.3rem;font-size:8pt;font-weight:600;">정비일지:</div>
+        ${recentDiaries.map(dd =>
+          `<div class="print-diary-row">${dd.date||'-'} | ${dd.category||'-'} | ${dd.description||'-'} | ${fmt(dd.cost)}원</div>`
+        ).join('')}` : ''}
+    </div>`;
+  });
+
+  // 3. 비용 항목별 테이블
+  const catEntries = Object.entries(d.catCosts).sort((a,b) => b[1] - a[1]);
+  let catTableHtml = '';
+  if (catEntries.length > 0) {
+    catTableHtml = `<table class="print-table">
+      <thead><tr><th>항목</th><th>금액</th><th>비율</th></tr></thead>
+      <tbody>
+        ${catEntries.map(([cat, amt]) =>
+          `<tr><td>${cat}</td><td class="right">${fmt(amt)}원</td><td class="right">${d.totalCost > 0 ? Math.round(amt/d.totalCost*100) : 0}%</td></tr>`
+        ).join('')}
+        <tr style="font-weight:700;background:#e3ecf7;"><td>합계</td><td class="right">${fmt(d.totalCost)}원</td><td class="right">100%</td></tr>
+      </tbody>
+    </table>`;
+  } else {
+    catTableHtml = '<p style="font-size:9pt;color:#999;">해당 기간 비용 데이터가 없습니다.</p>';
+  }
+
+  // 4. 주의 항목
+  const insAlerts = [], inspAlerts = [];
+  Object.entries(vehicleInsurance).forEach(([vid, ins]) => {
+    if (!ins) return;
+    const v = vehicleData[vid] || {};
+    if (ins.insuranceEnd) { const dd = getDday(ins.insuranceEnd); if (dd !== null && dd <= 30) insAlerts.push(`${v.vehicleNo||'-'} (${v.vehicleName||'-'}) — 만료: ${ins.insuranceEnd} (${dd < 0 ? 'D+'+Math.abs(dd) : 'D-'+dd})`); }
+    if (ins.inspectionDue) { const dd = getDday(ins.inspectionDue); if (dd !== null && dd <= 30) inspAlerts.push(`${v.vehicleNo||'-'} (${v.vehicleName||'-'}) — 검사: ${ins.inspectionDue} (${dd < 0 ? 'D+'+Math.abs(dd) : 'D-'+dd})`); }
+  });
+
+  // 전체 HTML 조합
+  const printHtml = `<div class="print-report">
+    <div class="print-header">
+      <h1>${periodLabel} 차량관리 월간보고서</h1>
+      <p>출력일: ${today} | 작성: 차량관리시스템</p>
+    </div>
+
+    <div class="print-section">
+      <h2>1. 요약</h2>
+      <table class="print-table">
+        <thead><tr><th>구분</th><th>항목</th><th>수치</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="3">차량 현황</td><td>전체 차량</td><td class="right">${d.totalVehicles}대</td></tr>
+          <tr><td>운행중</td><td class="right">${d.activeV}대</td></tr>
+          <tr><td>정비중</td><td class="right">${d.repairV}대</td></tr>
+          <tr><td rowspan="4">운행 현황</td><td>총 운행건수</td><td class="right">${d.totalTrips}건</td></tr>
+          <tr><td>총 주행거리</td><td class="right">${fmt(d.totalDist)}km</td></tr>
+          <tr><td>총 주유비</td><td class="right">${fmt(d.totalFuelCost)}원</td></tr>
+          <tr><td>km당 비용</td><td class="right">${fmt(perKm)}원/km</td></tr>
+          <tr><td rowspan="2">비용 현황</td><td>총 비용 (비용관리)</td><td class="right">${fmt(d.totalCost)}원</td></tr>
+          <tr><td>정비 비용 (${d.maintCount}건)</td><td class="right">${fmt(d.totalMaintCost)}원</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="print-section print-page-break">
+      <h2>2. 차량별 상세 내역</h2>
+      ${vehicleHtml || '<p style="font-size:9pt;color:#999;">등록된 차량이 없습니다.</p>'}
+    </div>
+
+    <div class="print-section">
+      <h2>3. 항목별 비용</h2>
+      ${catTableHtml}
+    </div>
+
+    <div class="print-section">
+      <h2>4. 주의 항목</h2>
+      ${insAlerts.length > 0 ? `<p style="font-size:9pt;"><strong>⚠️ 보험만료 임박 (${insAlerts.length}건)</strong></p>${insAlerts.map(a => `<div style="font-size:8.5pt;color:#c62828;padding:0.1rem 0;">· ${a}</div>`).join('')}` : '<p style="font-size:9pt;color:#999;">보험만료 임박 차량 없음</p>'}
+      ${inspAlerts.length > 0 ? `<p style="font-size:9pt;margin-top:0.5rem;"><strong>⚠️ 차량검사 임박 (${inspAlerts.length}건)</strong></p>${inspAlerts.map(a => `<div style="font-size:8.5pt;color:#e65100;padding:0.1rem 0;">· ${a}</div>`).join('')}` : '<p style="font-size:9pt;color:#999;">차량검사 임박 차량 없음</p>'}
+    </div>
+
+    <div class="print-footer">
+      ${periodLabel} 차량관리 월간보고서 — 출력일: ${today}
+    </div>
+  </div>`;
+
+  const container = document.getElementById('printReportContainer');
+  container.innerHTML = printHtml;
+  container.style.display = 'block';
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { container.style.display = 'none'; }, 500);
+  }, 200);
 }
 
 // ========================================
