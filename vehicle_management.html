@@ -2865,11 +2865,14 @@ function openDiaryModal(vid, idx) {
           <div class="form-group">
             <label class="form-label">정비구분</label>
             <select class="form-select" id="dyCategory">
-              <option value="일상점검" ${d.category==='일상점검'?'selected':''}>일상점검</option>
-              <option value="소모품교체" ${d.category==='소모품교체'?'selected':''}>소모품교체</option>
-              <option value="수리" ${d.category==='수리'?'selected':''}>수리</option>
-              <option value="세차" ${d.category==='세차'?'selected':''}>세차</option>
-              <option value="기타" ${d.category==='기타'?'selected':''}>기타</option>
+              <option value="오일 및 액체류 교체" ${d.category==='오일 및 액체류 교체'?'selected':''}>🛢 오일 및 액체류 교체</option>
+              <option value="세정 및 플러싱" ${d.category==='세정 및 플러싱'?'selected':''}>🧹 세정 및 플러싱</option>
+              <option value="첨가제 및 보호제" ${d.category==='첨가제 및 보호제'?'selected':''}>💊 첨가제 및 보호제</option>
+              <option value="구리스 및 윤활제" ${d.category==='구리스 및 윤활제'?'selected':''}>⚙️ 구리스 및 윤활제</option>
+              <option value="일상점검" ${d.category==='일상점검'?'selected':''}>🔧 일상점검</option>
+              <option value="수리" ${d.category==='수리'?'selected':''}>🔩 수리</option>
+              <option value="세차" ${d.category==='세차'?'selected':''}>🚿 세차</option>
+              <option value="기타" ${d.category==='기타'?'selected':''}>📌 기타</option>
             </select>
           </div>
           <div class="form-group">

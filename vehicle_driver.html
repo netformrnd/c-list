@@ -573,6 +573,7 @@ body {
 
           <div class="chemical-section" style="border-left-color:#4a6fa5;">
             <div class="chemical-title" style="color:#4a6fa5;">🛢 1. 주요 오일 및 액체류 (필수 소모품)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e3ecf7;color:#4a6fa5;">📝 정비구분: 오일 및 액체류 교체</span></div>
             <div class="chemical-item"><span class="chemical-name">엔진오일</span><span class="chemical-desc">엔진 내부 윤활 및 마찰 방지</span></div>
             <div class="chemical-item"><span class="chemical-name">브레이크액</span><span class="chemical-desc">제동력 전달 유압액</span></div>
             <div class="chemical-item"><span class="chemical-name">냉각수(부동액)</span><span class="chemical-desc">엔진 과열 및 부식 방지</span></div>
@@ -581,6 +582,7 @@ body {
 
           <div class="chemical-section" style="border-left-color:#5ba55b;">
             <div class="chemical-title" style="color:#5ba55b;">🧹 2. 세정 및 플러싱류 (클리너)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#e8f5e8;color:#5ba55b;">📝 정비구분: 세정 및 플러싱</span></div>
             <div class="chemical-item"><span class="chemical-name">엔진 플러싱액</span><span class="chemical-desc">엔진 내부 슬러지 제거</span></div>
             <div class="chemical-item"><span class="chemical-name">스로틀 바디 클리너</span><span class="chemical-desc">흡기 계통 카본 제거</span></div>
             <div class="chemical-item"><span class="chemical-name">브레이크 클리너</span><span class="chemical-desc">분진 및 기름기 제거</span></div>
@@ -588,6 +590,7 @@ body {
 
           <div class="chemical-section" style="border-left-color:#d4a029;">
             <div class="chemical-title" style="color:#d4a029;">💊 3. 첨가제 및 보호제 (영양제)</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#fef7e0;color:#d4a029;">📝 정비구분: 첨가제 및 보호제</span></div>
             <div class="chemical-item"><span class="chemical-name">연료 첨가제</span><span class="chemical-desc">엔진 세정 및 연비 개선</span></div>
             <div class="chemical-item"><span class="chemical-name">누유 방지제</span><span class="chemical-desc">고무 씰 복원을 통한 오일 누유 방지</span></div>
             <div class="chemical-item"><span class="chemical-name">부스터</span><span class="chemical-desc">출력 및 연소 효율 향상</span></div>
@@ -595,11 +598,21 @@ body {
 
           <div class="chemical-section" style="border-left-color:#8b6baf;">
             <div class="chemical-title" style="color:#8b6baf;">⚙️ 4. 구리스 및 윤활제</div>
+            <div style="margin-bottom:0.5rem;"><span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:6px;font-size:0.68rem;font-weight:600;background:#f0eaf7;color:#8b6baf;">📝 정비구분: 구리스 및 윤활제</span></div>
             <div class="chemical-item"><span class="chemical-name">구리스(Grease)</span><span class="chemical-desc">회전축/관절 부위 고점도 윤활</span></div>
             <div class="chemical-item"><span class="chemical-name">침투성 윤활제</span><span class="chemical-desc">녹 제거 및 잡소리 방지 (WD-40 등)</span></div>
           </div>
 
-          <div style="margin-top:0.75rem;padding:0.65rem;background:var(--primary-light);border-radius:10px;text-align:center;">
+          <!-- 정비구분 안내 -->
+          <div style="margin-top:0.75rem;padding:0.75rem;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--gray-700);margin-bottom:0.4rem;">📌 정비일지 작성 시 정비구분 안내</div>
+            <div style="font-size:0.72rem;color:var(--gray-500);line-height:1.6;">
+              위 케미컬류 항목은 정비일지에서 <b>해당 정비구분</b>을 선택하세요.<br>
+              그 외: <b>일상점검</b>(타이어, 등화, 외관 등) | <b>수리</b>(고장수리) | <b>세차</b> | <b>기타</b>
+            </div>
+          </div>
+
+          <div style="margin-top:0.5rem;padding:0.65rem;background:var(--primary-light);border-radius:10px;text-align:center;">
             <span style="font-size:0.8rem;color:var(--primary);font-weight:600;">
               ✅ 학습을 마치셨다면 "운행기록" 또는 "정비일지" 탭으로 이동하세요!
             </span>
@@ -742,13 +755,17 @@ body {
             </div>
             <div class="form-group">
               <label class="form-label">정비구분</label>
-              <select class="form-select" id="dyCategory">
-                <option value="일상점검">일상점검</option>
-                <option value="소모품교체">소모품교체</option>
-                <option value="수리">수리</option>
-                <option value="세차">세차</option>
-                <option value="기타">기타</option>
+              <select class="form-select" id="dyCategory" onchange="showCategoryHint()">
+                <option value="오일 및 액체류 교체">🛢 오일 및 액체류 교체</option>
+                <option value="세정 및 플러싱">🧹 세정 및 플러싱</option>
+                <option value="첨가제 및 보호제">💊 첨가제 및 보호제</option>
+                <option value="구리스 및 윤활제">⚙️ 구리스 및 윤활제</option>
+                <option value="일상점검">🔧 일상점검</option>
+                <option value="수리">🔩 수리</option>
+                <option value="세차">🚿 세차</option>
+                <option value="기타">📌 기타</option>
               </select>
+              <div id="categoryHint" style="margin-top:0.3rem;font-size:0.7rem;color:var(--gray-400);"></div>
             </div>
           </div>
 
@@ -1244,18 +1261,35 @@ function getVehicleLabel(vid) {
 // ========================================
 // ✍️ 정비일지 - 폼 관리
 // ========================================
+// 정비구분 선택 시 해당 케미컬 예시 표시
+function showCategoryHint() {
+  const cat = document.getElementById('dyCategory').value;
+  const hints = {
+    '오일 및 액체류 교체': '예: 엔진오일, 브레이크액, 냉각수(부동액), 미션오일',
+    '세정 및 플러싱': '예: 엔진 플러싱액, 스로틀 바디 클리너, 브레이크 클리너',
+    '첨가제 및 보호제': '예: 연료 첨가제, 누유 방지제, 부스터',
+    '구리스 및 윤활제': '예: 구리스(Grease), 침투성 윤활제(WD-40 등)',
+    '일상점검': '예: 타이어 공기압, 등화장치, 외관점검, 와이퍼 등',
+    '수리': '예: 엔진 고장수리, 사고수리, 부품 교체 등',
+    '세차': '예: 외부세차, 실내세차, 왁스 등',
+    '기타': ''
+  };
+  document.getElementById('categoryHint').textContent = hints[cat] || '';
+}
+
 function resetDiaryForm() {
   document.getElementById('editIdx').value = '-1';
   document.getElementById('editVid').value = '';
   document.getElementById('dyVehicle').value = '';
   document.getElementById('dyDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('dyCategory').value = '일상점검';
+  document.getElementById('dyCategory').value = '오일 및 액체류 교체';
   document.getElementById('dyKm').value = '';
   document.getElementById('dyCost').value = '';
   document.getElementById('dyDesc').value = '';
   document.getElementById('dyStatus').value = '완료';
   document.getElementById('dyMemo').value = '';
   document.getElementById('saveBtn').textContent = '📝 정비일지 저장';
+  showCategoryHint();
 }
 
 async function saveDiary() {
