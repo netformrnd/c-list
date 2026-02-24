@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간식주문 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --primary: #e08a4a;
+  --primary-light: #fff5ec;
+  --primary-dark: #c07030;
+  --success: #5ba55b;
+  --success-light: #e8f5e8;
+  --warning: #d4a029;
+  --warning-light: #fef7e0;
+  --danger: #d05050;
+  --danger-light: #fdeaea;
+  --purple: #8b6baf;
+  --purple-light: #f0eaf7;
+  --mint: #4a9e95;
+  --mint-light: #e2f3f0;
+  --blue: #4a6fa5;
+  --blue-light: #e3ecf7;
+  --gray-50: #fafbfc;
+  --gray-100: #f4f5f7;
+  --gray-200: #e8eaed;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.1);
+  --radius: 12px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #fff8f0 0%, #f5ede4 100%);
+  color: var(--gray-700);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #5c3d2e 0%, #8b5e3c 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-left { display:flex; align-items:center; gap:0.8rem; }
+.header-icon { font-size: 1.6rem; }
+.header-title { font-size:1.3rem; font-weight:700; letter-spacing:-0.5px; }
+.header-sub { font-size:0.75rem; opacity:0.7; margin-top:2px; }
+.header-right { display:flex; gap:0.4rem; flex-wrap:wrap; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: white; }
+.btn-success { background: var(--success); color: white; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-blue { background: var(--blue); color: white; }
+.btn-outline { background: white; color: var(--gray-600); border: 1px solid var(--gray-300); }
+.btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.75rem; }
+.btn-header { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); font-size:0.75rem; }
+.btn-header:hover { background: rgba(255,255,255,0.25); }
+.btn-lg { padding: 0.7rem 1.5rem; font-size: 0.9rem; border-radius: 10px; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+/* ===== CONTAINER ===== */
+.container { max-width: 700px; margin: 0 auto; padding: 1rem; }
+
+/* ===== CARDS ===== */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+.card-header {
+  padding: 0.8rem 1.2rem;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-title { font-size: 0.95rem; font-weight: 700; color: var(--gray-800); }
+.card-body { padding: 1.2rem; }
+
+/* ===== DATE INFO ===== */
+.date-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+.date-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--gray-50);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 140px;
+}
+.date-badge-icon { font-size: 1.2rem; }
+.date-badge-label { color: var(--gray-500); font-size: 0.75rem; }
+.date-badge-value { font-weight: 700; color: var(--gray-800); }
+
+/* ===== FLOOR CARDS ===== */
+.floor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.floor-card {
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.2s;
+  position: relative;
+}
+.floor-card.pending { border-color: var(--warning); background: var(--warning-light); }
+.floor-card.submitted { border-color: var(--blue); background: var(--blue-light); }
+.floor-card.done { border-color: var(--success); background: var(--success-light); }
+
+.floor-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.3rem;
+}
+.floor-team {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 0.2rem;
+}
+.floor-contact {
+  font-size: 0.8rem;
+  color: var(--gray-500);
+  margin-bottom: 0.5rem;
+}
+.floor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-submitted { background: #dbeafe; color: #1e40af; }
+.status-done { background: #d1fae5; color: #065f46; }
+
+.floor-notified {
+  font-size: 0.7rem;
+  color: var(--gray-400);
+  margin-top: 0.4rem;
+}
+
+/* ===== ACTIONS ===== */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.action-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.action-row .btn { flex: 1; justify-content: center; }
+.action-select {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  background: white;
+  color: var(--gray-700);
+}
+
+/* ===== AUTO ALERT INFO ===== */
+.auto-info {
+  background: var(--primary-light);
+  border: 1px solid #f0d0a8;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-size: 0.78rem;
+  color: #7c5530;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.auto-info-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+/* ===== CHECKER INFO ===== */
+.checker-info {
+  background: var(--purple-light);
+  border: 1px solid #d4c5e8;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-size: 0.78rem;
+  color: #5b3f80;
+  margin-top: 0.5rem;
+}
+
+/* ===== SETTINGS MODAL ===== */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal.active { display: flex; }
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title { font-size: 1rem; font-weight: 700; }
+.modal-close {
+  width: 32px; height: 32px;
+  border: none; background: var(--gray-100);
+  border-radius: 50%; cursor: pointer;
+  font-size: 1.2rem; color: var(--gray-500);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-close:hover { background: var(--gray-200); }
+.modal-body {
+  padding: 1.2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+.modal-footer {
+  padding: 0.8rem 1.2rem;
+  border-top: 1px solid var(--gray-100);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* ===== FORM ===== */
+.form-group { margin-bottom: 1rem; }
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 0.3rem;
+}
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(224,138,74,0.15); }
+
+.form-section {
+  background: var(--gray-50);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.form-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-bottom: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ===== TEAM LIST ===== */
+.team-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+.team-item-order {
+  width: 22px; height: 22px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 700;
+  flex-shrink: 0;
+}
+.team-item-name { font-weight: 600; flex: 1; }
+.team-item-contact { color: var(--gray-500); font-size: 0.75rem; }
+.team-item-actions { display: flex; gap: 0.3rem; }
+.team-item-btn {
+  width: 24px; height: 24px;
+  border: none; background: var(--gray-100);
+  border-radius: 4px; cursor: pointer;
+  font-size: 0.7rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.team-item-btn:hover { background: var(--gray-200); }
+.team-item-btn.danger:hover { background: var(--danger-light); color: var(--danger); }
+
+/* ===== HISTORY ===== */
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--gray-100);
+  font-size: 0.8rem;
+  gap: 0.8rem;
+}
+.history-item:last-child { border-bottom: none; }
+.history-month {
+  font-weight: 700;
+  color: var(--gray-800);
+  min-width: 60px;
+}
+.history-floor {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
+}
+.history-floor.f2 { background: #e0f2fe; color: #0369a1; }
+.history-floor.f3 { background: #fce7f3; color: #be185d; }
+.history-detail { flex: 1; color: var(--gray-600); }
+.history-status-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.history-status-badge.done { background: #d1fae5; color: #065f46; }
+.history-status-badge.pending { background: #fef3c7; color: #92400e; }
+
+/* ===== TOAST ===== */
+.toast-container { position: fixed; top: 80px; right: 1rem; z-index: 2000; }
+.toast {
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  animation: slideIn 0.3s ease;
+  max-width: 320px;
+}
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.info { background: var(--blue); }
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ===== PASSWORD OVERLAY ===== */
+.pw-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.pw-overlay.active { display: flex; }
+.pw-box {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+}
+.pw-box-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+.pw-box input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1.1rem;
+  letter-spacing: 0.3rem;
+  font-family: inherit;
+  margin-bottom: 1rem;
+}
+.pw-box input:focus { outline: none; border-color: var(--primary); }
+
+/* ===== MONTH NAV ===== */
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.month-nav-btn {
+  width: 36px; height: 36px;
+  border: 1px solid var(--gray-300);
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.month-nav-btn:hover { background: var(--gray-100); }
+.month-nav-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  min-width: 140px;
+  text-align: center;
+}
+.month-nav-today {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .header { padding: 0.8rem 1rem; }
+  .header-title { font-size: 1.1rem; }
+  .container { padding: 0.7rem; }
+  .floor-grid { grid-template-columns: 1fr; }
+  .date-info { flex-direction: column; gap: 0.5rem; }
+  .action-row { flex-direction: column; }
+  .action-row .btn { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <span class="header-icon">&#127850;</span>
+    <div>
+      <div class="header-title">간식주문 관리</div>
+      <div class="header-sub">스넥24 주문 알림 시스템</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-header" onclick="openSettings()">&#9881; 설정</button>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="container">
+
+  <!-- MONTH NAVIGATION -->
+  <div class="month-nav">
+    <button class="month-nav-btn" onclick="changeMonth(-1)">&#9664;</button>
+    <div class="month-nav-label" id="monthLabel"></div>
+    <button class="month-nav-btn" onclick="changeMonth(1)">&#9654;</button>
+    <button class="month-nav-today" onclick="goToday()">오늘</button>
+  </div>
+
+  <!-- DATE INFO -->
+  <div class="date-info">
+    <div class="date-badge">
+      <span class="date-badge-icon">&#128197;</span>
+      <div>
+        <div class="date-badge-label">마감</div>
+        <div class="date-badge-value" id="deadlineText">-</div>
+      </div>
+    </div>
+    <div class="date-badge">
+      <span class="date-badge-icon">&#128230;</span>
+      <div>
+        <div class="date-badge-label">배송</div>
+        <div class="date-badge-value" id="deliveryText">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOOR STATUS CARDS -->
+  <div class="floor-grid">
+    <div class="floor-card pending" id="floorCard2F">
+      <div class="floor-label">2층</div>
+      <div class="floor-team" id="team2F">-</div>
+      <div class="floor-contact" id="contact2F">담당: -</div>
+      <div class="floor-status status-pending" id="status2F">&#9203; 미완료</div>
+      <div class="floor-notified" id="notified2F"></div>
+    </div>
+    <div class="floor-card pending" id="floorCard3F">
+      <div class="floor-label">3층</div>
+      <div class="floor-team" id="team3F">-</div>
+      <div class="floor-contact" id="contact3F">담당: -</div>
+      <div class="floor-status status-pending" id="status3F">&#9203; 미완료</div>
+      <div class="floor-notified" id="notified3F"></div>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="card">
+    <div class="card-body">
+      <div class="action-section">
+        <div class="action-row">
+          <select class="action-select" id="actionFloor">
+            <option value="2F">2층</option>
+            <option value="3F">3층</option>
+          </select>
+          <button class="btn btn-primary" onclick="sendManualAlert()">&#128231; 수동 알림</button>
+          <button class="btn btn-warning" onclick="markSubmitted()">&#9989; 담당 완료</button>
+          <button class="btn btn-success" onclick="markDone()">&#9989; 최종 확인</button>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-outline btn-sm" onclick="resetStatus()">&#8634; 상태 초기화</button>
+        </div>
+      </div>
+
+      <div class="auto-info">
+        <span class="auto-info-icon">&#128161;</span>
+        <div>
+          <strong>자동 알림:</strong> 매달 1일 + 매주 월/목 오전 9시<br>
+          미완료 시 마감일까지 자동 발송됩니다.
+        </div>
+      </div>
+
+      <div class="checker-info" id="checkerInfo">
+        &#128100; 최종확인: 2층 최영옥 / 3층 주유진
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">&#128203; 히스토리</div>
+      <button class="btn btn-sm btn-outline" onclick="loadMoreHistory()">더보기</button>
+    </div>
+    <div class="card-body" id="historyList">
+      <div style="text-align:center;color:var(--gray-400);font-size:0.85rem;padding:1rem;">
+        기록을 불러오는 중...
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PASSWORD OVERLAY -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <div class="pw-box-title">&#128274; 관리자 비밀번호</div>
+    <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div style="display:flex;gap:0.5rem;">
+      <button class="btn btn-outline" style="flex:1" onclick="closePwOverlay()">취소</button>
+      <button class="btn btn-primary" style="flex:1" onclick="checkPassword()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal" id="settingsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">&#9881; 설정 관리</div>
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="modal-body" id="settingsBody">
+      <!-- TAB NAV -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--gray-200);margin-bottom:1rem;">
+        <button class="stab active" data-tab="tab-2f" onclick="switchSettingsTab(this)">2층 팀</button>
+        <button class="stab" data-tab="tab-3f" onclick="switchSettingsTab(this)">3층 팀</button>
+        <button class="stab" data-tab="tab-checker" onclick="switchSettingsTab(this)">최종확인자</button>
+        <button class="stab" data-tab="tab-budget" onclick="switchSettingsTab(this)">예산/계정</button>
+      </div>
+
+      <!-- 2F TEAMS -->
+      <div class="stab-content active" id="tab-2f">
+        <div class="form-section-title">&#127970; 2층 팀 로테이션</div>
+        <div id="teamList2F" class="team-list"></div>
+        <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+          <input class="form-input" id="newTeam2F" placeholder="팀명" style="flex:2">
+          <input class="form-input" id="newName2F" placeholder="담당자" style="flex:1.5">
+          <input class="form-input" id="newEmail2F" placeholder="이메일" style="flex:2">
+          <button class="btn btn-sm btn-primary" onclick="addTeam('2F')">추가</button>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+          <label class="form-label">기준 시작월 (YYYY-MM)</label>
+          <input class="form-input" id="startMonth2F" placeholder="2026-03">
+        </div>
+      </div>
+
+      <!-- 3F TEAMS -->
+      <div class="stab-content" id="tab-3f" style="display:none">
+        <div class="form-section-title">&#127970; 3층 팀 로테이션</div>
+        <div id="teamList3F" class="team-list"></div>
+        <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+          <input class="form-input" id="newTeam3F" placeholder="팀명" style="flex:2">
+          <input class="form-input" id="newName3F" placeholder="담당자" style="flex:1.5">
+          <input class="form-input" id="newEmail3F" placeholder="이메일" style="flex:2">
+          <button class="btn btn-sm btn-primary" onclick="addTeam('3F')">추가</button>
+        </div>
+        <div class="form-group" style="margin-top:1rem;">
+          <label class="form-label">기준 시작월 (YYYY-MM)</label>
+          <input class="form-input" id="startMonth3F" placeholder="2026-03">
+        </div>
+      </div>
+
+      <!-- CHECKERS -->
+      <div class="stab-content" id="tab-checker" style="display:none">
+        <div class="form-section-title">&#128100; 최종 체크확인자</div>
+        <div class="form-section">
+          <div class="form-label">2층 확인자</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+            <input class="form-input" id="checker2FName" placeholder="이름" style="flex:1">
+            <input class="form-input" id="checker2FEmail" placeholder="이메일" style="flex:2">
+          </div>
+          <div class="form-label">3층 확인자</div>
+          <div style="display:flex;gap:0.5rem;">
+            <input class="form-input" id="checker3FName" placeholder="이름" style="flex:1">
+            <input class="form-input" id="checker3FEmail" placeholder="이메일" style="flex:2">
+          </div>
+        </div>
+      </div>
+
+      <!-- BUDGET / ACCOUNTS -->
+      <div class="stab-content" id="tab-budget" style="display:none">
+        <div class="form-section-title">&#128176; 예산 설정</div>
+        <div class="form-section">
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+            <div style="flex:1">
+              <div class="form-label">석민이앤씨 (원)</div>
+              <input class="form-input" id="budget1" type="number" value="500000">
+            </div>
+            <div style="flex:1">
+              <div class="form-label">넷폼알앤디 (원)</div>
+              <input class="form-input" id="budget2" type="number" value="500000">
+            </div>
+          </div>
+        </div>
+        <div class="form-section-title">&#128722; 스넥24 계정 정보</div>
+        <div class="form-section">
+          <div class="form-group">
+            <label class="form-label">계정1 (석민이앤씨)</label>
+            <input class="form-input" id="account1" placeholder="메모">
+          </div>
+          <div class="form-group">
+            <label class="form-label">계정2 (넷폼알앤디)</label>
+            <input class="form-input" id="account2" placeholder="메모">
+          </div>
+        </div>
+        <div class="form-section-title">&#128274; 비밀번호 변경</div>
+        <div class="form-section">
+          <div style="display:flex;gap:0.5rem;">
+            <input class="form-input" id="newPassword" type="password" placeholder="새 비밀번호">
+            <button class="btn btn-sm btn-outline" onclick="changePassword()">변경</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSettings()">취소</button>
+      <button class="btn btn-primary" onclick="saveSettings()">&#128190; 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB STYLE -->
+<style>
+.stab {
+  padding: 0.6rem 1rem;
+  border: none;
+  background: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--gray-500);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  font-family: inherit;
+}
+.stab:hover { color: var(--primary); }
+.stab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 700; }
+</style>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ===== Firebase Config =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain: "order-d03ce.firebaseapp.com",
+  projectId: "order-d03ce",
+  storageBucket: "order-d03ce.firebasestorage.app",
+  messagingSenderId: "930014374996",
+  appId: "1:930014374996:web:67d764f5bc946d1781d1c1"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ===== n8n Webhook URLs =====
+// 실제 n8n webhook URL로 교체 필요
+const N8N_WEBHOOK = {
+  manualAlert: '',   // 워크플로우 C: 수동 알림
+  checkerAlert: ''   // 워크플로우 D: 최종 확인 요청
+};
+
+// ===== DEFAULT DATA =====
+const DEFAULT_CONFIG = {
+  floors: {
+    "2F": {
+      teams: ["경영관리팀", "서비스운영2팀", "서비스운영3팀", "설계/적산팀", "연구개발팀"],
+      contacts: {
+        "경영관리팀": { name: "신나영", email: "sny25@netformrnd.com" },
+        "서비스운영2팀": { name: "권정아", email: "ja.kwon@netformrnd.com" },
+        "서비스운영3팀": { name: "주현진", email: "hj8228@netformrnd.com" },
+        "설계/적산팀": { name: "한인규", email: "hig@netformrnd.com" },
+        "연구개발팀": { name: "신명희", email: "shinmh@netformrnd.com" }
+      },
+      startMonth: "2026-03",
+      startIndex: 0
+    },
+    "3F": {
+      teams: ["브랜드마케팀", "브랜드커머스팀", "미디어커머스팀"],
+      contacts: {
+        "브랜드마케팀": { name: "권혜영", email: "khy@netformrnd.com" },
+        "브랜드커머스팀": { name: "김채원", email: "chae1@netformrnd.com" },
+        "미디어커머스팀": { name: "김소연", email: "ksy@netformrnd.com" }
+      },
+      startMonth: "2026-03",
+      startIndex: 0
+    }
+  },
+  checkers: {
+    "2F": { name: "최영옥", team: "경영관리팀", email: "cyo@netformrnd.com" },
+    "3F": { name: "주유진", team: "경영관리팀", email: "yoojin83@netformrnd.com" }
+  },
+  budget: { "석민이앤씨": 500000, "넷폼알앤디": 500000 },
+  snack24: { account1: "석민이앤씨", account2: "넷폼알앤디" }
+};
+
+const ADMIN_PW_DEFAULT = '1234';
+
+// ===== STATE =====
+let config = null;
+let currentYear, currentMonth;
+let currentOrders = {};
+let historyMonths = 6;
+
+// ===== INIT =====
+async function initApp() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth(); // 0-indexed
+  await loadConfig();
+  await loadCurrentMonth();
+  renderDashboard();
+  loadHistory();
+}
+
+// ===== FIREBASE FUNCTIONS =====
+async function loadConfig() {
+  try {
+    const doc = await db.collection('snack-settings').doc('config').get();
+    if (doc.exists) {
+      config = doc.data();
+    } else {
+      config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      await db.collection('snack-settings').doc('config').set(config);
+      showToast('초기 설정이 저장되었습니다.', 'info');
+    }
+  } catch (e) {
+    console.error('Config load error:', e);
+    config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    showToast('설정 로드 실패 (오프라인 모드)', 'error');
+  }
+
+  // Load password
+  try {
+    const pwDoc = await db.collection('snack-settings').doc('admin').get();
+    if (!pwDoc.exists) {
+      await db.collection('snack-settings').doc('admin').set({ password: ADMIN_PW_DEFAULT });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function loadCurrentMonth() {
+  const key = getMonthKey(currentYear, currentMonth);
+  try {
+    const doc = await db.collection('snack-orders').doc(key).get();
+    if (doc.exists) {
+      currentOrders = doc.data();
+    } else {
+      currentOrders = generateMonthOrders(currentYear, currentMonth);
+    }
+  } catch (e) {
+    console.error('Orders load error:', e);
+    currentOrders = generateMonthOrders(currentYear, currentMonth);
+  }
+}
+
+async function saveCurrentMonth() {
+  const key = getMonthKey(currentYear, currentMonth);
+  try {
+    await db.collection('snack-orders').doc(key).set(currentOrders);
+  } catch (e) {
+    console.error('Save error:', e);
+    showToast('저장 실패', 'error');
+  }
+}
+
+// ===== DATE CALCULATIONS =====
+function getMonthKey(year, month) {
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+function getSecondThursday(year, month) {
+  const first = new Date(year, month, 1);
+  const firstDay = first.getDay();
+  const firstThursday = 1 + ((4 - firstDay + 7) % 7);
+  return firstThursday + 7;
+}
+
+function getThirdMonday(year, month) {
+  const first = new Date(year, month, 1);
+  const firstDay = first.getDay();
+  const firstMonday = 1 + ((1 - firstDay + 7) % 7);
+  return firstMonday + 14;
+}
+
+function formatDate(year, month, day) {
+  const d = new Date(year, month, day);
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${month + 1}월 ${day}일(${dayNames[d.getDay()]})`;
+}
+
+// ===== ROTATION CALCULATION =====
+function getRotationTeam(floor, year, month) {
+  if (!config || !config.floors || !config.floors[floor]) return null;
+  const f = config.floors[floor];
+  const teams = f.teams;
+  if (!teams || teams.length === 0) return null;
+
+  const startParts = (f.startMonth || '2026-03').split('-');
+  const startYear = parseInt(startParts[0]);
+  const startMonth = parseInt(startParts[1]) - 1;
+  const startIndex = f.startIndex || 0;
+
+  const monthsDiff = (year - startYear) * 12 + (month - startMonth);
+  const idx = ((startIndex + monthsDiff) % teams.length + teams.length) % teams.length;
+  const teamName = teams[idx];
+  const contact = f.contacts ? f.contacts[teamName] : null;
+  return { team: teamName, contact: contact || { name: '-', email: '' } };
+}
+
+// ===== GENERATE MONTH ORDERS =====
+function generateMonthOrders(year, month) {
+  const orders = {};
+  ['2F', '3F'].forEach(floor => {
+    const rot = getRotationTeam(floor, year, month);
+    if (rot) {
+      orders[floor] = {
+        team: rot.team,
+        contact: rot.contact.name,
+        email: rot.contact.email,
+        status: 'pending',
+        lastNotified: null,
+        submittedAt: null,
+        completedAt: null
+      };
+    }
+  });
+  return orders;
+}
+
+// ===== RENDER DASHBOARD =====
+function renderDashboard() {
+  // Month label
+  document.getElementById('monthLabel').textContent = `${currentYear}년 ${currentMonth + 1}월`;
+
+  // Dates
+  const deadline = getSecondThursday(currentYear, currentMonth);
+  const delivery = getThirdMonday(currentYear, currentMonth);
+  document.getElementById('deadlineText').textContent = formatDate(currentYear, currentMonth, deadline) + ' 오후 2시';
+  document.getElementById('deliveryText').textContent = formatDate(currentYear, currentMonth, delivery);
+
+  // Floor cards
+  ['2F', '3F'].forEach(floor => {
+    const order = currentOrders[floor];
+    const suffix = floor;
+    const card = document.getElementById('floorCard' + suffix);
+    const teamEl = document.getElementById('team' + suffix);
+    const contactEl = document.getElementById('contact' + suffix);
+    const statusEl = document.getElementById('status' + suffix);
+    const notifiedEl = document.getElementById('notified' + suffix);
+
+    if (order) {
+      teamEl.textContent = order.team || '-';
+      contactEl.textContent = '담당: ' + (order.contact || '-');
+
+      card.className = 'floor-card ' + (order.status || 'pending');
+      statusEl.className = 'floor-status status-' + (order.status || 'pending');
+
+      if (order.status === 'done') {
+        statusEl.innerHTML = '&#9989; 최종 확인완료';
+      } else if (order.status === 'submitted') {
+        statusEl.innerHTML = '&#128230; 담당 완료 (확인 대기)';
+      } else {
+        statusEl.innerHTML = '&#9203; 미완료';
+      }
+
+      if (order.lastNotified) {
+        const d = new Date(order.lastNotified);
+        notifiedEl.textContent = '마지막 알림: ' + d.toLocaleDateString('ko') + ' ' + d.toLocaleTimeString('ko', {hour:'2-digit', minute:'2-digit'});
+      } else {
+        notifiedEl.textContent = '';
+      }
+    } else {
+      const rot = getRotationTeam(floor, currentYear, currentMonth);
+      teamEl.textContent = rot ? rot.team : '-';
+      contactEl.textContent = rot ? '담당: ' + rot.contact.name : '담당: -';
+      card.className = 'floor-card pending';
+      statusEl.className = 'floor-status status-pending';
+      statusEl.innerHTML = '&#9203; 미완료';
+      notifiedEl.textContent = '';
+    }
+  });
+
+  // Checker info
+  if (config && config.checkers) {
+    const c2 = config.checkers['2F'] || {};
+    const c3 = config.checkers['3F'] || {};
+    document.getElementById('checkerInfo').innerHTML =
+      '&#128100; 최종확인: 2층 ' + (c2.name || '-') + ' / 3층 ' + (c3.name || '-');
+  }
+}
+
+// ===== MONTH NAVIGATION =====
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentYear++; currentMonth = 0; }
+  if (currentMonth < 0) { currentYear--; currentMonth = 11; }
+  loadCurrentMonth().then(() => renderDashboard());
+}
+
+function goToday() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  loadCurrentMonth().then(() => renderDashboard());
+}
+
+// ===== ACTIONS =====
+async function sendManualAlert() {
+  const floor = document.getElementById('actionFloor').value;
+  const order = currentOrders[floor];
+  if (!order) {
+    showToast('해당 층 정보가 없습니다.', 'error');
+    return;
+  }
+
+  if (!N8N_WEBHOOK.manualAlert) {
+    showToast('n8n Webhook URL이 설정되지 않았습니다.\n설정에서 확인해주세요.', 'error');
+    return;
+  }
+
+  const deadline = getSecondThursday(currentYear, currentMonth);
+  const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';
+  const budget = config.budget ? config.budget[budgetKey] : 500000;
+
+  try {
+    showToast('알림 발송 중...', 'info');
+    const res = await fetch(N8N_WEBHOOK.manualAlert, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        floor: floor,
+        email: order.email,
+        name: order.contact,
+        team: order.team,
+        month: currentMonth + 1,
+        year: currentYear,
+        deadline: formatDate(currentYear, currentMonth, deadline) + ' 오후 2시',
+        budget: budget.toLocaleString()
+      })
+    });
+
+    if (res.ok) {
+      order.lastNotified = new Date().toISOString();
+      await saveCurrentMonth();
+      renderDashboard();
+      showToast(`${floor === '2F' ? '2층' : '3층'} ${order.contact}님에게 알림 발송 완료!`, 'success');
+    } else {
+      showToast('발송 실패: ' + res.status, 'error');
+    }
+  } catch (e) {
+    console.error('Manual alert error:', e);
+    showToast('발송 실패: ' + e.message, 'error');
+  }
+}
+
+async function markSubmitted() {
+  const floor = document.getElementById('actionFloor').value;
+  const order = currentOrders[floor];
+  if (!order) return showToast('해당 층 정보가 없습니다.', 'error');
+  if (order.status === 'done') return showToast('이미 최종 확인 완료되었습니다.', 'info');
+  if (order.status === 'submitted') return showToast('이미 담당 완료 처리되었습니다.', 'info');
+
+  order.status = 'submitted';
+  order.submittedAt = new Date().toISOString();
+  await saveCurrentMonth();
+  renderDashboard();
+  showToast(`${floor === '2F' ? '2층' : '3층'} 담당 완료 처리되었습니다.`, 'success');
+
+  // Send checker alert
+  if (N8N_WEBHOOK.checkerAlert && config.checkers && config.checkers[floor]) {
+    const checker = config.checkers[floor];
+    const deadline = getSecondThursday(currentYear, currentMonth);
+    const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';
+    const budget = config.budget ? config.budget[budgetKey] : 500000;
+
+    try {
+      await fetch(N8N_WEBHOOK.checkerAlert, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          floor: floor,
+          team: order.team,
+          checker_email: checker.email,
+          checker_name: checker.name,
+          month: currentMonth + 1,
+          year: currentYear,
+          deadline: formatDate(currentYear, currentMonth, deadline) + ' 오후 2시',
+          budget: budget.toLocaleString()
+        })
+      });
+      showToast(`최종 확인자 ${checker.name}님에게 확인 요청 발송!`, 'info');
+    } catch (e) {
+      console.error('Checker alert error:', e);
+    }
+  }
+}
+
+async function markDone() {
+  const floor = document.getElementById('actionFloor').value;
+  const order = currentOrders[floor];
+  if (!order) return showToast('해당 층 정보가 없습니다.', 'error');
+  if (order.status === 'done') return showToast('이미 최종 확인 완료되었습니다.', 'info');
+
+  order.status = 'done';
+  order.completedAt = new Date().toISOString();
+  if (!order.submittedAt) order.submittedAt = order.completedAt;
+  await saveCurrentMonth();
+  renderDashboard();
+  showToast(`${floor === '2F' ? '2층' : '3층'} 최종 확인 완료!`, 'success');
+}
+
+async function resetStatus() {
+  const floor = document.getElementById('actionFloor').value;
+  const order = currentOrders[floor];
+  if (!order) return showToast('해당 층 정보가 없습니다.', 'error');
+
+  if (!confirm(`${floor === '2F' ? '2층' : '3층'} 상태를 초기화하시겠습니까?`)) return;
+
+  order.status = 'pending';
+  order.submittedAt = null;
+  order.completedAt = null;
+  await saveCurrentMonth();
+  renderDashboard();
+  showToast('상태가 초기화되었습니다.', 'info');
+}
+
+// ===== HISTORY =====
+async function loadHistory() {
+  const container = document.getElementById('historyList');
+  let html = '';
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth();
+
+  let count = 0;
+  for (let i = 0; i < historyMonths; i++) {
+    const key = getMonthKey(y, m);
+    try {
+      const doc = await db.collection('snack-orders').doc(key).get();
+      if (doc.exists) {
+        const data = doc.data();
+        ['2F', '3F'].forEach(floor => {
+          if (data[floor]) {
+            const o = data[floor];
+            const floorLabel = floor === '2F' ? '2층' : '3층';
+            const floorClass = floor === '2F' ? 'f2' : 'f3';
+            const statusClass = o.status === 'done' ? 'done' : 'pending';
+            const statusText = o.status === 'done' ? '완료' : (o.status === 'submitted' ? '확인대기' : '미완료');
+            let detail = o.team + ' / ' + o.contact;
+            if (o.completedAt) {
+              const cd = new Date(o.completedAt);
+              detail += ' / 완료: ' + cd.toLocaleDateString('ko');
+            }
+            html += `<div class="history-item">
+              <div class="history-month">${m + 1}월</div>
+              <div class="history-floor ${floorClass}">${floorLabel}</div>
+              <div class="history-detail">${detail}</div>
+              <div class="history-status-badge ${statusClass}">${statusText}</div>
+            </div>`;
+            count++;
+          }
+        });
+      }
+    } catch (e) { /* skip */ }
+
+    m--;
+    if (m < 0) { y--; m = 11; }
+  }
+
+  if (count === 0) {
+    html = '<div style="text-align:center;color:var(--gray-400);font-size:0.85rem;padding:1rem;">아직 기록이 없습니다.</div>';
+  }
+  container.innerHTML = html;
+}
+
+function loadMoreHistory() {
+  historyMonths += 6;
+  loadHistory();
+}
+
+// ===== PASSWORD =====
+let pendingAction = null;
+
+function openSettings() {
+  pendingAction = 'settings';
+  document.getElementById('pwOverlay').classList.add('active');
+  document.getElementById('pwInput').value = '';
+  setTimeout(() => document.getElementById('pwInput').focus(), 100);
+}
+
+function closePwOverlay() {
+  document.getElementById('pwOverlay').classList.remove('active');
+  pendingAction = null;
+}
+
+async function checkPassword() {
+  const input = document.getElementById('pwInput').value;
+  let storedPw = ADMIN_PW_DEFAULT;
+  try {
+    const doc = await db.collection('snack-settings').doc('admin').get();
+    if (doc.exists && doc.data().password) storedPw = doc.data().password;
+  } catch (e) { /* use default */ }
+
+  if (input === storedPw) {
+    closePwOverlay();
+    if (pendingAction === 'settings') {
+      showSettingsModal();
+    }
+  } else {
+    showToast('비밀번호가 틀렸습니다.', 'error');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+async function changePassword() {
+  const newPw = document.getElementById('newPassword').value.trim();
+  if (!newPw) return showToast('비밀번호를 입력하세요.', 'error');
+  if (newPw.length < 4) return showToast('4자리 이상 입력하세요.', 'error');
+  try {
+    await db.collection('snack-settings').doc('admin').set({ password: newPw });
+    showToast('비밀번호가 변경되었습니다.', 'success');
+    document.getElementById('newPassword').value = '';
+  } catch (e) {
+    showToast('변경 실패', 'error');
+  }
+}
+
+// ===== SETTINGS MODAL =====
+function showSettingsModal() {
+  populateSettings();
+  document.getElementById('settingsModal').classList.add('active');
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('active');
+}
+
+function switchSettingsTab(btn) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.stab-content').forEach(c => c.style.display = 'none');
+  btn.classList.add('active');
+  document.getElementById(btn.dataset.tab).style.display = 'block';
+}
+
+let editTeams = { '2F': [], '3F': [] };
+
+function populateSettings() {
+  // Teams
+  ['2F', '3F'].forEach(floor => {
+    const f = config.floors[floor];
+    editTeams[floor] = f.teams.map(t => ({
+      team: t,
+      name: f.contacts[t] ? f.contacts[t].name : '',
+      email: f.contacts[t] ? f.contacts[t].email : ''
+    }));
+    renderTeamList(floor);
+    document.getElementById('startMonth' + floor).value = f.startMonth || '2026-03';
+  });
+
+  // Checkers
+  const c2 = config.checkers ? config.checkers['2F'] : {};
+  const c3 = config.checkers ? config.checkers['3F'] : {};
+  document.getElementById('checker2FName').value = c2.name || '';
+  document.getElementById('checker2FEmail').value = c2.email || '';
+  document.getElementById('checker3FName').value = c3.name || '';
+  document.getElementById('checker3FEmail').value = c3.email || '';
+
+  // Budget
+  document.getElementById('budget1').value = config.budget ? config.budget['석민이앤씨'] : 500000;
+  document.getElementById('budget2').value = config.budget ? config.budget['넷폼알앤디'] : 500000;
+
+  // Accounts
+  const sn = config.snack24 || {};
+  document.getElementById('account1').value = sn.account1 || '';
+  document.getElementById('account2').value = sn.account2 || '';
+}
+
+function renderTeamList(floor) {
+  const container = document.getElementById('teamList' + floor);
+  const teams = editTeams[floor];
+  container.innerHTML = teams.map((t, i) => `
+    <div class="team-item">
+      <span class="team-item-order">${i + 1}</span>
+      <span class="team-item-name">${t.team}</span>
+      <span class="team-item-contact">${t.name} (${t.email})</span>
+      <div class="team-item-actions">
+        ${i > 0 ? `<button class="team-item-btn" onclick="moveTeam('${floor}',${i},-1)" title="위로">&#9650;</button>` : ''}
+        ${i < teams.length - 1 ? `<button class="team-item-btn" onclick="moveTeam('${floor}',${i},1)" title="아래로">&#9660;</button>` : ''}
+        <button class="team-item-btn danger" onclick="removeTeam('${floor}',${i})" title="삭제">&#10005;</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addTeam(floor) {
+  const team = document.getElementById('newTeam' + floor).value.trim();
+  const name = document.getElementById('newName' + floor).value.trim();
+  const email = document.getElementById('newEmail' + floor).value.trim();
+  if (!team) return showToast('팀명을 입력하세요.', 'error');
+  if (!name) return showToast('담당자를 입력하세요.', 'error');
+  if (!email) return showToast('이메일을 입력하세요.', 'error');
+
+  editTeams[floor].push({ team, name, email });
+  renderTeamList(floor);
+  document.getElementById('newTeam' + floor).value = '';
+  document.getElementById('newName' + floor).value = '';
+  document.getElementById('newEmail' + floor).value = '';
+}
+
+function removeTeam(floor, idx) {
+  if (!confirm(`${editTeams[floor][idx].team}을(를) 삭제하시겠습니까?`)) return;
+  editTeams[floor].splice(idx, 1);
+  renderTeamList(floor);
+}
+
+function moveTeam(floor, idx, dir) {
+  const arr = editTeams[floor];
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= arr.length) return;
+  [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+  renderTeamList(floor);
+}
+
+async function saveSettings() {
+  // Build config from UI
+  ['2F', '3F'].forEach(floor => {
+    const teams = editTeams[floor].map(t => t.team);
+    const contacts = {};
+    editTeams[floor].forEach(t => {
+      contacts[t.team] = { name: t.name, email: t.email };
+    });
+    config.floors[floor].teams = teams;
+    config.floors[floor].contacts = contacts;
+    config.floors[floor].startMonth = document.getElementById('startMonth' + floor).value || '2026-03';
+  });
+
+  config.checkers = {
+    '2F': {
+      name: document.getElementById('checker2FName').value.trim(),
+      team: '경영관리팀',
+      email: document.getElementById('checker2FEmail').value.trim()
+    },
+    '3F': {
+      name: document.getElementById('checker3FName').value.trim(),
+      team: '경영관리팀',
+      email: document.getElementById('checker3FEmail').value.trim()
+    }
+  };
+
+  config.budget = {
+    '석민이앤씨': parseInt(document.getElementById('budget1').value) || 500000,
+    '넷폼알앤디': parseInt(document.getElementById('budget2').value) || 500000
+  };
+
+  config.snack24 = {
+    account1: document.getElementById('account1').value.trim(),
+    account2: document.getElementById('account2').value.trim()
+  };
+
+  try {
+    await db.collection('snack-settings').doc('config').set(config);
+    showToast('설정이 저장되었습니다!', 'success');
+    closeSettings();
+    // Regenerate current month if needed
+    currentOrders = generateMonthOrders(currentYear, currentMonth);
+    // Keep existing status data if available
+    const key = getMonthKey(currentYear, currentMonth);
+    try {
+      const doc = await db.collection('snack-orders').doc(key).get();
+      if (doc.exists) {
+        const saved = doc.data();
+        ['2F', '3F'].forEach(floor => {
+          if (saved[floor] && saved[floor].status) {
+            currentOrders[floor].status = saved[floor].status;
+            currentOrders[floor].lastNotified = saved[floor].lastNotified;
+            currentOrders[floor].submittedAt = saved[floor].submittedAt;
+            currentOrders[floor].completedAt = saved[floor].completedAt;
+          }
+        });
+      }
+    } catch (e) { /* ignore */ }
+    renderDashboard();
+  } catch (e) {
+    console.error('Settings save error:', e);
+    showToast('저장 실패: ' + e.message, 'error');
+  }
+}
+
+// ===== TOAST =====
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    toast.style.transition = 'all 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ===== START =====
+initApp();
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{
+  "name": "간식주문 - 반복 리마인더",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1,4"
+            }
+          ]
+        }
+      },
+      "id": "schedule-reminder",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate current month key and deadline\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = now.getMonth();\nconst monthKey = `${year}-${String(month+1).padStart(2,'0')}`;\n\n// Calculate second Thursday (deadline)\nconst first = new Date(year, month, 1);\nconst firstDay = first.getDay();\nconst firstThursday = 1 + ((4 - firstDay + 7) % 7);\nconst deadlineDay = firstThursday + 7;\nconst deadlineDate = new Date(year, month, deadlineDay, 14, 0, 0);\n\n// Stop after deadline\nif (now > deadlineDate) {\n  return []; // empty = stop execution\n}\n\nconst dayNames = ['일','월','화','수','목','금','토'];\nconst deadlineStr = `${month+1}월 ${deadlineDay}일(${dayNames[deadlineDate.getDay()]}) 오후 2시`;\n\nreturn [{\n  json: {\n    monthKey: monthKey,\n    month: month + 1,\n    year: year,\n    deadline: deadlineStr\n  }\n}];"
+      },
+      "id": "check-deadline",
+      "name": "Check Deadline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://firestore.googleapis.com/v1/projects/order-d03ce/databases/(default)/documents/snack-orders/{{ $json.monthKey }}",
+        "options": {}
+      },
+      "id": "get-orders",
+      "name": "Firebase Get Orders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Firebase orders and filter pending ones\nconst response = $input.first().json;\nconst prevData = $('Check Deadline').first().json;\n\nif (!response.fields) return [];\n\nfunction fbVal(v) {\n  if (!v) return null;\n  if (v.stringValue !== undefined) return v.stringValue;\n  if (v.integerValue !== undefined) return parseInt(v.integerValue);\n  if (v.nullValue !== undefined) return null;\n  if (v.mapValue) {\n    const obj = {};\n    const f = v.mapValue.fields;\n    for (const k in f) obj[k] = fbVal(f[k]);\n    return obj;\n  }\n  return null;\n}\n\nconst results = [];\n['2F', '3F'].forEach(floor => {\n  if (!response.fields[floor]) return;\n  const order = fbVal(response.fields[floor]);\n  if (!order) return;\n  \n  // Only send reminder for pending orders\n  if (order.status !== 'pending') return;\n  if (!order.email) return;\n  \n  const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';\n  \n  results.push({\n    floor: floor,\n    team: order.team || '',\n    name: order.contact || '',\n    email: order.email || '',\n    month: prevData.month,\n    year: prevData.year,\n    monthKey: prevData.monthKey,\n    deadline: prevData.deadline,\n    budget: '500,000'\n  });\n});\n\nreturn results;"
+      },
+      "id": "filter-pending",
+      "name": "Filter Pending",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "resource": "email",
+        "operation": "send",
+        "fromEmail": "간식주문알림 <noreply@netformrnd.com>",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=[리마인더] {{ $json.month }}월 간식 주문 안내 - {{ $json.team }}",
+        "message": "=안녕하세요, {{ $json.name }}님!\n\n{{ $json.month }}월 간식 주문이 아직 완료되지 않았습니다.\n\n📅 마감: {{ $json.deadline }}\n🛒 스넥24에 물건을 담아주세요\n💰 예산: {{ $json.budget }}원\n\n스넥24 바로가기: https://www.snack24.com\n\n감사합니다.",
+        "options": {}
+      },
+      "id": "email-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [{ "node": "Check Deadline", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Deadline": {
+      "main": [
+        [{ "node": "Firebase Get Orders", "type": "main", "index": 0 }]
+      ]
+    },
+    "Firebase Get Orders": {
+      "main": [
+        [{ "node": "Filter Pending", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Pending": {
+      "main": [
+        [{ "node": "Send Reminder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

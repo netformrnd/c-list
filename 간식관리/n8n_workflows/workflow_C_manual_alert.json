@@ -1,0 +1,61 @@
+{
+  "name": "간식주문 - 수동 알림 (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "snack-manual-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-manual",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "email",
+        "operation": "send",
+        "fromEmail": "간식주문알림 <noreply@netformrnd.com>",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=[간식주문] {{ $json.month }}월 간식 주문 안내 - {{ $json.team }}",
+        "message": "=안녕하세요, {{ $json.name }}님!\n\n{{ $json.month }}월 간식 주문 담당입니다.\n\n📅 마감: {{ $json.deadline }}\n🛒 스넥24에 물건을 담아주세요\n💰 예산: {{ $json.budget }}원\n\n스넥24 바로가기: https://www.snack24.com\n\n감사합니다.",
+        "options": {}
+      },
+      "id": "email-send",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [500, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"알림 발송 완료\"}"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

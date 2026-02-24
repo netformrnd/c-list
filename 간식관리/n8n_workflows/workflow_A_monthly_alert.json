@@ -1,0 +1,101 @@
+{
+  "name": "간식주문 - 월초 자동 알림",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-monthly",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://firestore.googleapis.com/v1/projects/order-d03ce/databases/(default)/documents/snack-settings/config",
+        "options": {}
+      },
+      "id": "get-config",
+      "name": "Firebase Get Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Firebase config and calculate rotation\nconst response = $input.first().json;\nconst fields = response.fields;\n\n// Helper: parse Firebase value\nfunction fbVal(v) {\n  if (!v) return null;\n  if (v.stringValue !== undefined) return v.stringValue;\n  if (v.integerValue !== undefined) return parseInt(v.integerValue);\n  if (v.mapValue) {\n    const obj = {};\n    const f = v.mapValue.fields;\n    for (const k in f) obj[k] = fbVal(f[k]);\n    return obj;\n  }\n  if (v.arrayValue) {\n    return (v.arrayValue.values || []).map(fbVal);\n  }\n  return null;\n}\n\nconst config = {};\nfor (const k in fields) config[k] = fbVal(fields[k]);\n\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = now.getMonth(); // 0-indexed\n\n// Calculate second Thursday (deadline)\nconst first = new Date(year, month, 1);\nconst firstDay = first.getDay();\nconst firstThursday = 1 + ((4 - firstDay + 7) % 7);\nconst deadline = firstThursday + 7;\nconst dayNames = ['일','월','화','수','목','금','토'];\nconst deadlineDate = new Date(year, month, deadline);\nconst deadlineStr = `${month+1}월 ${deadline}일(${dayNames[deadlineDate.getDay()]}) 오후 2시`;\n\nconst results = [];\n\n['2F', '3F'].forEach(floor => {\n  const f = config.floors ? config.floors[floor] : null;\n  if (!f) return;\n  \n  const teams = f.teams || [];\n  if (teams.length === 0) return;\n  \n  const startParts = (f.startMonth || '2026-03').split('-');\n  const startYear = parseInt(startParts[0]);\n  const startMonth = parseInt(startParts[1]) - 1;\n  const startIndex = f.startIndex || 0;\n  \n  const monthsDiff = (year - startYear) * 12 + (month - startMonth);\n  const idx = ((startIndex + monthsDiff) % teams.length + teams.length) % teams.length;\n  const teamName = teams[idx];\n  const contact = f.contacts ? f.contacts[teamName] : null;\n  \n  const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';\n  const budget = config.budget ? (config.budget[budgetKey] || 500000) : 500000;\n  \n  results.push({\n    floor: floor,\n    team: teamName,\n    name: contact ? contact.name : '',\n    email: contact ? contact.email : '',\n    month: month + 1,\n    year: year,\n    monthKey: `${year}-${String(month+1).padStart(2,'0')}`,\n    deadline: deadlineStr,\n    budget: budget.toLocaleString()\n  });\n});\n\nreturn results;"
+      },
+      "id": "calc-rotation",
+      "name": "Calculate Rotation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "resource": "email",
+        "operation": "send",
+        "fromEmail": "간식주문알림 <noreply@netformrnd.com>",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=[간식주문] {{ $json.month }}월 간식 주문 안내 - {{ $json.team }}",
+        "message": "=안녕하세요, {{ $json.name }}님!\n\n{{ $json.month }}월 간식 주문 담당입니다.\n\n📅 마감: {{ $json.deadline }}\n🛒 스넥24에 물건을 담아주세요\n💰 예산: {{ $json.budget }}원\n\n스넥24 바로가기: https://www.snack24.com\n\n감사합니다.",
+        "options": {}
+      },
+      "id": "email-monthly",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1000, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://firestore.googleapis.com/v1/projects/order-d03ce/databases/(default)/documents/snack-orders/{{ $json.monthKey }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"{{ $json.floor }}\": {\n      \"mapValue\": {\n        \"fields\": {\n          \"team\": { \"stringValue\": \"{{ $json.team }}\" },\n          \"contact\": { \"stringValue\": \"{{ $json.name }}\" },\n          \"email\": { \"stringValue\": \"{{ $json.email }}\" },\n          \"status\": { \"stringValue\": \"pending\" },\n          \"lastNotified\": { \"stringValue\": \"{{ new Date().toISOString() }}\" },\n          \"submittedAt\": { \"nullValue\": null },\n          \"completedAt\": { \"nullValue\": null }\n        }\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "id": "update-firebase",
+      "name": "Update Firebase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [{ "node": "Firebase Get Config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Firebase Get Config": {
+      "main": [
+        [{ "node": "Calculate Rotation", "type": "main", "index": 0 }]
+      ]
+    },
+    "Calculate Rotation": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [{ "node": "Update Firebase", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

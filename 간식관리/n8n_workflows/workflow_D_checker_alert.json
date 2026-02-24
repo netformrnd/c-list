@@ -1,0 +1,61 @@
+{
+  "name": "간식주문 - 최종확인 요청 (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "snack-checker-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-checker",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "email",
+        "operation": "send",
+        "fromEmail": "간식주문알림 <noreply@netformrnd.com>",
+        "toEmail": "={{ $json.checker_email }}",
+        "subject": "=[간식주문] {{ $json.month }}월 간식 최종 확인 요청 - {{ $json.floor }}",
+        "message": "=안녕하세요, {{ $json.checker_name }}님!\n\n{{ $json.team }}에서 {{ $json.month }}월 간식 물건을 스넥24에 담았습니다.\n최종 확인을 부탁드립니다.\n\n📅 마감: {{ $json.deadline }}\n💰 예산: {{ $json.budget }}원\n🛒 스넥24 바로가기: https://www.snack24.com\n\n확인 완료 후 관리자에게 알려주세요.\n\n감사합니다.",
+        "options": {}
+      },
+      "id": "email-checker",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [500, 300],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"최종확인 요청 발송 완료\"}"
+      },
+      "id": "respond-checker",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Send Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
