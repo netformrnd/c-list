@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>법인차량 소모품 관리 가이드 (주기별)</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#101a2e;
+      --card2:#0f172a;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --line:rgba(255,255,255,.08);
+      --accent:#7dd3fc;
+      --accent2:#a7f3d0;
+      --warn:#fbbf24;
+      --danger:#fb7185;
+      --chip:#0b2a3a;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:24px;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% 0%, rgba(125,211,252,.15), transparent 60%),
+                  radial-gradient(900px 500px at 90% 15%, rgba(167,243,208,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px; margin:0 auto}
+    header{
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:16px; margin-bottom:18px;
+    }
+    .title h1{margin:0; font-size:22px; letter-spacing:-.3px}
+    .title p{margin:8px 0 0; color:var(--muted); line-height:1.5; font-size:14px}
+    .badge{
+      display:inline-flex; gap:8px; flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .chip{
+      background:rgba(125,211,252,.10);
+      border:1px solid rgba(125,211,252,.25);
+      color:var(--accent);
+      padding:6px 10px; border-radius:999px; font-size:12px;
+      white-space:nowrap;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.4fr .6fr;
+      gap:14px;
+    }
+    @media (max-width: 920px){
+      .grid{grid-template-columns:1fr}
+      body{padding:16px}
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size:16px;
+      letter-spacing:-.2px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .pill{
+      font-size:12px;
+      padding:5px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      color:var(--muted);
+      background:rgba(0,0,0,.12);
+    }
+    .hint{
+      margin:0 0 12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.10);
+    }
+    th, td{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      vertical-align:top;
+      font-size:13px;
+      line-height:1.5;
+    }
+    th{
+      text-align:left;
+      color:#dbeafe;
+      background:rgba(59,130,246,.12);
+      font-weight:600;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+    tr:last-child td{border-bottom:none}
+    .muted{color:var(--muted)}
+    .kpi{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    .box{
+      background:rgba(0,0,0,.14);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+    }
+    .box h3{margin:0 0 6px; font-size:13px}
+    .box p{margin:0; color:var(--muted); font-size:12px; line-height:1.6}
+    .list{
+      margin:10px 0 0;
+      padding:0; list-style:none;
+      display:grid; gap:8px;
+    }
+    .list li{
+      padding:10px 12px;
+      background:rgba(0,0,0,.14);
+      border:1px solid var(--line);
+      border-radius:12px;
+      font-size:13px;
+      line-height:1.55;
+    }
+    .tag{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid var(--line);
+      margin-right:8px;
+      background:rgba(0,0,0,.12);
+      color:var(--muted);
+      vertical-align:middle;
+    }
+    .warn{color:var(--warn)}
+    .danger{color:var(--danger)}
+    footer{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+    .cta{
+      margin-top:10px;
+      display:flex; flex-wrap:wrap; gap:10px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(125,211,252,.10);
+      color:var(--accent);
+      font-size:13px;
+      text-decoration:none;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:active{transform:translateY(1px)}
+    .small{font-size:12px}
+    .hr{height:1px; background:var(--line); margin:12px 0}
+    .note{
+      background:rgba(251,191,36,.08);
+      border:1px solid rgba(251,191,36,.20);
+      color:#fde68a;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      line-height:1.6;
+    }
+    .ok{
+      background:rgba(167,243,208,.08);
+      border:1px solid rgba(167,243,208,.18);
+      color:#a7f3d0;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      line-height:1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>법인차량 소모품 관리 가이드 (주기별)</h1>
+        <p>
+          “학습 → 개인별 정비일지 → 자율관리”를 운영하기 위한 최소 기준표.<br/>
+          목적은 기술 교육이 아니라 <b>교체 주기/점검 기준 통일</b>과 <b>예방정비 체계화</b>.
+        </p>
+        <div class="badge">
+          <span class="chip">개인전용 차량: 운행자 1차 책임</span>
+          <span class="chip">공용 차량: 월 1회 관리자 점검</span>
+          <span class="chip">주기 기준: km + 월 기준 병행</span>
+        </div>
+      </div>
+
+      <div class="card" style="min-width:280px; max-width:360px;">
+        <h2>운영 원칙 <span class="pill">핵심 3가지</span></h2>
+        <ul class="list">
+          <li><span class="tag">1</span><b>예방정비</b>가 목표 (고장 후 수리 X)</li>
+          <li><span class="tag">2</span>교체/점검은 <b>증빙(사진·영수증)</b> 남김</li>
+          <li><span class="tag">3</span>누적 km 기준으로 <b>알림/경고</b> 가능하게 데이터화</li>
+        </ul>
+        <div class="hr"></div>
+        <div class="note">
+          <b class="warn">주의</b> : 아래 주기는 평균값이라 차량/운행환경(고속·시내·장거리/단거리/적재)에 따라 조정 가능.
+          단, 사내 기준은 “통일”이 중요함.
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>1) 매월 점검 (또는 1,000km 이상 운행 시) <span class="pill">점검</span></h2>
+        <p class="hint">운행자가 직접 확인 가능한 항목 위주. 이상 발견 시 정비 예약/보고.</p>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:18%;">항목</th>
+              <th style="width:28%;">점검 내용</th>
+              <th style="width:22%;">기준/판단</th>
+              <th>방치 시 리스크</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>타이어 공기압</b></td>
+              <td>공기압 부족/과다 확인</td>
+              <td>차량 문 안쪽 표기값 기준</td>
+              <td class="muted">연비 저하, 편마모, 승차감 악화</td>
+            </tr>
+            <tr>
+              <td><b>타이어 마모</b></td>
+              <td>마모 한계선(슬립사인) 확인</td>
+              <td><b class="danger">1.6mm 이하 교체</b></td>
+              <td class="muted">제동력 저하, 빗길 미끄러짐</td>
+            </tr>
+            <tr>
+              <td><b>워셔액</b></td>
+              <td>부족 여부 확인</td>
+              <td>부족 시 보충</td>
+              <td class="muted">시야 확보 불가(안전 리스크)</td>
+            </tr>
+            <tr>
+              <td><b>누유/이상</b></td>
+              <td>하부 누유, 경고등, 이상 소음</td>
+              <td>이상 시 즉시 보고/예약</td>
+              <td class="muted">경미한 문제 → 대형 고장으로 확대</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="kpi">
+          <div class="box">
+            <h3>월간 체크 결과 기록</h3>
+            <p>✅ 정상 / ⚠️ 주의 / ❗정비필요 (3단계로 단순화 추천)</p>
+          </div>
+          <div class="box">
+            <h3>증빙 최소 기준</h3>
+            <p>정비/교체 시: 계기판 km 사진 + 영수증(또는 카드전표)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>추천 사내 기준값 <span class="pill">통일안</span></h2>
+        <ul class="list">
+          <li><span class="tag">엔진오일</span> <b>7,000~8,000km</b> 교체로 통일 (차량별 편차 최소화)</li>
+          <li><span class="tag">필터류</span> 오일 교체 시 <b>동시 점검</b> 원칙</li>
+          <li><span class="tag">정비일지</span> “교체일/교체km/항목/비용/비고” 5개 필드 고정</li>
+        </ul>
+        <div class="hr"></div>
+        <div class="ok">
+          <b>운영 팁</b> : “월 1회 + km 도달 시” 2트리거로 가면 누락이 확 줄어듦.
+        </div>
+
+        <div class="cta">
+          <button class="btn" onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+          <a class="btn" href="#log">🧾 정비일지 섹션으로</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h2>2) 5,000 ~ 10,000km 주기 <span class="pill">교체</span></h2>
+      <p class="hint">가장 잦고 비용 대비 효과가 큰 구간. “이거만 지켜도” 고장률이 떨어짐.</p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%;">항목</th>
+            <th style="width:28%;">교체 기준</th>
+            <th style="width:18%;">관리 포인트</th>
+            <th>메모</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>엔진오일</b></td>
+            <td>5,000~10,000km (권장: 7~8천)</td>
+            <td>교체 km 기록 필수</td>
+            <td class="muted">운행환경 거칠면 짧게, 장거리 위주면 길게</td>
+          </tr>
+          <tr>
+            <td><b>오일필터</b></td>
+            <td>엔진오일 교체 시 동시</td>
+            <td>세트 교체 원칙</td>
+            <td class="muted">필터 누락 시 오일 교체 효과 감소</td>
+          </tr>
+          <tr>
+            <td><b>에어필터</b></td>
+            <td>약 10,000km</td>
+            <td>먼지 많은 환경 주의</td>
+            <td class="muted">흡기 효율/연비에 영향</td>
+          </tr>
+          <tr>
+            <td><b>에어컨필터</b></td>
+            <td>약 10,000km</td>
+            <td>악취/약풍 시 우선 교체</td>
+            <td class="muted">실내 공기질/냄새 관련 클레임 감소</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid" style="margin-top:14px;">
+      <div class="card">
+        <h2>3) 20,000 ~ 30,000km <span class="pill">점검/교체</span></h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:24%;">항목</th>
+              <th style="width:30%;">기준</th>
+              <th>리스크</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>타이어 위치교환</b></td>
+              <td>10,000~15,000km 마다</td>
+              <td class="muted">편마모 → 타이어 수명 단축</td>
+            </tr>
+            <tr>
+              <td><b>브레이크 패드</b></td>
+              <td>20,000~30,000km (상태 따라)</td>
+              <td class="muted">제동 불량, 디스크 손상</td>
+            </tr>
+            <tr>
+              <td><b>배터리 점검</b></td>
+              <td>2년 주기 점검 (상태 체크)</td>
+              <td class="muted">돌발 방전, 운행 차질</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>4) 40,000km 이상 <span class="pill">주요 교체</span></h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:26%;">항목</th>
+              <th style="width:34%;">교체 기준(평균)</th>
+              <th>비고</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>브레이크 오일</b></td>
+              <td>40,000km</td>
+              <td class="muted">브레이크 성능/페달감 영향</td>
+            </tr>
+            <tr>
+              <td><b>미션오일</b></td>
+              <td>40,000~60,000km</td>
+              <td class="muted">차종별 권장주기 확인 필요</td>
+            </tr>
+            <tr>
+              <td><b>냉각수</b></td>
+              <td>40,000~50,000km</td>
+              <td class="muted">과열 방지 핵심</td>
+            </tr>
+            <tr>
+              <td><b>점화플러그</b></td>
+              <td>40,000~60,000km</td>
+              <td class="muted">시동성/연비/출력에 영향</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="log" style="margin-top:14px;">
+      <h2>정비일지 작성 규칙 <span class="pill">운영</span></h2>
+      <p class="hint">
+        개인전용 차량은 운행자가 작성. 공용 차량은 관리자(또는 운행자) 작성 후 월말 취합.
+      </p>
+
+      <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <div class="box">
+          <h3>필수 필드(고정)</h3>
+          <ul class="list" style="margin-top:8px;">
+            <li><span class="tag">1</span>차량번호 / 차종</li>
+            <li><span class="tag">2</span>정비(교체)일</li>
+            <li><span class="tag">3</span>누적 주행거리(km)</li>
+            <li><span class="tag">4</span>항목(엔진오일/타이어 등)</li>
+            <li><span class="tag">5</span>비용 + 결제수단(법인카드)</li>
+            <li><span class="tag">+</span>증빙(계기판 사진/영수증)</li>
+          </ul>
+        </div>
+
+        <div class="box">
+          <h3>보고/승인 흐름(권장)</h3>
+          <ul class="list" style="margin-top:8px;">
+            <li><span class="tag">Step 1</span>운행자: 교체 필요 판단(주기 도달/경고등/점검 결과)</li>
+            <li><span class="tag">Step 2</span>정비 예약 및 수행</li>
+            <li><span class="tag">Step 3</span>정비일지 입력 + 증빙 업로드</li>
+            <li><span class="tag">Step 4</span>월말 취합(비용/항목/차량별 누적)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">
+        <b class="warn">리스크 관리 포인트</b> : “주기 미준수” 자체보다, 주기 미준수로 인한 고장 발생 시
+        비용/책임/운행 차질이 커짐. 그래서 <b>정비일지(데이터)</b>가 핵심.
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <h2>부록: 사내 공지용 “학습 범위” 정의 <span class="pill">1페이지</span></h2>
+      <ul class="list">
+        <li><span class="tag">타이어</span> 마모 한계선(1.6mm), 공기압 확인 위치(문 안쪽 표기), 위치교환 개념</li>
+        <li><span class="tag">엔진오일</span> 교체 주기(5천~1만km), 오일/필터 동시 교체 원칙, 경고등 의미</li>
+        <li><span class="tag">필터</span> 에어/에어컨필터 교체 주기(1만km), 악취/약풍 증상</li>
+        <li><span class="tag">캐미칼류</span> 워셔액·냉각수 등 “부족하면 보충, 누유 의심 시 보고” 정도의 기준</li>
+      </ul>
+      <footer>
+        * 이 문서는 법인 차량 운영을 위한 내부 기준 예시이며, 차종별 제조사 권장주기와 실제 운행환경에 따라 조정할 수 있습니다.
+      </footer>
+    </div>
+
+    <footer style="text-align:center; margin-top:18px;">
+      © 내부용 | 법인차량 소모품 관리 가이드
+    </footer>
+  </div>
+</body>
+</html>
