@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>넷폼알앤디 업무 시스템</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gray-50: #fafbfc;
+  --gray-100: #f4f5f7;
+  --gray-200: #e8eaed;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+  --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #f0f4f8 0%, #dfe6ed 100%);
+  color: var(--gray-700);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  background: linear-gradient(135deg, #2c3e50 0%, #3a5575 100%);
+  color: white;
+  width: 100%;
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.header-logo { font-size: 2rem; margin-bottom: 0.3rem; }
+.header-title { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+.header-sub { font-size: 0.8rem; opacity: 0.6; margin-top: 0.3rem; }
+
+.container {
+  max-width: 500px;
+  width: 100%;
+  padding: 1.5rem 1rem;
+  flex: 1;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 1.2rem 0 0.6rem 0.3rem;
+}
+.section-label:first-child { margin-top: 0; }
+
+.card-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.2rem 1.3rem;
+  margin-bottom: 0.7rem;
+  text-decoration: none;
+  color: var(--gray-700);
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+.card-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: #4a6fa5;
+}
+.card-link:active { transform: scale(0.98); }
+
+.card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+.card-icon.blue { background: #e3ecf7; }
+.card-icon.green { background: #e8f5e8; }
+.card-icon.orange { background: #fff5ec; }
+.card-icon.purple { background: #f0eaf7; }
+
+.card-info { flex: 1; }
+.card-title { font-size: 1rem; font-weight: 700; color: var(--gray-800); margin-bottom: 0.15rem; }
+.card-desc { font-size: 0.78rem; color: var(--gray-500); line-height: 1.4; }
+.card-arrow { color: var(--gray-300); font-size: 1.2rem; }
+
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--gray-400);
+}
+
+@media (max-width: 480px) {
+  .header { padding: 1.5rem 1rem 1.2rem; }
+  .header-title { font-size: 1.2rem; }
+  .card-link { padding: 1rem; }
+  .card-icon { width: 46px; height: 46px; font-size: 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">&#127970;</div>
+  <div class="header-title">넷폼알앤디 업무 시스템</div>
+  <div class="header-sub">NETFORM R&D Management System</div>
+</div>
+
+<div class="container">
+
+  <div class="section-label">현장관리</div>
+
+  <a class="card-link" href="현장관리/index.html">
+    <div class="card-icon blue">&#128203;</div>
+    <div class="card-info">
+      <div class="card-title">공사현황 리스트</div>
+      <div class="card-desc">현장 프로젝트 현황, 계약/결제 관리</div>
+    </div>
+    <div class="card-arrow">&#10095;</div>
+  </a>
+
+  <a class="card-link" href="현장관리/요청보드.html">
+    <div class="card-icon purple">&#128172;</div>
+    <div class="card-info">
+      <div class="card-title">요청보드</div>
+      <div class="card-desc">현장 요청사항 접수 및 관리</div>
+    </div>
+    <div class="card-arrow">&#10095;</div>
+  </a>
+
+  <div class="section-label">차량관리</div>
+
+  <a class="card-link" href="차량관리/vehicle_management.html">
+    <div class="card-icon green">&#128663;</div>
+    <div class="card-info">
+      <div class="card-title">차량관리대장</div>
+      <div class="card-desc">관리자용 - 차량 등록, 직원관리, 비용/보험</div>
+    </div>
+    <div class="card-arrow">&#10095;</div>
+  </a>
+
+  <a class="card-link" href="차량관리/vehicle_driver.html">
+    <div class="card-icon green">&#128100;</div>
+    <div class="card-info">
+      <div class="card-title">직원용 차량관리</div>
+      <div class="card-desc">운행기록, 정비일지 작성</div>
+    </div>
+    <div class="card-arrow">&#10095;</div>
+  </a>
+
+  <div class="section-label">간식관리</div>
+
+  <a class="card-link" href="간식관리/snack_order.html">
+    <div class="card-icon orange">&#127850;</div>
+    <div class="card-info">
+      <div class="card-title">간식주문 관리</div>
+      <div class="card-desc">스넥24 주문 알림, 팀 로테이션 관리</div>
+    </div>
+    <div class="card-arrow">&#10095;</div>
+  </a>
+
+</div>
+
+<div class="footer">
+  &copy; 2026 넷폼알앤디. All rights reserved.
+</div>
+
+</body>
+</html>
