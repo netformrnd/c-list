@@ -182,14 +182,51 @@ tr:last-child td { border-bottom: none; }
   font-size: 0.8rem;
 }
 
+/* PDF Button */
+.pdf-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.8rem 1.5rem;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.3rem;
+  background: linear-gradient(135deg, #d05050, #c03030);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(208,80,80,0.3);
+}
+.btn-pdf:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(208,80,80,0.4); }
+.btn-pdf:active { transform: scale(0.97); }
+
 @media print {
-  body { background: white; }
+  body { background: white !important; }
   .header { color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .section { box-shadow: none; border: 1px solid #eee; }
+  .section { box-shadow: none; border: 1px solid #eee; break-inside: avoid; }
+  .pdf-bar { display: none !important; }
+  .container { padding: 0.5rem; }
 }
 </style>
 </head>
 <body>
+
+<div class="pdf-bar">
+  <button class="btn-pdf" onclick="window.print()">📄 PDF 저장</button>
+</div>
 
 <div class="header">
   <div class="header-icon">🍪</div>
