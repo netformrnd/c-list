@@ -1479,24 +1479,26 @@ async function saveSettings() {
     await db.collection('snack-settings').doc('config').set(config);
     showToast('설정이 저장되었습니다!', 'success');
     closeSettings();
-    // Regenerate current month if needed
-    currentOrders = generateMonthOrders(currentYear, currentMonth);
-    // Keep existing status data if available
+    // Regenerate current month with updated config
+    const newOrders = generateMonthOrders(currentYear, currentMonth);
+    // Keep existing status data if the team is the same
     const key = getMonthKey(currentYear, currentMonth);
     try {
       const doc = await db.collection('snack-orders').doc(key).get();
       if (doc.exists) {
         const saved = doc.data();
         ['2F', '3F'].forEach(floor => {
-          if (saved[floor] && saved[floor].status) {
-            currentOrders[floor].status = saved[floor].status;
-            currentOrders[floor].lastNotified = saved[floor].lastNotified;
-            currentOrders[floor].submittedAt = saved[floor].submittedAt;
-            currentOrders[floor].completedAt = saved[floor].completedAt;
+          if (saved[floor] && newOrders[floor] && saved[floor].team === newOrders[floor].team && saved[floor].status) {
+            newOrders[floor].status = saved[floor].status;
+            newOrders[floor].lastNotified = saved[floor].lastNotified;
+            newOrders[floor].submittedAt = saved[floor].submittedAt;
+            newOrders[floor].completedAt = saved[floor].completedAt;
           }
         });
       }
     } catch (e) { /* ignore */ }
+    currentOrders = newOrders;
+    await saveCurrentMonth();  // Firebase에 새 데이터 저장!
     renderDashboard();
   } catch (e) {
     console.error('Settings save error:', e);
