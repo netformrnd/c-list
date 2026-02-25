@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>간식주문 시스템 운영 가이드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #e08a4a;
+  --primary-light: #fff5ec;
+  --success: #5ba55b;
+  --success-light: #e8f5e8;
+  --warning: #d4a029;
+  --warning-light: #fef7e0;
+  --blue: #4a6fa5;
+  --blue-light: #e3ecf7;
+  --purple: #8b6baf;
+  --purple-light: #f0eaf7;
+  --gray-100: #f4f5f7;
+  --gray-300: #d1d5db;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: linear-gradient(135deg, #fff8f0 0%, #f5ede4 100%);
+  color: var(--gray-700);
+  line-height: 1.8;
+  min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #5c3d2e 0%, #8b5e3c 100%);
+  color: white;
+  padding: 1.5rem 2rem;
+  text-align: center;
+}
+.header-icon { font-size: 2.5rem; }
+.header-title { font-size: 1.5rem; font-weight: 700; margin-top: 0.3rem; }
+.header-sub { font-size: 0.85rem; opacity: 0.7; margin-top: 0.3rem; }
+.container { max-width: 700px; margin: 0 auto; padding: 1.5rem; }
+.section {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.5rem;
+  margin-bottom: 1.2rem;
+}
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-title .icon { font-size: 1.3rem; }
+
+/* Flow Chart */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.flow-step {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.8rem 1.2rem;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.flow-arrow {
+  font-size: 1.2rem;
+  color: var(--gray-500);
+  padding: 0.2rem 0;
+}
+.flow-auto { background: var(--primary-light); color: #7c5530; border: 2px solid #f0d0a8; }
+.flow-user { background: var(--blue-light); color: #2c5282; border: 2px solid #a3bfdb; }
+.flow-checker { background: var(--purple-light); color: #5b3f80; border: 2px solid #c4b0db; }
+.flow-done { background: var(--success-light); color: #276749; border: 2px solid #9ae6b4; }
+.flow-label {
+  font-size: 0.7rem;
+  color: var(--gray-500);
+  margin-top: -0.1rem;
+  margin-bottom: 0.1rem;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+th {
+  background: var(--gray-100);
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-300);
+}
+td {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--gray-100);
+  color: var(--gray-700);
+}
+tr:last-child td { border-bottom: none; }
+
+/* Info boxes */
+.info-box {
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-top: 0.8rem;
+  font-size: 0.85rem;
+}
+.info-warning {
+  background: var(--warning-light);
+  border-left: 4px solid var(--warning);
+  color: #7c6520;
+}
+.info-blue {
+  background: var(--blue-light);
+  border-left: 4px solid var(--blue);
+  color: #2c5282;
+}
+.info-success {
+  background: var(--success-light);
+  border-left: 4px solid var(--success);
+  color: #276749;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-submitted { background: #dbeafe; color: #1e40af; }
+.badge-done { background: #d1fae5; color: #065f46; }
+
+/* Rotation */
+.rotation-group {
+  background: var(--gray-100);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.8rem;
+}
+.rotation-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+  color: var(--gray-800);
+}
+.rotation-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.rotation-team {
+  background: white;
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  border: 1px solid var(--gray-300);
+}
+.rotation-arrow { color: var(--gray-500); font-size: 0.8rem; }
+
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--gray-500);
+  font-size: 0.8rem;
+}
+
+@media print {
+  body { background: white; }
+  .header { color: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .section { box-shadow: none; border: 1px solid #eee; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🍪</div>
+  <div class="header-title">간식주문 시스템 운영 가이드</div>
+  <div class="header-sub">스넥24 주문 알림 시스템 사용 설명서</div>
+</div>
+
+<div class="container">
+
+  <!-- 전체 흐름 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📌</span> 전체 흐름</div>
+    <div class="flow">
+      <div class="flow-step flow-auto">📧 매월 1일 담당자에게 자동 메일 발송</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-label">담당자가 스넥24 접속 후 간식 주문</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-step flow-user">📩 담당자가 메일 회신 (주문 완료 알림)</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-label">관리자가 회신 확인</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-step flow-user">📦 관리자가 시스템에서 "담당 완료" 클릭</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-label">최종 확인자에게 자동 메일 발송</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-step flow-checker">🔍 최종 확인자가 주문 내역 확인</div>
+      <div class="flow-arrow">▼</div>
+      <div class="flow-step flow-done">✅ 관리자가 시스템에서 "최종 확인" 클릭</div>
+    </div>
+  </div>
+
+  <!-- 자동 메일 발송 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📧</span> 자동 메일 발송</div>
+    <table>
+      <tr><th style="width:35%;">항목</th><th>내용</th></tr>
+      <tr><td><strong>발송일</strong></td><td>매월 1일 + 매주 월요일, 목요일</td></tr>
+      <tr><td><strong>발송 대상</strong></td><td>해당 월 간식주문 담당팀 담당자</td></tr>
+      <tr><td><strong>메일 내용</strong></td><td>마감일, 예산, 스넥24 로그인정보, 주문링크</td></tr>
+      <tr><td><strong>중복 방지</strong></td><td>같은 날 이미 발송했으면 재발송 안 함</td></tr>
+      <tr><td><strong>발송 중단</strong></td><td>"담당 완료" 처리되면 더 이상 발송 안 함</td></tr>
+    </table>
+    <div class="info-warning">
+      <strong>⚠️ 참고:</strong> 자동 발송은 누군가가 간식주문 관리 페이지를 열었을 때 작동합니다. 매월 1일에 페이지를 한 번 열어주세요.
+    </div>
+  </div>
+
+  <!-- 주요 일정 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📅</span> 주요 일정</div>
+    <table>
+      <tr><th style="width:35%;">항목</th><th>일정</th></tr>
+      <tr><td><strong>주문 마감</strong></td><td>매월 둘째주 화요일 오후 2시</td></tr>
+      <tr><td><strong>배송일</strong></td><td>매월 셋째주 월요일</td></tr>
+    </table>
+    <div class="info-blue">
+      <strong>💡 예시 (2026년 3월):</strong><br>
+      주문 마감: 3월 10일(화) 오후 2시 → 배송: 3월 16일(월)
+    </div>
+  </div>
+
+  <!-- 담당팀 로테이션 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔄</span> 담당팀 로테이션</div>
+    <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:0.8rem;">2026년 3월부터 시작, 매월 자동으로 다음 팀으로 변경됩니다.</p>
+
+    <div class="rotation-group">
+      <div class="rotation-title">🏢 2층 (5개 팀)</div>
+      <div class="rotation-teams">
+        <span class="rotation-team">① 경영관리팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">② 서비스운영2팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">③ 서비스운영3팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">④ 설계/적산팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">⑤ 연구개발팀</span>
+      </div>
+    </div>
+
+    <div class="rotation-group">
+      <div class="rotation-title">🏢 3층 (3개 팀)</div>
+      <div class="rotation-teams">
+        <span class="rotation-team">① 브랜드마케팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">② 브랜드커머스팀</span>
+        <span class="rotation-arrow">→</span>
+        <span class="rotation-team">③ 미디어커머스팀</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상태 변화 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔄</span> 주문 상태 변화</div>
+    <table>
+      <tr><th>단계</th><th>상태</th><th>누가 하나요</th></tr>
+      <tr>
+        <td>1. 초기</td>
+        <td><span class="badge badge-pending">⏳ 미완료</span></td>
+        <td>자동 (매월 초기화)</td>
+      </tr>
+      <tr>
+        <td>2. 주문 완료</td>
+        <td><span class="badge badge-submitted">📦 담당 완료</span></td>
+        <td><strong>관리자</strong>가 "담당 완료" 클릭</td>
+      </tr>
+      <tr>
+        <td>3. 최종 확인</td>
+        <td><span class="badge badge-done">✅ 확인완료</span></td>
+        <td><strong>관리자</strong>가 "최종 확인" 클릭</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 최종 확인자 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">👤</span> 최종 확인자</div>
+    <table>
+      <tr><th>층</th><th>확인자</th><th>역할</th></tr>
+      <tr><td><strong>2층</strong></td><td>최영옥 (경영관리팀)</td><td>주문 내역 최종 확인</td></tr>
+      <tr><td><strong>3층</strong></td><td>주유진 (경영관리팀)</td><td>주문 내역 최종 확인</td></tr>
+    </table>
+    <div class="info-success">
+      <strong>📧 자동 알림:</strong> "담당 완료" 클릭 시 해당 층 최종 확인자에게 확인 요청 메일이 자동 발송됩니다.
+    </div>
+  </div>
+
+  <!-- 관리자 할 일 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📋</span> 관리자 할 일 요약</div>
+    <table>
+      <tr><th style="width:35%;">시점</th><th>할 일</th></tr>
+      <tr><td><strong>매월 1일</strong></td><td>간식주문 관리 페이지 열기 → 자동 메일 발송 확인</td></tr>
+      <tr><td><strong>담당자 회신 시</strong></td><td>시스템에서 해당 층 선택 → "담당 완료" 클릭</td></tr>
+      <tr><td><strong>확인자 확인 완료 시</strong></td><td>시스템에서 해당 층 선택 → "최종 확인" 클릭</td></tr>
+      <tr><td><strong>미회신 시</strong></td><td>매주 월/목 자동 알림 발송 (별도 조치 불필요)</td></tr>
+    </table>
+  </div>
+
+  <!-- 설정 변경 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">⚙️</span> 설정 변경 방법</div>
+    <p style="font-size:0.85rem;margin-bottom:0.8rem;">페이지 상단 <strong>"⚙ 설정"</strong> 버튼 → 비밀번호 입력 (기본: 1234)</p>
+    <table>
+      <tr><th>탭</th><th>변경 가능 항목</th></tr>
+      <tr><td><strong>2층 팀 / 3층 팀</strong></td><td>팀 추가/삭제/순서변경, 담당자 이름/이메일, 시작월</td></tr>
+      <tr><td><strong>최종확인자</strong></td><td>2층/3층 확인자 이름, 이메일</td></tr>
+      <tr><td><strong>예산/계정</strong></td><td>예산 금액, 스넥24 로그인 ID/PW, 관리자 비밀번호</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<div class="footer">
+  간식주문 관리 시스템 운영 가이드 | 2026년 3월~
+</div>
+
+</body>
+</html>

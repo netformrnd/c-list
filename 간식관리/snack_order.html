@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <style>
 :root {
   --primary: #e08a4a;
@@ -707,13 +708,17 @@ body {
         </div>
         <div class="form-section-title">&#128722; 스넥24 계정 정보</div>
         <div class="form-section">
-          <div class="form-group">
-            <label class="form-label">계정1 (석민이앤씨)</label>
-            <input class="form-input" id="account1" placeholder="메모">
+          <div class="form-label" style="font-weight:700;margin-bottom:0.5rem;">계정1 (2층용)</div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.8rem;">
+            <input class="form-input" id="account1" placeholder="계정 메모" style="flex:1">
+            <input class="form-input" id="account1_id" placeholder="로그인 ID" style="flex:1">
+            <input class="form-input" id="account1_pw" placeholder="비밀번호" style="flex:1">
           </div>
-          <div class="form-group">
-            <label class="form-label">계정2 (넷폼알앤디)</label>
-            <input class="form-input" id="account2" placeholder="메모">
+          <div class="form-label" style="font-weight:700;margin-bottom:0.5rem;">계정2 (3층용)</div>
+          <div style="display:flex;gap:0.5rem;">
+            <input class="form-input" id="account2" placeholder="계정 메모" style="flex:1">
+            <input class="form-input" id="account2_id" placeholder="로그인 ID" style="flex:1">
+            <input class="form-input" id="account2_pw" placeholder="비밀번호" style="flex:1">
           </div>
         </div>
         <div class="form-section-title">&#128274; 비밀번호 변경</div>
@@ -765,12 +770,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ===== n8n Webhook URLs =====
-// 실제 n8n webhook URL로 교체 필요
-const N8N_WEBHOOK = {
-  manualAlert: '',   // 워크플로우 C: 수동 알림
-  checkerAlert: ''   // 워크플로우 D: 최종 확인 요청
-};
+// ===== EmailJS 설정 (샐러드주문과 동일 방식) =====
+emailjs.init('1FargbnWdV6QhRytD');
+
+const EMAILJS_SERVICE = 'service_reh7e86';
+const EMAILJS_TEMPLATE_ALERT = 'template_snack_alert';      // 주문 알림 (담당자 발송)
+const EMAILJS_TEMPLATE_CHECKER = 'template_snack_checker';   // 최종 확인 요청 (확인자 발송)
 
 // ===== DEFAULT DATA =====
 const DEFAULT_CONFIG = {
@@ -803,7 +808,10 @@ const DEFAULT_CONFIG = {
     "3F": { name: "주유진", team: "경영관리팀", email: "yoojin83@netformrnd.com" }
   },
   budget: { "석민이앤씨": 500000, "넷폼알앤디": 500000 },
-  snack24: { account1: "석민이앤씨", account2: "넷폼알앤디" }
+  snack24: {
+    account1: "석민이앤씨", account1_id: "", account1_pw: "",
+    account2: "넷폼알앤디", account2_id: "", account2_pw: ""
+  }
 };
 
 const ADMIN_PW_DEFAULT = '1234';
@@ -881,11 +889,11 @@ function getMonthKey(year, month) {
   return `${year}-${String(month + 1).padStart(2, '0')}`;
 }
 
-function getSecondThursday(year, month) {
+function getSecondTuesday(year, month) {
   const first = new Date(year, month, 1);
   const firstDay = first.getDay();
-  const firstThursday = 1 + ((4 - firstDay + 7) % 7);
-  return firstThursday + 7;
+  const firstTuesday = 1 + ((2 - firstDay + 7) % 7);
+  return firstTuesday + 7;
 }
 
 function getThirdMonday(year, month) {
@@ -946,7 +954,7 @@ function renderDashboard() {
   document.getElementById('monthLabel').textContent = `${currentYear}년 ${currentMonth + 1}월`;
 
   // Dates
-  const deadline = getSecondThursday(currentYear, currentMonth);
+  const deadline = getSecondTuesday(currentYear, currentMonth);
   const delivery = getThirdMonday(currentYear, currentMonth);
   document.getElementById('deadlineText').textContent = formatDate(currentYear, currentMonth, deadline) + ' 오후 2시';
   document.getElementById('deliveryText').textContent = formatDate(currentYear, currentMonth, delivery);
@@ -1017,6 +1025,124 @@ function goToday() {
   loadCurrentMonth().then(() => renderDashboard());
 }
 
+// ===== EmailJS 메일 발송 함수 =====
+
+// 날짜 키 포맷
+function formatDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+// 담당자에게 주문 알림 메일 발송
+async function sendFloorReminderEmail(floor) {
+  const order = currentOrders[floor];
+  if (!order || !order.email) return false;
+
+  const deadline = getSecondTuesday(currentYear, currentMonth);
+  const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';
+  const budget = config.budget ? config.budget[budgetKey] : 500000;
+
+  try {
+    const sn = config.snack24 || {};
+    const acctNum = floor === '2F' ? '1' : '2';
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE_ALERT, {
+      to_email: order.email,
+      to_name: order.contact,
+      team: order.team,
+      floor: floor === '2F' ? '2층' : '3층',
+      month: currentMonth + 1,
+      year: currentYear,
+      deadline: formatDate(currentYear, currentMonth, deadline) + ' 오후 2시',
+      budget: budget.toLocaleString(),
+      snack24_account: sn['account' + acctNum] || '-',
+      snack24_id: sn['account' + acctNum + '_id'] || '-',
+      snack24_pw: sn['account' + acctNum + '_pw'] || '-'
+    });
+    console.log(`✅ ${floor} ${order.contact} (${order.email}) 주문 알림 발송 성공`);
+    return true;
+  } catch (error) {
+    console.error(`❌ ${floor} ${order.contact} (${order.email}) 주문 알림 발송 실패:`, error);
+    return false;
+  }
+}
+
+// 확인자에게 확인 요청 메일 발송
+async function sendCheckerEmail(floor) {
+  if (!config.checkers || !config.checkers[floor]) return false;
+  const checker = config.checkers[floor];
+  if (!checker.email) return false;
+
+  const order = currentOrders[floor];
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE_CHECKER, {
+      to_email: checker.email,
+      to_name: checker.name,
+      floor: floor === '2F' ? '2층' : '3층',
+      team: order ? order.team : '-',
+      contact: order ? order.contact : '-',
+      month: currentMonth + 1,
+      year: currentYear
+    });
+    console.log(`✅ 확인자 ${checker.name} (${checker.email}) 확인 요청 발송 성공`);
+    return true;
+  } catch (error) {
+    console.error(`❌ 확인자 ${checker.name} (${checker.email}) 확인 요청 발송 실패:`, error);
+    return false;
+  }
+}
+
+// 오늘이 자동 발송일인지 확인 (매월 1일 + 매주 월/목)
+function isAutoAlertDay() {
+  const today = new Date();
+  const day = today.getDate();
+  const dow = today.getDay(); // 0=일, 1=월, 4=목
+  return day === 1 || dow === 1 || dow === 4;
+}
+
+// 페이지 로딩 시 자동 알림 체크 (미완료 층에 자동 발송)
+async function checkAutoReminder() {
+  if (!isAutoAlertDay()) return;
+
+  const todayKey = formatDateKey(new Date());
+
+  for (const floor of ['2F', '3F']) {
+    const order = currentOrders[floor];
+    if (!order || order.status === 'done' || order.status === 'submitted') continue;
+    if (!order.email) continue;
+
+    // 마감일 지났으면 스킵
+    const deadline = getSecondTuesday(currentYear, currentMonth);
+    const deadlineDate = new Date(currentYear, currentMonth, deadline, 14, 0, 0);
+    if (new Date() > deadlineDate) continue;
+
+    // 이미 오늘 발송했으면 스킵
+    try {
+      const doc = await db.collection('snack-notifications').doc(todayKey).get();
+      if (doc.exists && doc.data()[`alert_${floor}`]) continue;
+    } catch(e) { continue; }
+
+    // 메일 발송
+    console.log(`📬 ${floor} 자동 알림 발송 시작...`);
+    const success = await sendFloorReminderEmail(floor);
+
+    if (success) {
+      // 발송 기록 저장
+      try {
+        await db.collection('snack-notifications').doc(todayKey).set({
+          [`alert_${floor}`]: true,
+          [`alert_${floor}_at`]: new Date().toISOString()
+        }, { merge: true });
+      } catch(e) { console.error(e); }
+
+      // 상태 업데이트
+      order.lastNotified = new Date().toISOString();
+      await saveCurrentMonth();
+      renderDashboard();
+      showToast(`📬 ${floor === '2F' ? '2층' : '3층'} ${order.contact}님에게 자동 알림 발송!`, 'info');
+    }
+  }
+}
+
 // ===== ACTIONS =====
 async function sendManualAlert() {
   const floor = document.getElementById('actionFloor').value;
@@ -1025,44 +1151,23 @@ async function sendManualAlert() {
     showToast('해당 층 정보가 없습니다.', 'error');
     return;
   }
-
-  if (!N8N_WEBHOOK.manualAlert) {
-    showToast('n8n Webhook URL이 설정되지 않았습니다.\n설정에서 확인해주세요.', 'error');
+  if (!order.email) {
+    showToast('담당자 이메일이 설정되지 않았습니다.', 'error');
     return;
   }
 
-  const deadline = getSecondThursday(currentYear, currentMonth);
-  const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';
-  const budget = config.budget ? config.budget[budgetKey] : 500000;
+  if (!confirm(`${floor === '2F' ? '2층' : '3층'} ${order.contact}님(${order.email})에게 주문 알림을 발송하시겠습니까?`)) return;
 
-  try {
-    showToast('알림 발송 중...', 'info');
-    const res = await fetch(N8N_WEBHOOK.manualAlert, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        floor: floor,
-        email: order.email,
-        name: order.contact,
-        team: order.team,
-        month: currentMonth + 1,
-        year: currentYear,
-        deadline: formatDate(currentYear, currentMonth, deadline) + ' 오후 2시',
-        budget: budget.toLocaleString()
-      })
-    });
+  showToast('📧 메일 발송 중...', 'info');
+  const success = await sendFloorReminderEmail(floor);
 
-    if (res.ok) {
-      order.lastNotified = new Date().toISOString();
-      await saveCurrentMonth();
-      renderDashboard();
-      showToast(`${floor === '2F' ? '2층' : '3층'} ${order.contact}님에게 알림 발송 완료!`, 'success');
-    } else {
-      showToast('발송 실패: ' + res.status, 'error');
-    }
-  } catch (e) {
-    console.error('Manual alert error:', e);
-    showToast('발송 실패: ' + e.message, 'error');
+  if (success) {
+    order.lastNotified = new Date().toISOString();
+    await saveCurrentMonth();
+    renderDashboard();
+    showToast(`✅ ${floor === '2F' ? '2층' : '3층'} ${order.contact}님에게 알림 발송 완료!`, 'success');
+  } else {
+    showToast('❌ 메일 발송 실패. EmailJS 설정을 확인하세요.', 'error');
   }
 }
 
@@ -1079,31 +1184,12 @@ async function markSubmitted() {
   renderDashboard();
   showToast(`${floor === '2F' ? '2층' : '3층'} 담당 완료 처리되었습니다.`, 'success');
 
-  // Send checker alert
-  if (N8N_WEBHOOK.checkerAlert && config.checkers && config.checkers[floor]) {
+  // EmailJS로 확인자에게 확인 요청 메일 발송
+  if (config.checkers && config.checkers[floor] && config.checkers[floor].email) {
     const checker = config.checkers[floor];
-    const deadline = getSecondThursday(currentYear, currentMonth);
-    const budgetKey = floor === '2F' ? '석민이앤씨' : '넷폼알앤디';
-    const budget = config.budget ? config.budget[budgetKey] : 500000;
-
-    try {
-      await fetch(N8N_WEBHOOK.checkerAlert, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          floor: floor,
-          team: order.team,
-          checker_email: checker.email,
-          checker_name: checker.name,
-          month: currentMonth + 1,
-          year: currentYear,
-          deadline: formatDate(currentYear, currentMonth, deadline) + ' 오후 2시',
-          budget: budget.toLocaleString()
-        })
-      });
-      showToast(`최종 확인자 ${checker.name}님에게 확인 요청 발송!`, 'info');
-    } catch (e) {
-      console.error('Checker alert error:', e);
+    const success = await sendCheckerEmail(floor);
+    if (success) {
+      showToast(`📧 최종 확인자 ${checker.name}님에게 확인 요청 발송!`, 'info');
     }
   }
 }
@@ -1212,11 +1298,16 @@ async function checkPassword() {
   try {
     const doc = await db.collection('snack-settings').doc('admin').get();
     if (doc.exists && doc.data().password) storedPw = doc.data().password;
-  } catch (e) { /* use default */ }
+  } catch (e) {
+    console.log('Firebase 비밀번호 로드 실패, 기본값 사용:', e);
+  }
+
+  console.log('비밀번호 확인:', input === storedPw ? '일치' : '불일치');
 
   if (input === storedPw) {
-    closePwOverlay();
-    if (pendingAction === 'settings') {
+    const action = pendingAction;  // 먼저 저장
+    closePwOverlay();              // 이후 초기화
+    if (action === 'settings') {
       showSettingsModal();
     }
   } else {
@@ -1241,8 +1332,13 @@ async function changePassword() {
 
 // ===== SETTINGS MODAL =====
 function showSettingsModal() {
-  populateSettings();
-  document.getElementById('settingsModal').classList.add('active');
+  try {
+    populateSettings();
+    document.getElementById('settingsModal').classList.add('active');
+  } catch(e) {
+    console.error('설정 모달 열기 실패:', e);
+    alert('설정 열기 오류: ' + e.message);
+  }
 }
 
 function closeSettings() {
@@ -1286,7 +1382,11 @@ function populateSettings() {
   // Accounts
   const sn = config.snack24 || {};
   document.getElementById('account1').value = sn.account1 || '';
+  document.getElementById('account1_id').value = sn.account1_id || '';
+  document.getElementById('account1_pw').value = sn.account1_pw || '';
   document.getElementById('account2').value = sn.account2 || '';
+  document.getElementById('account2_id').value = sn.account2_id || '';
+  document.getElementById('account2_pw').value = sn.account2_pw || '';
 }
 
 function renderTeamList(floor) {
@@ -1368,7 +1468,11 @@ async function saveSettings() {
 
   config.snack24 = {
     account1: document.getElementById('account1').value.trim(),
-    account2: document.getElementById('account2').value.trim()
+    account1_id: document.getElementById('account1_id').value.trim(),
+    account1_pw: document.getElementById('account1_pw').value.trim(),
+    account2: document.getElementById('account2').value.trim(),
+    account2_id: document.getElementById('account2_id').value.trim(),
+    account2_pw: document.getElementById('account2_pw').value.trim()
   };
 
   try {
@@ -1417,6 +1521,11 @@ function showToast(msg, type = 'info') {
 
 // ===== START =====
 initApp();
+
+// 데이터 로딩 완료 후 자동 발송 체크 (샐러드주문과 동일 방식)
+setTimeout(async () => {
+  await checkAutoReminder();  // 매월 1일 + 매주 월/목: 미완료 층 자동 알림
+}, 3000);
 </script>
 </body>
 </html>
