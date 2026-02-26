@@ -293,6 +293,8 @@ tr.selected { background: var(--primary-light); }
       <button type="button" class="year-tab active" data-year="2026">2026</button>
     </div>
     <div class="header-actions">
+      <span id="sheetsSyncStatus" title="Google Sheets 동기화 상태" style="font-size:1.1rem;cursor:help;">☁️</span>
+      <button class="btn btn-outline" onclick="manualSheetsSync()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="Google Sheets 수동 동기화">🔄 Sheets</button>
       <button class="btn btn-outline" onclick="setResetPassword()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="초기화 비밀번호 설정/변경">🔐</button>
       <button class="btn btn-outline" onclick="clearStorage()" style="color:var(--danger);border-color:var(--danger);" title="비밀번호 필요">⚠️ 초기화</button>
       <button class="btn btn-outline" onclick="exportToExcel()">다운로드</button>
@@ -2614,6 +2616,177 @@ const FB_COLLECTIONS = {
   editLocks: 'edit-locks'
 };
 
+// ========== Google Sheets 양방향 동기화 ==========
+// ★ Google Apps Script 배포 URL을 입력하세요
+const SHEETS_API_URL = ''; // 예: 'https://script.google.com/macros/s/xxxxx/exec'
+
+let sheetsSyncStatus = 'idle'; // idle, syncing, success, error
+
+function updateSyncStatusUI(status, msg) {
+  sheetsSyncStatus = status;
+  const el = document.getElementById('sheetsSyncStatus');
+  if (!el) return;
+  const icons = { idle: '☁️', syncing: '⏳', success: '✅', error: '❌' };
+  el.textContent = icons[status] || '☁️';
+  el.title = msg || '';
+}
+
+async function sheetsApiGet(params) {
+  if (!SHEETS_API_URL) return null;
+  const url = new URL(SHEETS_API_URL);
+  Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
+  try {
+    const resp = await fetch(url.toString());
+    return await resp.json();
+  } catch (e) {
+    console.error('Sheets API GET 실패:', e);
+    return null;
+  }
+}
+
+async function sheetsApiPost(payload) {
+  if (!SHEETS_API_URL) return null;
+  try {
+    const resp = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return await resp.json();
+  } catch (e) {
+    console.error('Sheets API POST 실패:', e);
+    return null;
+  }
+}
+
+// HTML → Sheets Push (저장 시 호출, 비동기 백그라운드)
+async function syncToSheets(changedYear) {
+  if (!SHEETS_API_URL) return;
+  updateSyncStatusUI('syncing', 'Google Sheets에 저장 중...');
+  try {
+    if (changedYear) {
+      const yearData = (allData[changedYear] || []).map(item => ({
+        ...item,
+        updatedAt: item.updatedAt || Date.now()
+      }));
+      const result = await sheetsApiPost({
+        action: 'writeYear',
+        year: changedYear,
+        data: yearData
+      });
+      if (result && result.success) {
+        updateSyncStatusUI('success', `Sheets 저장 완료 (${changedYear})`);
+        console.log(`✅ Sheets 동기화 완료: ${changedYear}`);
+      } else {
+        throw new Error(result?.error || '알 수 없는 오류');
+      }
+    } else {
+      // 전체 동기화
+      const payload = {};
+      Object.keys(allData).forEach(year => {
+        payload[year] = (allData[year] || []).map(item => ({
+          ...item,
+          updatedAt: item.updatedAt || Date.now()
+        }));
+      });
+      const result = await sheetsApiPost({ action: 'writeAll', data: payload });
+      if (result && result.success) {
+        updateSyncStatusUI('success', 'Sheets 전체 저장 완료');
+        console.log('✅ Sheets 전체 동기화 완료');
+      } else {
+        throw new Error(result?.error || '알 수 없는 오류');
+      }
+    }
+  } catch (e) {
+    updateSyncStatusUI('error', 'Sheets 동기화 실패: ' + e.message);
+    console.error('Sheets 동기화 실패:', e);
+  }
+}
+
+// Sheets → HTML Pull (로드 시 호출)
+async function syncFromSheets() {
+  if (!SHEETS_API_URL) return false;
+  updateSyncStatusUI('syncing', 'Google Sheets에서 불러오는 중...');
+  try {
+    const result = await sheetsApiGet({ action: 'readAll' });
+    if (!result || !result.success || !result.data) {
+      throw new Error(result?.error || '데이터 없음');
+    }
+    let merged = false;
+    const sheetsData = result.data;
+    Object.keys(sheetsData).forEach(yearKey => {
+      const sheetYear = sheetsData[yearKey] || [];
+      const localYear = allData[yearKey] || [];
+      if (sheetYear.length === 0 && localYear.length === 0) return;
+
+      // 각 연도의 최신 updatedAt 비교
+      const sheetMaxTime = sheetYear.reduce((max, item) => Math.max(max, item.updatedAt || 0), 0);
+      const localMaxTime = localYear.reduce((max, item) => Math.max(max, item.updatedAt || 0), 0);
+
+      if (sheetMaxTime > localMaxTime && sheetYear.length > 0) {
+        // Sheets가 더 최신 → Sheets 데이터로 교체
+        allData[yearKey] = sheetYear;
+        merged = true;
+        console.log(`📥 Sheets → 로컬 업데이트: ${yearKey} (Sheets: ${new Date(sheetMaxTime).toLocaleString()})`);
+      } else if (localMaxTime > sheetMaxTime && localYear.length > 0) {
+        // 로컬이 더 최신 → Sheets에 Push (백그라운드)
+        console.log(`📤 로컬 → Sheets Push 예정: ${yearKey}`);
+        syncToSheets(yearKey); // fire-and-forget
+      }
+    });
+
+    if (merged) {
+      localStorage.setItem('constructionData', JSON.stringify(allData));
+      applyRedCellInfo();
+      renderTable();
+      updateStats();
+      showToast('Google Sheets에서 최신 데이터를 동기화했습니다.', 'success');
+    }
+    updateSyncStatusUI('success', '동기화 완료');
+    return merged;
+  } catch (e) {
+    updateSyncStatusUI('error', 'Sheets 불러오기 실패: ' + e.message);
+    console.error('Sheets Pull 실패:', e);
+    return false;
+  }
+}
+
+// 최초 마이그레이션 (기존 데이터 → Sheets, 콘솔에서 1회 실행)
+async function migrateToSheets() {
+  if (!SHEETS_API_URL) { alert('SHEETS_API_URL을 먼저 설정하세요.'); return; }
+  if (!confirm('기존 데이터를 Google Sheets로 마이그레이션합니다. 계속하시겠습니까?')) return;
+  updateSyncStatusUI('syncing', '마이그레이션 중...');
+  try {
+    const payload = {};
+    Object.keys(allData).forEach(year => {
+      payload[year] = (allData[year] || []).map(item => ({
+        ...item,
+        updatedAt: item.updatedAt || Date.now()
+      }));
+    });
+    const result = await sheetsApiPost({ action: 'migrate', data: payload });
+    if (result && result.success) {
+      updateSyncStatusUI('success', '마이그레이션 완료');
+      alert('마이그레이션 완료! (version: ' + result.version + ')');
+    } else {
+      throw new Error(result?.error || '알 수 없는 오류');
+    }
+  } catch (e) {
+    updateSyncStatusUI('error', '마이그레이션 실패');
+    alert('마이그레이션 실패: ' + e.message);
+  }
+}
+
+// 수동 동기화 (버튼 클릭)
+async function manualSheetsSync() {
+  if (!SHEETS_API_URL) {
+    showToast('Google Sheets API URL이 설정되지 않았습니다.', 'error');
+    return;
+  }
+  showToast('Google Sheets 동기화 중...', 'info');
+  await syncFromSheets();
+}
+
 // ========== Firebase 저장/로드 유틸 ==========
 // Firestore에 데이터 저장 (단일 문서)
 async function fbSave(collection, docId, data) {
@@ -3542,7 +3715,7 @@ function saveData() {
   // ★ 관리(수정) → 상세(detailData) 동기화
   syncEditToDetail(item);
 
-  saveToStorage(); renderTable(); updateStats(); closeModal();
+  saveToStorage(currentYear); renderTable(); updateStats(); closeModal();
 }
 
 // 관리(수정) 모달에서 저장 시 상세(detailData)에도 주요 정보 동기화
@@ -3595,7 +3768,7 @@ function confirmDelete() {
     showToast(`${selectedItems.size}개 항목이 삭제되었습니다.`, 'info');
     selectedItems.clear(); updateDeleteButton();
   }
-  saveToStorage(); renderTable(); updateStats(); closeDeleteModal();
+  saveToStorage(currentYear); renderTable(); updateStats(); closeDeleteModal();
 }
 
 // 엑셀에서 빨간색(미입금) 표시된 셀 정보 (전역 변수)
@@ -3632,10 +3805,12 @@ const MANUAL_PAID_INFO = {
   }
 };
 
-function saveToStorage() {
+function saveToStorage(changedYear) {
   localStorage.setItem('constructionData', JSON.stringify(allData));
   // Firebase에도 저장
   fbSaveLarge(FB_COLLECTIONS.constructionData, allData);
+  // Google Sheets에도 동기화 (비동기 백그라운드)
+  syncToSheets(changedYear || null);
 }
 async function loadFromStorage() {
   // Firebase에서 우선 로드 시도
@@ -3650,6 +3825,8 @@ async function loadFromStorage() {
         updateStats();
       }
       console.log('Firebase에서 공사데이터 로드 완료');
+      // Google Sheets와 동기화 (백그라운드)
+      syncFromSheets();
       return;
     }
   } catch(e) {
@@ -3673,6 +3850,8 @@ async function loadFromStorage() {
       allData = {};
     }
   }
+  // Google Sheets와 동기화 (백그라운드)
+  syncFromSheets();
 }
 
 function applyRedCellInfo() {
@@ -5073,7 +5252,7 @@ async function saveDetailData() {
   if (item.balance1) syncPayment(item.balance1, detailBalanceDate);
 
   // allData 저장
-  saveToStorage();
+  saveToStorage(currentYear);
 
   await saveDetailDataToStorage();
   
