@@ -293,8 +293,8 @@ tr.selected { background: var(--primary-light); }
       <button type="button" class="year-tab active" data-year="2026">2026</button>
     </div>
     <div class="header-actions">
-      <span id="sheetsSyncStatus" title="Google Sheets 동기화 상태" style="font-size:1.1rem;cursor:help;">☁️</span>
-      <button class="btn btn-outline" onclick="manualSheetsSync()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="Google Sheets 수동 동기화">🔄 Sheets</button>
+      <span id="sheetsSyncStatus" onclick="openSheetsSettingsModal()" title="Google Sheets 동기화 상태 (클릭하여 설정)" style="font-size:1.1rem;cursor:pointer;">⚪</span>
+      <button class="btn btn-outline" onclick="manualSheetsSync()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="Google Sheets 동기화 (미연결 시 설정 화면)">🔄 Sheets</button>
       <button class="btn btn-outline" onclick="setResetPassword()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="초기화 비밀번호 설정/변경">🔐</button>
       <button class="btn btn-outline" onclick="clearStorage()" style="color:var(--danger);border-color:var(--danger);" title="비밀번호 필요">⚠️ 초기화</button>
       <button class="btn btn-outline" onclick="exportToExcel()">다운로드</button>
@@ -2617,8 +2617,10 @@ const FB_COLLECTIONS = {
 };
 
 // ========== Google Sheets 양방향 동기화 ==========
-// ★ Google Apps Script 배포 URL을 입력하세요
-const SHEETS_API_URL = ''; // 예: 'https://script.google.com/macros/s/xxxxx/exec'
+// URL은 localStorage에서 관리 (설정 화면에서 입력)
+function getSheetsApiUrl() {
+  return localStorage.getItem('sheetsApiUrl') || '';
+}
 
 let sheetsSyncStatus = 'idle'; // idle, syncing, success, error
 
@@ -2629,11 +2631,144 @@ function updateSyncStatusUI(status, msg) {
   const icons = { idle: '☁️', syncing: '⏳', success: '✅', error: '❌' };
   el.textContent = icons[status] || '☁️';
   el.title = msg || '';
+  // 연결 안 된 경우 회색 구름 표시
+  if (!getSheetsApiUrl()) {
+    el.textContent = '⚪';
+    el.title = 'Google Sheets 미연결 (설정 필요)';
+  }
 }
 
+// ===== Sheets 설정 모달 =====
+function openSheetsSettingsModal() {
+  const currentUrl = getSheetsApiUrl();
+  const isConnected = !!currentUrl;
+
+  const modal = document.createElement('div');
+  modal.id = 'sheetsSettingsOverlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;max-width:560px;width:90%;max-height:90vh;overflow-y:auto;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h3 style="margin:0;font-size:1.2rem;">Google Sheets 연동 설정</h3>
+        <button onclick="document.getElementById('sheetsSettingsOverlay').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:#999;">&times;</button>
+      </div>
+
+      <div style="background:${isConnected ? '#e8f5e9' : '#fff3e0'};border-radius:12px;padding:1rem;margin-bottom:1.5rem;">
+        <div style="font-size:0.9rem;font-weight:600;color:${isConnected ? '#2e7d32' : '#e65100'};">
+          ${isConnected ? '✅ 연동됨' : '⚠️ 미연결'}
+        </div>
+        <div style="font-size:0.8rem;color:#666;margin-top:0.3rem;">
+          ${isConnected ? 'Google Sheets와 자동 동기화가 활성화되어 있습니다.' : '아래 URL을 입력하면 Google Sheets 자동 동기화가 시작됩니다.'}
+        </div>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">Apps Script 배포 URL</label>
+        <input type="text" id="sheetsUrlInput" value="${currentUrl}"
+          placeholder="https://script.google.com/macros/s/xxxxx/exec"
+          style="width:100%;padding:0.7rem;border:2px solid #e0e0e0;border-radius:8px;font-size:0.85rem;box-sizing:border-box;">
+        <div style="font-size:0.75rem;color:#999;margin-top:0.3rem;">
+          Google Apps Script 웹 앱 배포 후 받은 URL을 붙여넣기 하세요
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        <button onclick="saveSheetsUrl()" style="flex:1;padding:0.7rem;background:#1a73e8;color:white;border:none;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;">
+          💾 URL 저장
+        </button>
+        <button onclick="testSheetsConnection()" style="flex:1;padding:0.7rem;background:#34a853;color:white;border:none;border-radius:8px;font-size:0.9rem;font-weight:600;cursor:pointer;">
+          🔗 연결 테스트
+        </button>
+      </div>
+
+      <div id="sheetsTestResult" style="display:none;padding:0.8rem;border-radius:8px;margin-bottom:1rem;font-size:0.85rem;"></div>
+
+      ${isConnected ? `
+      <div style="border-top:1px solid #eee;padding-top:1rem;margin-bottom:1rem;">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">데이터 관리</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button onclick="migrateToSheets()" style="flex:1;padding:0.6rem;background:#ff9800;color:white;border:none;border-radius:8px;font-size:0.8rem;cursor:pointer;">
+            📤 기존 데이터 → Sheets 이관
+          </button>
+          <button onclick="manualSheetsSync()" style="flex:1;padding:0.6rem;background:#7c4dff;color:white;border:none;border-radius:8px;font-size:0.8rem;cursor:pointer;">
+            🔄 수동 동기화
+          </button>
+        </div>
+        <div style="font-size:0.72rem;color:#999;margin-top:0.3rem;">
+          최초 1회 "기존 데이터 이관"을 실행해야 Google Sheets에 현재 데이터가 반영됩니다.
+        </div>
+      </div>` : ''}
+
+      <div style="border-top:1px solid #eee;padding-top:1rem;">
+        <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;">처음이신가요?</div>
+        <a href="구글시트_연동_가이드.html" target="_blank"
+          style="display:block;background:#f5f5f5;border-radius:8px;padding:0.8rem;text-decoration:none;color:#333;">
+          <div style="font-size:0.9rem;font-weight:600;">📖 Google Sheets 연동 가이드</div>
+          <div style="font-size:0.75rem;color:#666;margin-top:0.2rem;">처음부터 끝까지 따라하기 쉬운 단계별 안내</div>
+        </a>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+}
+
+function saveSheetsUrl() {
+  const url = document.getElementById('sheetsUrlInput').value.trim();
+  if (url && !url.startsWith('https://script.google.com/')) {
+    alert('올바른 Google Apps Script URL이 아닙니다.\nhttps://script.google.com/macros/s/... 형태여야 합니다.');
+    return;
+  }
+  localStorage.setItem('sheetsApiUrl', url);
+  updateSyncStatusUI('idle', '');
+  if (url) {
+    showToast('Google Sheets URL이 저장되었습니다.', 'success');
+  } else {
+    showToast('Google Sheets 연동이 해제되었습니다.', 'info');
+  }
+  // 모달 닫고 다시 열기 (상태 갱신)
+  document.getElementById('sheetsSettingsOverlay').remove();
+  openSheetsSettingsModal();
+}
+
+async function testSheetsConnection() {
+  const url = document.getElementById('sheetsUrlInput').value.trim();
+  const resultEl = document.getElementById('sheetsTestResult');
+  if (!url) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = '#fff3e0';
+    resultEl.style.color = '#e65100';
+    resultEl.textContent = '⚠️ URL을 먼저 입력하세요.';
+    return;
+  }
+  resultEl.style.display = 'block';
+  resultEl.style.background = '#e3f2fd';
+  resultEl.style.color = '#1565c0';
+  resultEl.textContent = '⏳ 연결 테스트 중...';
+  try {
+    const testUrl = new URL(url);
+    testUrl.searchParams.append('action', 'getMeta');
+    const resp = await fetch(testUrl.toString());
+    const data = await resp.json();
+    if (data && data.success) {
+      resultEl.style.background = '#e8f5e9';
+      resultEl.style.color = '#2e7d32';
+      resultEl.textContent = `✅ 연결 성공! (version: ${data.meta?.version || 0})`;
+    } else {
+      throw new Error(data?.error || '응답 오류');
+    }
+  } catch (e) {
+    resultEl.style.background = '#ffebee';
+    resultEl.style.color = '#c62828';
+    resultEl.textContent = `❌ 연결 실패: ${e.message}`;
+  }
+}
+
+// ===== API 유틸 =====
 async function sheetsApiGet(params) {
-  if (!SHEETS_API_URL) return null;
-  const url = new URL(SHEETS_API_URL);
+  const apiUrl = getSheetsApiUrl();
+  if (!apiUrl) return null;
+  const url = new URL(apiUrl);
   Object.keys(params).forEach(k => url.searchParams.append(k, params[k]));
   try {
     const resp = await fetch(url.toString());
@@ -2645,9 +2780,10 @@ async function sheetsApiGet(params) {
 }
 
 async function sheetsApiPost(payload) {
-  if (!SHEETS_API_URL) return null;
+  const apiUrl = getSheetsApiUrl();
+  if (!apiUrl) return null;
   try {
-    const resp = await fetch(SHEETS_API_URL, {
+    const resp = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
@@ -2661,7 +2797,7 @@ async function sheetsApiPost(payload) {
 
 // HTML → Sheets Push (저장 시 호출, 비동기 백그라운드)
 async function syncToSheets(changedYear) {
-  if (!SHEETS_API_URL) return;
+  if (!getSheetsApiUrl()) return;
   updateSyncStatusUI('syncing', 'Google Sheets에 저장 중...');
   try {
     if (changedYear) {
@@ -2705,7 +2841,7 @@ async function syncToSheets(changedYear) {
 
 // Sheets → HTML Pull (로드 시 호출)
 async function syncFromSheets() {
-  if (!SHEETS_API_URL) return false;
+  if (!getSheetsApiUrl()) return false;
   updateSyncStatusUI('syncing', 'Google Sheets에서 불러오는 중...');
   try {
     const result = await sheetsApiGet({ action: 'readAll' });
@@ -2751,10 +2887,10 @@ async function syncFromSheets() {
   }
 }
 
-// 최초 마이그레이션 (기존 데이터 → Sheets, 콘솔에서 1회 실행)
+// 최초 마이그레이션 (기존 데이터 → Sheets)
 async function migrateToSheets() {
-  if (!SHEETS_API_URL) { alert('SHEETS_API_URL을 먼저 설정하세요.'); return; }
-  if (!confirm('기존 데이터를 Google Sheets로 마이그레이션합니다. 계속하시겠습니까?')) return;
+  if (!getSheetsApiUrl()) { alert('Google Sheets URL을 먼저 설정하세요.'); return; }
+  if (!confirm('현재 공사현황 데이터를 Google Sheets로 이관합니다.\n(기존 Sheets 데이터가 있으면 덮어씁니다)\n\n계속하시겠습니까?')) return;
   updateSyncStatusUI('syncing', '마이그레이션 중...');
   try {
     const payload = {};
@@ -2767,7 +2903,8 @@ async function migrateToSheets() {
     const result = await sheetsApiPost({ action: 'migrate', data: payload });
     if (result && result.success) {
       updateSyncStatusUI('success', '마이그레이션 완료');
-      alert('마이그레이션 완료! (version: ' + result.version + ')');
+      showToast('Google Sheets로 데이터 이관 완료!', 'success');
+      alert('데이터 이관 완료!\n\nGoogle Sheets를 열어서 데이터가 정상적으로 들어갔는지 확인해보세요.');
     } else {
       throw new Error(result?.error || '알 수 없는 오류');
     }
@@ -2779,8 +2916,8 @@ async function migrateToSheets() {
 
 // 수동 동기화 (버튼 클릭)
 async function manualSheetsSync() {
-  if (!SHEETS_API_URL) {
-    showToast('Google Sheets API URL이 설정되지 않았습니다.', 'error');
+  if (!getSheetsApiUrl()) {
+    openSheetsSettingsModal();
     return;
   }
   showToast('Google Sheets 동기화 중...', 'info');
