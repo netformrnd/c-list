@@ -4159,26 +4159,19 @@ async function refreshAllData() {
   const btn = document.getElementById('mainTabRefresh');
   if (btn) { btn.textContent = '⏳ 로딩중...'; btn.disabled = true; }
   try {
-    // 공사현황 데이터
+    // Firebase에서 최신 데이터 가져와 localStorage 갱신
     const fbData = await fbLoadAll(FB_COLLECTIONS.constructionData);
     if (fbData && Object.keys(fbData).length > 0) {
-      allData = fbData;
-      localStorage.setItem('constructionData', JSON.stringify(allData));
-      applyRedCellInfo();
-      renderTable();
-      updateStats();
+      localStorage.setItem('constructionData', JSON.stringify(fbData));
     }
-    // 기술컨설팅 리스트 데이터
     const csListRaw = await fbLoad(FB_COLLECTIONS.consultingListData, 'data');
     if (csListRaw && csListRaw.items) {
-      consultingListData = csListRaw.items;
-      localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
-      renderConsultingMain();
+      localStorage.setItem('consultingListData', JSON.stringify(csListRaw.items));
     }
-    showToast('최신 데이터로 새로고침 완료!', 'success');
+    // 페이지 새로고침으로 깔끔하게 반영
+    window.location.reload();
   } catch(e) {
     showToast('새로고침 실패: ' + e.message, 'error');
-  } finally {
     if (btn) { btn.textContent = '🔄 새로고침'; btn.disabled = false; }
   }
 }
