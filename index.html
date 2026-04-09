@@ -2978,6 +2978,8 @@ async function migrateToSheets() {
   if (!confirm('현재 공사현황 데이터를 Google Sheets로 이관합니다.\n(기존 Sheets 데이터가 있으면 덮어씁니다)\n\n계속하시겠습니까?')) return;
   updateSyncStatusUI('syncing', '마이그레이션 중...');
   try {
+    // 기술컨설팅 데이터 먼저 로드
+    if (!consultingData || consultingData.length === 0) await loadConsultingData();
     const payload = {};
     Object.keys(allData).forEach(year => {
       payload[year] = (allData[year] || []).map(item => ({
@@ -3022,6 +3024,7 @@ async function manualSheetsSync() {
     if (!confirm('현재 데이터를 Google Sheets로 보냅니다.\n(시트의 기존 데이터를 덮어씁니다)\n\n계속하시겠습니까?')) return;
     updateSyncStatusUI('syncing', 'Sheets로 보내는 중...');
     try {
+      if (!consultingData || consultingData.length === 0) await loadConsultingData();
       const payload = {};
       Object.keys(allData).forEach(year => {
         payload[year] = (allData[year] || []).map(item => ({
