@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정산수익 리포트 - (주)석민이앤씨</title>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
+}
+
+.header {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: white;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.header-left { display: flex; flex-direction: column; gap: 4px; }
+.header-left h1 { font-size: 24px; font-weight: 700; }
+.header-left .subtitle { font-size: 14px; opacity: 0.85; }
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.header-right .timestamp { font-size: 12px; opacity: 0.75; }
+.header-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.header-btn:hover { background: rgba(255,255,255,0.3); }
+
+.filter-bar {
+  background: white;
+  padding: 14px 30px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-size: 13px; font-weight: 600; color: #555; white-space: nowrap; }
+.filter-group select {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #1976d2;
+  color: #1976d2;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.summary-card {
+  background: white;
+  border-radius: 10px;
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-left: 4px solid #1976d2;
+  transition: transform 0.15s;
+}
+.summary-card:hover { transform: translateY(-2px); }
+.summary-card.blue { border-left-color: #1565c0; }
+.summary-card.green { border-left-color: #2e7d32; }
+.summary-card.teal { border-left-color: #00897b; }
+.summary-card.purple { border-left-color: #7b1fa2; }
+.summary-card.orange { border-left-color: #e65100; }
+.card-label { font-size: 13px; color: #777; margin-bottom: 6px; }
+.card-value { font-size: 22px; font-weight: 700; }
+.card-value.blue { color: #1565c0; }
+.card-value.green { color: #2e7d32; }
+.card-value.red { color: #c62828; }
+.card-value.teal { color: #00897b; }
+.card-value.purple { color: #7b1fa2; }
+.card-value.orange { color: #e65100; }
+.card-sub { font-size: 12px; color: #666; margin-top: 6px; line-height: 1.5; }
+.card-sub span { display: inline-block; padding: 1px 6px; border-radius: 4px; font-weight: 500; margin-right: 2px; }
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.panel {
+  background: white;
+  border-radius: 10px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.panel-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #333;
+}
+
+.mini-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.mini-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.mini-card .mc-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.mini-card .mc-value { font-size: 16px; font-weight: 700; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: #f5f5f5;
+  padding: 10px 8px;
+  text-align: right;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+  white-space: nowrap;
+}
+thead th:first-child { text-align: center; }
+tbody td {
+  padding: 9px 8px;
+  text-align: right;
+  border-bottom: 1px solid #eee;
+}
+tbody td:first-child { text-align: center; font-weight: 600; }
+tbody tr:nth-child(even) { background: #fafafa; }
+tbody tr:hover { background: #e3f2fd; }
+tfoot td {
+  padding: 10px 8px;
+  text-align: right;
+  font-weight: 700;
+  border-top: 2px solid #1976d2;
+  background: #e8eaf6;
+}
+tfoot td:first-child { text-align: center; }
+.profit-positive { color: #2e7d32; }
+.profit-negative { color: #c62828; }
+
+.grand-total-section {
+  margin-top: 28px;
+}
+.grand-total-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.grand-card {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: white;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+.grand-card .gc-label { font-size: 13px; opacity: 0.85; margin-bottom: 6px; }
+.grand-card .gc-value { font-size: 24px; font-weight: 700; }
+.grand-card .gc-sub { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #1976d2;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.loading-text { margin-top: 16px; font-size: 15px; color: #555; }
+
+@media (max-width: 1024px) {
+  .summary-cards { grid-template-columns: repeat(3, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .grand-total-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .summary-cards { grid-template-columns: repeat(2, 1fr); }
+  .mini-cards { grid-template-columns: repeat(2, 1fr); }
+  .grand-total-cards { grid-template-columns: 1fr; }
+  .header { padding: 14px 16px; }
+  .container { padding: 16px 12px; }
+  .filter-bar { padding: 10px 16px; }
+  .card-value { font-size: 18px; }
+}
+
+@media print {
+  body { background: white; }
+  .header { background: #1976d2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .filter-bar { display: none; }
+  .header-btn { display: none; }
+  .summary-card, .panel, .grand-card { box-shadow: none; border: 1px solid #ddd; }
+  .loading-overlay { display: none !important; }
+  .container { max-width: 100%; padding: 10px; }
+  .two-col { grid-template-columns: 1fr 1fr; }
+  table { font-size: 11px; }
+  .grand-card { background: #1976d2 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tfoot td { background: #e8eaf6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">데이터를 불러오는 중...</div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <h1 style="display:flex;align-items:center;gap:10px;">📊 정산수익 리포트 <span style="background:#4caf50;color:white;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;animation:pulse 2s infinite;">LIVE</span></h1>
+    <div class="subtitle">공사정산 + 기술컨설팅 통합 현황</div>
+  </div>
+  <div class="header-right">
+    <span class="timestamp" id="lastUpdated"></span>
+    <a href="index.html" class="header-btn">&larr; 공사현황리스트</a>
+    <button class="header-btn" onclick="refreshData()">🔄 새로고침</button>
+    <button class="header-btn" onclick="window.print()">🖨️ 인쇄</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <div class="filter-group">
+    <label>연도</label>
+    <select id="filterYear" onchange="applyFilters()">
+      <option value="2024">2024</option>
+      <option value="2025" selected>2025</option>
+      <option value="2026">2026</option>
+      <option value="all">전체</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>정산상태</label>
+    <select id="filterSettlement" onchange="applyFilters()">
+      <option value="all" selected>전체</option>
+      <option value="settled">정산완료</option>
+      <option value="unsettled">미정산</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <label>구분</label>
+    <select id="filterHqType" onchange="applyFilters()">
+      <option value="hq" selected>본사</option>
+      <option value="ext">외주</option>
+      <option value="all">전체</option>
+    </select>
+  </div>
+</div>
+
+<div class="container">
+  <div class="section-title">통합 요약</div>
+  <div class="summary-cards" id="summaryCards"></div>
+
+  <!-- 차트 영역 -->
+  <div class="two-col" style="margin-bottom:24px;">
+    <div class="panel">
+      <div class="panel-title">담당자별 이익금 현황</div>
+      <div style="position:relative;height:300px;"><canvas id="managerProfitChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">매출 구성</div>
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div style="position:relative;width:55%;height:280px;"><canvas id="categoryDonutChart"></canvas></div>
+        <div id="categoryLegend" style="flex:1;font-size:13px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">공사정산</div>
+      <div class="mini-cards" id="constructionMiniCards"></div>
+      <div id="constructionTable"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">기술컨설팅</div>
+      <div class="mini-cards" id="consultingMiniCards"></div>
+      <div id="consultingTable"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDT4l9pSx3ozpcvPzRtfdCwNI0KqMxSk2s",
+  authDomain: "order-d03ce.firebaseapp.com",
+  projectId: "order-d03ce",
+  storageBucket: "order-d03ce.firebasestorage.app",
+  messagingSenderId: "930014374996",
+  appId: "1:930014374996:web:67d764f5bc946d1781d1c1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const FB_COLLECTIONS = {
+  constructionData: 'construction-data',
+  constructionDetailData: 'construction-detail-data',
+  settlementStatusData: 'settlement-status-data',
+  consultingData: 'consulting-data'
+};
+
+const HQ_MANAGERS = ['황윤선', '김성민', '이필선', '한준엽', '정정훈', '조재연', '한인규'];
+const EXCLUDE_MANAGERS = ['기타', '박연진', '이승우'];
+const EXT_MANAGERS = ['기타(외)'];
+const CANCELLED_INFO = {
+  "2022": ["85", "86"], "2023": ["5", "12"],
+  "2024": ["58"], "2025": ["44", "93", "95"]
+};
+const AMOUNT_CORRECTION = { "2025_42": 47860000 };
+
+let allData = {};
+let detailData = {};
+let settlementStatusData = {};
+let consultingData = [];
+let constructionSettlementData = [];
+
+function parseNumber(val) {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  return parseFloat(String(val).replace(/[,원]/g, '')) || 0;
+}
+
+function fmt(v) {
+  if (v == null || isNaN(v) || v === 0) return '-';
+  return new Intl.NumberFormat('ko-KR').format(Math.round(v));
+}
+
+function fmtWon(v) {
+  if (!v || v === 0) return '-';
+  const abs = Math.abs(v);
+  if (abs >= 100000000) {
+    return (v / 100000000).toFixed(1) + '억';
+  }
+  if (abs >= 10000) {
+    return Math.round(v / 10000).toLocaleString('ko-KR') + '만';
+  }
+  return Math.round(v).toLocaleString('ko-KR') + '원';
+}
+
+function fmtFull(v) {
+  if (!v || v === 0) return '-';
+  return Math.round(v).toLocaleString('ko-KR');
+}
+
+async function fbLoadAll(collection) {
+  const snapshot = await db.collection(collection).get();
+  const result = {};
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    result[doc.id] = d.data ? JSON.parse(d.data) : d;
+  });
+  return result;
+}
+
+async function fbLoad(collection, docId) {
+  const doc = await db.collection(collection).doc(docId).get();
+  return doc.exists ? doc.data() : null;
+}
+
+function generateSettlementFromCurrentData() {
+  let allSettlementData = [];
+
+  ['2024', '2025', '2026'].forEach(year => {
+    const data = allData[year] || [];
+    const cancelledList = CANCELLED_INFO[year] || [];
+
+    data.filter(item => {
+      const noKey = String(Math.floor(Number(item.no)));
+      const isCancelled = cancelledList.includes(noKey) || (item.site && item.site.includes('해지'));
+      return !isCancelled;
+    }).forEach(item => {
+      const correctionKey = `${year}_${item.no}`;
+      const amount = AMOUNT_CORRECTION[correctionKey] || item.amount || 0;
+
+      const key = `${year}_${item.no}`;
+      const detail = detailData[key];
+
+      let material = 0;
+      let labor = 0;
+      let otherExpense = 0;
+      let totalExpense = 0;
+      let profit = 0;
+      let hasDetailData = false;
+
+      if (detail) {
+        hasDetailData = true;
+
+        if (detail.settlementMaterials && detail.settlementMaterials.length > 0) {
+          detail.settlementMaterials.forEach(m => {
+            material += parseNumber(m.purchase);
+          });
+        }
+
+        if (detail.settlementLabors && detail.settlementLabors.length > 0) {
+          detail.settlementLabors.forEach(l => {
+            labor += parseNumber(l.purchase);
+          });
+        }
+
+        if (detail.settlementOthers && detail.settlementOthers.length > 0) {
+          detail.settlementOthers.forEach(o => {
+            otherExpense += parseNumber(o.purchase);
+          });
+        }
+
+        if (detail.settlementWorks && detail.settlementWorks.length > 0) {
+          detail.settlementWorks.forEach(w => {
+            totalExpense += parseNumber(w.purchase);
+          });
+        }
+
+        if ((material === 0 && labor === 0 && otherExpense === 0) && detail.expenses && detail.expenses.length > 0) {
+          detail.expenses.forEach(exp => {
+            const expAmt = parseNumber(exp.amount);
+            if (exp.type === '자재비') material += expAmt;
+            else if (exp.type === '노무비') labor += expAmt;
+            else otherExpense += expAmt;
+          });
+        }
+
+        if (material === 0 && detail.expenses && detail.expenses.length > 0) {
+          detail.expenses.filter(e => e.type === '자재비').forEach(exp => {
+            material += parseNumber(exp.amount);
+          });
+        }
+        if (labor === 0 && detail.expenses && detail.expenses.length > 0) {
+          detail.expenses.filter(e => e.type === '노무비').forEach(exp => {
+            labor += parseNumber(exp.amount);
+          });
+        }
+        if (otherExpense === 0 && detail.expenses && detail.expenses.length > 0) {
+          detail.expenses.filter(e => e.type === '기타경비').forEach(exp => {
+            otherExpense += parseNumber(exp.amount);
+          });
+        }
+
+        totalExpense += material + labor + otherExpense;
+
+        let salesAmount = 0;
+        if (detail.settlementSalesAmount) {
+          salesAmount = parseNumber(detail.settlementSalesAmount);
+        }
+        if (!salesAmount && detail.settlementWorks && detail.settlementWorks.length > 0) {
+          detail.settlementWorks.forEach(w => {
+            salesAmount += parseNumber(w.sales);
+          });
+        }
+        if (!salesAmount && detail.settlementSales) {
+          const parsed = parseNumber(detail.settlementSales);
+          if (parsed > 10000) {
+            salesAmount = parsed;
+          }
+        }
+        if (!salesAmount) salesAmount = amount;
+        profit = salesAmount - totalExpense;
+      } else {
+        profit = amount * 0.1;
+        totalExpense = amount - profit;
+      }
+
+      const realSettlement = profit * 0.15;
+      const companyProfit = profit * 0.85;
+
+      const checkPaid = (p) => {
+        if (!p) return false;
+        if (p.isRed) return false;
+        if (p.manualPaid) return true;
+        return p.paid && p.paid !== '' && p.paid !== '미정';
+      };
+
+      let status = '미입금';
+      let detailStatus = 'unpaid';
+
+      if (checkPaid(item.balance1)) {
+        status = '입금';
+        detailStatus = 'paid';
+      } else if (checkPaid(item.interim1)) {
+        status = '진행';
+        detailStatus = 'interim';
+      } else if (checkPaid(item.contract1)) {
+        status = '진행';
+        detailStatus = 'contract';
+      } else if (item.contract1?.amt > 0 || item.interim1?.amt > 0 || item.balance1?.amt > 0) {
+        status = '진행';
+        detailStatus = 'progress';
+      }
+
+      const manager = item.manager || '기타';
+      let hqType = '본사';
+
+      if (item.type && item.type.includes('(외)')) {
+        hqType = '외주';
+      }
+      if (EXT_MANAGERS.includes(manager)) {
+        hqType = '외주';
+      }
+      if (HQ_MANAGERS.includes(manager)) {
+        hqType = '본사';
+      }
+
+      let savedSettled = null;
+      if (settlementStatusData) {
+        const statusKey = `${year.substring(2)}_${item.no}`;
+        if (settlementStatusData[statusKey]) {
+          savedSettled = settlementStatusData[statusKey];
+        }
+      }
+
+      const isExcludedByUser = detail && detail.excluded === true;
+
+      allSettlementData.push({
+        year: year.substring(2),
+        no: item.no,
+        type: item.type,
+        site: item.site,
+        amount: amount,
+        status: status,
+        detailStatus: detailStatus,
+        hqType: hqType,
+        material: material,
+        labor: labor,
+        totalExpense: totalExpense,
+        profit: profit,
+        profitRate: amount > 0 ? profit / amount : 0,
+        realSettlement: realSettlement,
+        companyProfit: companyProfit,
+        manager: manager,
+        settled: savedSettled || (year === '2025' || year === '2026' ? '미정산' : (detailStatus === 'paid' ? '정산완료' : '미정산')),
+        hasDetailData: hasDetailData,
+        isExcluded: EXCLUDE_MANAGERS.includes(manager) || isExcludedByUser,
+        excludedByUser: isExcludedByUser
+      });
+    });
+  });
+
+  return allSettlementData;
+}
+
+async function loadAllData() {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    const [conRaw, detRaw, statusRaw, consultRaw] = await Promise.all([
+      fbLoadAll(FB_COLLECTIONS.constructionData),
+      fbLoadAll(FB_COLLECTIONS.constructionDetailData),
+      fbLoad(FB_COLLECTIONS.settlementStatusData, 'status'),
+      fbLoad(FB_COLLECTIONS.consultingData, 'data')
+    ]);
+
+    allData = conRaw || {};
+    detailData = detRaw || {};
+    settlementStatusData = statusRaw || {};
+    consultingData = [];
+
+    if (consultRaw) {
+      if (Array.isArray(consultRaw)) {
+        consultingData = consultRaw;
+      } else if (consultRaw.data) {
+        consultingData = typeof consultRaw.data === 'string' ? JSON.parse(consultRaw.data) : consultRaw.data;
+      } else if (consultRaw.items) {
+        consultingData = typeof consultRaw.items === 'string' ? JSON.parse(consultRaw.items) : consultRaw.items;
+      }
+    }
+    if (!Array.isArray(consultingData)) consultingData = [];
+
+    constructionSettlementData = generateSettlementFromCurrentData();
+
+    document.getElementById('lastUpdated').textContent =
+      '최종 업데이트: ' + new Date().toLocaleString('ko-KR');
+
+    applyFilters();
+  } catch (err) {
+    console.error('Data load error:', err);
+    alert('데이터 로드 실패: ' + err.message);
+  } finally {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+}
+
+function refreshData() {
+  loadAllData();
+}
+
+function applyFilters() {
+  const yearFilter = document.getElementById('filterYear').value;
+  const settlementFilter = document.getElementById('filterSettlement').value;
+  const hqFilter = document.getElementById('filterHqType').value;
+
+  let filteredConstruction = constructionSettlementData.filter(item => {
+    if (yearFilter !== 'all') {
+      const shortYear = yearFilter.substring(2);
+      if (item.year !== shortYear) return false;
+    }
+    if (settlementFilter === 'settled' && item.settled !== '정산완료') return false;
+    if (settlementFilter === 'unsettled' && item.settled === '정산완료') return false;
+    if (hqFilter === 'hq' && item.hqType !== '본사') return false;
+    if (hqFilter === 'ext' && item.hqType !== '외주') return false;
+    return true;
+  });
+
+  let filteredConsulting = consultingData.filter(item => {
+    if (yearFilter !== 'all') {
+      const itemYear = String(item.year);
+      const filterShort = yearFilter.substring(2);
+      if (itemYear !== yearFilter && itemYear !== filterShort) return false;
+    }
+    if (settlementFilter === 'settled' && item.settled !== '정산완료') return false;
+    if (settlementFilter === 'unsettled' && item.settled === '정산완료') return false;
+    return true;
+  });
+
+  renderDashboard(filteredConstruction, filteredConsulting);
+}
+
+function renderDashboard(conData, consList) {
+  const nonExcludedCon = conData.filter(d => !d.isExcluded);
+
+  const conTotalAmount = nonExcludedCon.reduce((s, d) => s + (d.amount || 0), 0);
+  const conTotalProfit = nonExcludedCon.reduce((s, d) => s + (d.profit || 0), 0);
+  const conTotalCompany = nonExcludedCon.reduce((s, d) => s + (d.companyProfit || 0), 0);
+  const conTotalSettlement = nonExcludedCon.reduce((s, d) => s + (d.realSettlement || 0), 0);
+  const conSettledCount = nonExcludedCon.filter(d => d.settled === '정산완료').length;
+
+  const consTotalBid = consList.reduce((s, d) => s + parseNumber(d.bidAmount), 0);
+  const consTotalProfit = consList.reduce((s, d) => s + parseNumber(d.profit), 0);
+  const consTotalCompany = consList.reduce((s, d) => s + parseNumber(d.companyProfit), 0);
+  const consTotalSettlement = consList.reduce((s, d) => s + parseNumber(d.settlement), 0);
+  const consSettledCount = consList.filter(d => d.settled === '정산완료').length;
+
+  const totalAmount = conTotalAmount + consTotalBid;
+  const totalProfit = conTotalProfit + consTotalProfit;
+  const totalCompany = conTotalCompany + consTotalCompany;
+  const totalSettlement = conTotalSettlement + consTotalSettlement;
+  const totalSettledCount = conSettledCount + consSettledCount;
+  const totalCount = nonExcludedCon.length + consList.length;
+
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="summary-card blue">
+      <div class="card-label">📊 총 매출액</div>
+      <div class="card-value blue">${fmtWon(totalAmount)}</div>
+      <div class="card-sub"><span style="background:#e3f2fd;color:#1565c0;">공사 ${fmtWon(conTotalAmount)}</span> <span style="background:#fff3e0;color:#e65100;">컨설팅 ${fmtWon(consTotalBid)}</span></div>
+    </div>
+    <div class="summary-card green">
+      <div class="card-label">💰 총 이익금</div>
+      <div class="card-value ${totalProfit >= 0 ? 'green' : 'red'}">${fmtWon(totalProfit)}</div>
+      <div class="card-sub">이익률 ${totalAmount > 0 ? (totalProfit / totalAmount * 100).toFixed(1) : '0'}%</div>
+    </div>
+    <div class="summary-card teal">
+      <div class="card-label">🏢 회사수익(85%)</div>
+      <div class="card-value teal">${fmtWon(totalCompany)}</div>
+      <div class="card-sub"><span style="background:#e3f2fd;color:#1565c0;">공사 ${fmtWon(conTotalCompany)}</span> <span style="background:#fff3e0;color:#e65100;">컨설팅 ${fmtWon(consTotalCompany)}</span></div>
+    </div>
+    <div class="summary-card purple">
+      <div class="card-label">👤 정산금액(15%)</div>
+      <div class="card-value purple">${fmtWon(totalSettlement)}</div>
+      <div class="card-sub"><span style="background:#e3f2fd;color:#1565c0;">공사 ${fmtWon(conTotalSettlement)}</span> <span style="background:#fff3e0;color:#e65100;">컨설팅 ${fmtWon(consTotalSettlement)}</span></div>
+    </div>
+    <div class="summary-card orange">
+      <div class="card-label">✅ 정산완료</div>
+      <div class="card-value orange">${totalSettledCount} / ${totalCount}건</div>
+      <div class="card-sub">완료율 ${totalCount > 0 ? (totalSettledCount / totalCount * 100).toFixed(0) : '0'}%</div>
+    </div>
+  `;
+
+  renderConstructionSection(nonExcludedCon);
+  renderConsultingSection(consList);
+  renderManagerProfitChart(nonExcludedCon, consList);
+  renderCategoryDonutChart(conTotalAmount, conTotalProfit, consTotalBid, consTotalProfit);
+}
+
+function renderConstructionSection(data) {
+  const count = data.length;
+  const totalAmt = data.reduce((s, d) => s + (d.amount || 0), 0);
+  const totalProfit = data.reduce((s, d) => s + (d.profit || 0), 0);
+  const profitRate = totalAmt > 0 ? (totalProfit / totalAmt * 100).toFixed(1) : '0.0';
+
+  document.getElementById('constructionMiniCards').innerHTML = `
+    <div class="mini-card"><div class="mc-label">건수</div><div class="mc-value">${count}건</div></div>
+    <div class="mini-card"><div class="mc-label">공사금액</div><div class="mc-value" style="color:#1565c0">${fmtWon(totalAmt)}</div></div>
+    <div class="mini-card"><div class="mc-label">이익금</div><div class="mc-value" style="color:${totalProfit>=0?'#2e7d32':'#c62828'}">${fmtWon(totalProfit)}</div></div>
+    <div class="mini-card"><div class="mc-label">이익률</div><div class="mc-value">${profitRate}%</div></div>
+  `;
+
+  const managerMap = {};
+  data.forEach(d => {
+    const mgr = d.manager || '기타';
+    if (!HQ_MANAGERS.includes(mgr)) return;
+    if (!managerMap[mgr]) managerMap[mgr] = { count: 0, amount: 0, profit: 0, settlement: 0, company: 0 };
+    managerMap[mgr].count++;
+    managerMap[mgr].amount += d.amount || 0;
+    managerMap[mgr].profit += d.profit || 0;
+    managerMap[mgr].settlement += d.realSettlement || 0;
+    managerMap[mgr].company += d.companyProfit || 0;
+  });
+
+  let rows = '';
+  let totals = { count: 0, amount: 0, profit: 0, settlement: 0, company: 0 };
+
+  HQ_MANAGERS.forEach(mgr => {
+    const m = managerMap[mgr];
+    if (!m) return;
+    const rate = m.amount > 0 ? (m.profit / m.amount * 100).toFixed(1) : '0.0';
+    const profitClass = m.profit >= 0 ? 'profit-positive' : 'profit-negative';
+    rows += `<tr>
+      <td>${mgr}</td>
+      <td>${m.count}</td>
+      <td>${fmtFull(m.amount)}</td>
+      <td class="${profitClass}">${fmtFull(m.profit)}</td>
+      <td>${rate}%</td>
+      <td>${fmtFull(m.settlement)}</td>
+      <td>${fmtFull(m.company)}</td>
+    </tr>`;
+    totals.count += m.count;
+    totals.amount += m.amount;
+    totals.profit += m.profit;
+    totals.settlement += m.settlement;
+    totals.company += m.company;
+  });
+
+  const totalRate = totals.amount > 0 ? (totals.profit / totals.amount * 100).toFixed(1) : '0.0';
+
+  document.getElementById('constructionTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>담당자</th><th>건수</th><th>공사금액</th><th>이익금</th><th>이익률</th><th>정산금액(15%)</th><th>회사수익(85%)</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999">데이터 없음</td></tr>'}</tbody>
+      <tfoot><tr>
+        <td>합계</td>
+        <td>${totals.count}</td>
+        <td>${fmtFull(totals.amount)}</td>
+        <td class="${totals.profit>=0?'profit-positive':'profit-negative'}">${fmtFull(totals.profit)}</td>
+        <td>${totalRate}%</td>
+        <td>${fmtFull(totals.settlement)}</td>
+        <td>${fmtFull(totals.company)}</td>
+      </tr></tfoot>
+    </table>
+  `;
+}
+
+function renderConsultingSection(data) {
+  const count = data.length;
+  const totalBid = data.reduce((s, d) => s + parseNumber(d.bidAmount), 0);
+  const totalProfit = data.reduce((s, d) => s + parseNumber(d.profit), 0);
+  const profitRate = totalBid > 0 ? (totalProfit / totalBid * 100).toFixed(1) : '0.0';
+
+  document.getElementById('consultingMiniCards').innerHTML = `
+    <div class="mini-card"><div class="mc-label">건수</div><div class="mc-value">${count}건</div></div>
+    <div class="mini-card"><div class="mc-label">낙찰금액</div><div class="mc-value" style="color:#1565c0">${fmtWon(totalBid)}</div></div>
+    <div class="mini-card"><div class="mc-label">이익금</div><div class="mc-value" style="color:${totalProfit>=0?'#2e7d32':'#c62828'}">${fmtWon(totalProfit)}</div></div>
+    <div class="mini-card"><div class="mc-label">이익률</div><div class="mc-value">${profitRate}%</div></div>
+  `;
+
+  const managerMap = {};
+  data.forEach(d => {
+    const mgr = d.manager || '기타';
+    if (!managerMap[mgr]) managerMap[mgr] = { count: 0, bid: 0, profit: 0, settlement: 0, company: 0 };
+    managerMap[mgr].count++;
+    managerMap[mgr].bid += parseNumber(d.bidAmount);
+    managerMap[mgr].profit += parseNumber(d.profit);
+    managerMap[mgr].settlement += parseNumber(d.settlement);
+    managerMap[mgr].company += parseNumber(d.companyProfit);
+  });
+
+  let rows = '';
+  let totals = { count: 0, bid: 0, profit: 0, settlement: 0, company: 0 };
+
+  Object.keys(managerMap).sort().forEach(mgr => {
+    const m = managerMap[mgr];
+    const rate = m.bid > 0 ? (m.profit / m.bid * 100).toFixed(1) : '0.0';
+    const profitClass = m.profit >= 0 ? 'profit-positive' : 'profit-negative';
+    rows += `<tr>
+      <td>${mgr}</td>
+      <td>${m.count}</td>
+      <td>${fmtFull(m.bid)}</td>
+      <td class="${profitClass}">${fmtFull(m.profit)}</td>
+      <td>${rate}%</td>
+      <td>${fmtFull(m.settlement)}</td>
+      <td>${fmtFull(m.company)}</td>
+    </tr>`;
+    totals.count += m.count;
+    totals.bid += m.bid;
+    totals.profit += m.profit;
+    totals.settlement += m.settlement;
+    totals.company += m.company;
+  });
+
+  const totalRate = totals.bid > 0 ? (totals.profit / totals.bid * 100).toFixed(1) : '0.0';
+
+  document.getElementById('consultingTable').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>담당자</th><th>건수</th><th>낙찰금액</th><th>이익금</th><th>이익률</th><th>정산금액(15%)</th><th>회사수익(85%)</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999">데이터 없음</td></tr>'}</tbody>
+      <tfoot><tr>
+        <td>합계</td>
+        <td>${totals.count}</td>
+        <td>${fmtFull(totals.bid)}</td>
+        <td class="${totals.profit>=0?'profit-positive':'profit-negative'}">${fmtFull(totals.profit)}</td>
+        <td>${totalRate}%</td>
+        <td>${fmtFull(totals.settlement)}</td>
+        <td>${fmtFull(totals.company)}</td>
+      </tr></tfoot>
+    </table>
+  `;
+}
+
+let managerChartInstance = null;
+let donutChartInstance = null;
+
+function renderManagerProfitChart(conData, consList) {
+  const managerMap = {};
+  conData.forEach(d => {
+    const mgr = d.manager || '기타';
+    if (!HQ_MANAGERS.includes(mgr)) return;
+    if (!managerMap[mgr]) managerMap[mgr] = { conProfit: 0, consProfit: 0 };
+    managerMap[mgr].conProfit += d.profit || 0;
+  });
+  consList.forEach(d => {
+    const mgr = d.manager || '기타';
+    if (!managerMap[mgr]) managerMap[mgr] = { conProfit: 0, consProfit: 0 };
+    managerMap[mgr].consProfit += parseNumber(d.profit);
+  });
+
+  const labels = [];
+  const conProfits = [];
+  const consProfits = [];
+
+  HQ_MANAGERS.forEach(mgr => {
+    if (!managerMap[mgr]) return;
+    labels.push(mgr);
+    conProfits.push(Math.round(managerMap[mgr].conProfit / 10000));
+    consProfits.push(Math.round(managerMap[mgr].consProfit / 10000));
+  });
+
+  if (managerChartInstance) managerChartInstance.destroy();
+  const ctx = document.getElementById('managerProfitChart').getContext('2d');
+  managerChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: '공사 이익금', data: conProfits, backgroundColor: 'rgba(25,118,210,0.8)', borderRadius: 4 },
+        { label: '컨설팅 이익금', data: consProfits, backgroundColor: 'rgba(255,152,0,0.8)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: (c) => c.dataset.label + ': ' + c.parsed.y.toLocaleString() + '만원' } }
+      },
+      scales: {
+        y: { ticks: { callback: (v) => v.toLocaleString() + '만' }, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+function renderCategoryDonutChart(conAmt, conProfit, consAmt, consProfit) {
+  const data = [conAmt, consAmt];
+  const labels = ['공사정산', '기술컨설팅'];
+  const colors = ['#1976d2', '#ff9800'];
+
+  if (donutChartInstance) donutChartInstance.destroy();
+  const ctx = document.getElementById('categoryDonutChart').getContext('2d');
+  donutChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c) => c.label + ': ' + fmtWon(c.raw) } }
+      }
+    }
+  });
+
+  const total = conAmt + consAmt;
+  document.getElementById('categoryLegend').innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="width:14px;height:14px;border-radius:50%;background:#1976d2;display:inline-block;"></span>
+        <span style="font-weight:500;">공사정산</span>
+        <span style="margin-left:auto;font-weight:700;color:#1976d2;">${fmtWon(conAmt)}</span>
+      </div>
+      <div style="font-size:11px;color:#888;margin-left:22px;margin-bottom:4px;">이익금: ${fmtWon(conProfit)}</div>
+      <div style="font-size:11px;color:#888;margin-left:22px;">비중: ${total > 0 ? (conAmt/total*100).toFixed(1) : 0}%</div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="width:14px;height:14px;border-radius:50%;background:#ff9800;display:inline-block;"></span>
+        <span style="font-weight:500;">기술컨설팅</span>
+        <span style="margin-left:auto;font-weight:700;color:#e65100;">${fmtWon(consAmt)}</span>
+      </div>
+      <div style="font-size:11px;color:#888;margin-left:22px;margin-bottom:4px;">이익금: ${fmtWon(consProfit)}</div>
+      <div style="font-size:11px;color:#888;margin-left:22px;">비중: ${total > 0 ? (consAmt/total*100).toFixed(1) : 0}%</div>
+    </div>
+  `;
+}
+
+loadAllData();
+</script>
+</body>
+</html>

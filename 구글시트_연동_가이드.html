@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Sheets 연동 가이드</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1a73e8;
+  --success: #34a853;
+  --warning: #f9ab00;
+  --danger: #ea4335;
+  --bg: #f8f9fa;
+  --card: #ffffff;
+  --text: #202124;
+  --text-sub: #5f6368;
+  --border: #dadce0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+}
+.top-bar {
+  background: linear-gradient(135deg, #1a73e8, #4285f4);
+  color: white;
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.top-bar h1 { font-size: 1.5rem; font-weight: 700; }
+.top-bar p { font-size: 0.85rem; opacity: 0.85; margin-top: 0.3rem; }
+
+.container { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+.progress-bar {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+.progress-step {
+  flex: 1;
+  text-align: center;
+  padding: 0.6rem 0.3rem;
+  background: #e8eaed;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.progress-step.active {
+  background: var(--primary);
+  color: white;
+}
+.progress-step.done {
+  background: var(--success);
+  color: white;
+}
+
+.step-card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 1.8rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border-left: 5px solid var(--primary);
+}
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-right: 0.7rem;
+}
+.step-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+.step-content { margin-left: 0.2rem; }
+.step-content p { margin-bottom: 0.8rem; font-size: 0.92rem; }
+.step-content ol, .step-content ul { margin-left: 1.2rem; margin-bottom: 1rem; }
+.step-content li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+
+.highlight {
+  background: #e8f0fe;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-size: 0.88rem;
+}
+.highlight.warning {
+  background: #fef7e0;
+  border-left: 4px solid var(--warning);
+}
+.highlight.success {
+  background: #e6f4ea;
+  border-left: 4px solid var(--success);
+}
+.highlight.danger {
+  background: #fce8e6;
+  border-left: 4px solid var(--danger);
+}
+
+.code-block {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  position: relative;
+}
+.code-block .copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: #444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.code-block .copy-btn:hover { background: #666; }
+
+.btn-link {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  text-decoration: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-link:hover { background: #1557b0; }
+
+.img-placeholder {
+  background: #f0f0f0;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 1rem 0;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.nav-path {
+  background: #f1f3f4;
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  display: inline-block;
+  margin: 0.3rem 0;
+  font-family: monospace;
+}
+
+.kbd {
+  display: inline-block;
+  background: #f1f3f4;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.back-btn {
+  display: inline-block;
+  margin: 1rem 0;
+  padding: 0.6rem 1.2rem;
+  background: #f1f3f4;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+.back-btn:hover { background: #e0e0e0; }
+
+.faq { margin-top: 2rem; }
+.faq-item {
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-bottom: 0.8rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.faq-q { font-weight: 700; font-size: 0.92rem; margin-bottom: 0.5rem; color: var(--primary); }
+.faq-a { font-size: 0.88rem; color: var(--text-sub); }
+
+@media (max-width: 600px) {
+  .step-card { padding: 1.2rem; }
+  .progress-step { font-size: 0.6rem; padding: 0.4rem 0.2rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Google Sheets 연동 가이드</h1>
+  <p>공사현황리스트 ↔ Google Sheets 양방향 동기화 설정</p>
+</div>
+
+<div class="container">
+
+<a href="index.html" class="back-btn">← 공사현황리스트로 돌아가기</a>
+
+<div class="progress-bar">
+  <div class="progress-step" onclick="scrollToStep(1)">1. 시트 만들기</div>
+  <div class="progress-step" onclick="scrollToStep(2)">2. 스크립트</div>
+  <div class="progress-step" onclick="scrollToStep(3)">3. 배포</div>
+  <div class="progress-step" onclick="scrollToStep(4)">4. 연결</div>
+  <div class="progress-step" onclick="scrollToStep(5)">5. 이관</div>
+</div>
+
+<!-- ===== STEP 0: 개요 ===== -->
+<div class="step-card" style="border-left-color: #5f6368;">
+  <div class="step-title">시작하기 전에</div>
+  <div class="step-content">
+    <p><strong>이 가이드가 하는 일:</strong> 공사현황리스트의 데이터를 Google Sheets에 자동으로 동기화합니다.</p>
+    <div class="highlight success">
+      <strong>완성되면 이렇게 됩니다:</strong><br>
+      - 공사현황리스트에서 데이터 수정 → Google Sheets에 자동 반영<br>
+      - Google Sheets에서 직접 수정 → 공사현황리스트 새로고침 시 반영<br>
+      - Google Sheets에서 표/그래프 등 자유롭게 분석 가능
+    </div>
+    <p><strong>준비물:</strong></p>
+    <ul>
+      <li>Google 계정 (Gmail 계정이면 됩니다)</li>
+      <li>소요 시간: 약 10~15분</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== STEP 1 ===== -->
+<div class="step-card" id="step1">
+  <div class="step-title"><span class="step-num">1</span> Google Sheets 만들기</div>
+  <div class="step-content">
+    <ol>
+      <li>
+        아래 링크를 클릭해서 <strong>Google Sheets</strong>를 엽니다:<br>
+        <a href="https://sheets.google.com" target="_blank" class="btn-link" style="margin:0.5rem 0;display:inline-block;">Google Sheets 열기 →</a>
+      </li>
+      <li>
+        왼쪽 상단의 <strong>+ (새 스프레드시트)</strong>를 클릭합니다.<br>
+        또는 "빈 스프레드시트"를 클릭합니다.
+      </li>
+      <li>
+        제목을 클릭해서 이름을 바꿉니다:<br>
+        <span class="nav-path">공사현황 데이터</span> (아무 이름이나 괜찮습니다)
+      </li>
+      <li>
+        <strong>주소창의 URL에서 ID를 복사합니다.</strong><br>
+        URL이 이렇게 생겼을 겁니다:
+        <div class="code-block" style="font-size:0.78rem;">
+https://docs.google.com/spreadsheets/d/<strong style="color:#4fc3f7;">여기가_스프레드시트_ID</strong>/edit
+        </div>
+        <code style="color:#4fc3f7;">/d/</code> 와 <code style="color:#4fc3f7;">/edit</code> 사이의 긴 문자열이 <strong>스프레드시트 ID</strong>입니다.
+        <div class="highlight warning">
+          <strong>예시:</strong> URL이 <code>https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit</code> 이면<br>
+          ID는 <code>1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms</code> 입니다.
+        </div>
+      </li>
+      <li>
+        이 ID를 <strong>메모장이나 어딘가에 임시로 복사</strong>해 두세요. 다음 단계에서 사용합니다.
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== STEP 2 ===== -->
+<div class="step-card" id="step2">
+  <div class="step-title"><span class="step-num">2</span> Apps Script 코드 넣기</div>
+  <div class="step-content">
+    <p>Google Sheets와 공사현황리스트를 연결하는 "중간 다리" 코드를 넣습니다.</p>
+    <ol>
+      <li>
+        방금 만든 Google Sheets에서 상단 메뉴를 클릭합니다:<br>
+        <span class="nav-path">확장 프로그램 → Apps Script</span>
+        <div class="highlight">
+          메뉴가 안 보이면 화면 상단의 메뉴바에서 "확장 프로그램"을 찾아보세요.
+        </div>
+      </li>
+      <li>
+        새 탭에서 <strong>Apps Script 편집기</strong>가 열립니다.<br>
+        기본으로 <code>코드.gs</code> (또는 <code>Code.gs</code>) 파일이 열려 있을 겁니다.
+      </li>
+      <li>
+        <strong>기존 코드를 전부 지우고</strong>, 아래 코드를 복사해서 붙여넣기 합니다:
+        <div class="code-block" id="codeGs">
+          <button class="copy-btn" onclick="copyCode('codeGs')">복사</button>
+          <pre style="margin:0;white-space:pre-wrap;" id="codeGsContent"></pre>
+        </div>
+      </li>
+      <li>
+        <strong>4단계에서 복사해둔 스프레드시트 ID</strong>를 코드 맨 위의<br>
+        <code>YOUR_SPREADSHEET_ID_HERE</code> 부분에 붙여넣기 합니다.
+        <div class="highlight warning">
+          <strong>예시 (변경 전):</strong><br>
+          <code>const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';</code><br><br>
+          <strong>예시 (변경 후):</strong><br>
+          <code>const SPREADSHEET_ID = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms';</code>
+        </div>
+      </li>
+      <li>
+        이제 <strong>새 파일을 추가</strong>합니다.<br>
+        왼쪽 "파일" 목록 옆의 <strong>+</strong> 버튼 → <strong>"스크립트"</strong> 를 클릭합니다.<br>
+        파일 이름을 <span class="nav-path">Triggers</span> 로 입력합니다 (.gs는 자동으로 붙습니다).
+      </li>
+      <li>
+        새로 만든 <code>Triggers.gs</code> 파일에 아래 코드를 붙여넣기 합니다:
+        <div class="code-block" id="triggersGs">
+          <button class="copy-btn" onclick="copyCode('triggersGs')">복사</button>
+          <pre style="margin:0;white-space:pre-wrap;" id="triggersGsContent"></pre>
+        </div>
+      </li>
+      <li>
+        <strong>저장합니다:</strong> <span class="kbd">Ctrl</span> + <span class="kbd">S</span> (또는 상단의 💾 아이콘)
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== STEP 2.5: 트리거 설정 ===== -->
+<div class="step-card" style="border-left-color: var(--warning);">
+  <div class="step-title"><span class="step-num" style="background:var(--warning);">2+</span> 트리거 설정 (선택사항)</div>
+  <div class="step-content">
+    <p>Google Sheets에서 <strong>직접 수정</strong>할 때도 공사현황리스트에 반영되게 하려면 이 단계를 진행하세요.</p>
+    <div class="highlight">
+      Google Sheets를 직접 편집하지 않고 공사현황리스트에서만 수정한다면 이 단계는 건너뛰어도 됩니다.
+    </div>
+    <ol>
+      <li>Apps Script 편집기 상단에서 함수 선택 드롭다운 (▶ 버튼 왼쪽)을 클릭합니다.</li>
+      <li><strong>setupOnEditTrigger</strong> 를 선택합니다.</li>
+      <li><strong>▶ 실행</strong> 버튼을 누릅니다.</li>
+      <li>"권한 필요" 팝업이 뜨면:
+        <ul>
+          <li>"권한 검토" 클릭</li>
+          <li>내 Google 계정 선택</li>
+          <li>"고급" → "안전하지 않은 앱으로 이동" 클릭</li>
+          <li>"허용" 클릭</li>
+        </ul>
+      </li>
+      <li>"실행 완료" 가 표시되면 성공입니다!</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== STEP 3 ===== -->
+<div class="step-card" id="step3">
+  <div class="step-title"><span class="step-num">3</span> 웹 앱으로 배포하기</div>
+  <div class="step-content">
+    <p>코드를 인터넷에서 접근할 수 있는 "웹 앱"으로 배포합니다.</p>
+    <ol>
+      <li>
+        Apps Script 편집기 오른쪽 상단의 <strong>"배포"</strong> 버튼을 클릭합니다.
+      </li>
+      <li>
+        <strong>"새 배포"</strong> 를 선택합니다.
+      </li>
+      <li>
+        배포 유형 선택 화면에서:
+        <ul>
+          <li>왼쪽의 ⚙ 아이콘 → <strong>"웹 앱"</strong> 을 선택합니다.</li>
+        </ul>
+      </li>
+      <li>
+        설정을 입력합니다:
+        <ul>
+          <li><strong>설명:</strong> <span class="nav-path">공사현황 동기화 API</span> (아무거나 OK)</li>
+          <li><strong>다음 사용자 인증정보로 실행:</strong> <span class="nav-path">나</span> (본인 계정)</li>
+          <li><strong>액세스 권한이 있는 사용자:</strong> <span class="nav-path">모든 사용자</span></li>
+        </ul>
+        <div class="highlight danger">
+          <strong>"모든 사용자"로 설정해야 합니다!</strong><br>
+          이렇게 해야 공사현황리스트 페이지에서 접근할 수 있습니다.<br>
+          (데이터 읽기/쓰기만 가능하며, Google 계정 접근은 아닙니다)
+        </div>
+      </li>
+      <li>
+        <strong>"배포"</strong> 버튼을 클릭합니다.
+      </li>
+      <li>
+        "권한 필요" 팝업이 뜨면 (처음 배포할 때):
+        <ul>
+          <li>"액세스 승인" 클릭</li>
+          <li>내 Google 계정 선택</li>
+          <li>"고급" 클릭 → <strong>"(프로젝트 이름)(으)로 이동(안전하지 않음)"</strong> 클릭</li>
+          <li>"허용" 클릭</li>
+        </ul>
+        <div class="highlight warning">
+          "안전하지 않음"이라고 나오는 건 <strong>Google의 검증을 받지 않은 개인 스크립트</strong>이기 때문입니다.
+          본인이 직접 만든 코드이므로 안전합니다.
+        </div>
+      </li>
+      <li>
+        배포가 완료되면 <strong>"웹 앱 URL"</strong>이 표시됩니다.<br>
+        <div class="code-block" style="font-size:0.78rem;">
+https://script.google.com/macros/s/<strong style="color:#4fc3f7;">긴_문자열</strong>/exec
+        </div>
+        <strong>이 URL을 복사합니다!</strong> (옆의 "복사" 아이콘 클릭)
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== STEP 4 ===== -->
+<div class="step-card" id="step4">
+  <div class="step-title"><span class="step-num">4</span> 공사현황리스트에 연결하기</div>
+  <div class="step-content">
+    <p>복사한 URL을 공사현황리스트에 입력합니다.</p>
+    <ol>
+      <li>
+        <a href="index.html" target="_blank" class="btn-link" style="margin:0.5rem 0;display:inline-block;">공사현황리스트 열기 →</a>
+      </li>
+      <li>
+        상단 헤더에서 <strong>⚪ 아이콘</strong> (흰색 원) 또는 <strong>🔄 Sheets</strong> 버튼을 클릭합니다.
+      </li>
+      <li>
+        "Google Sheets 연동 설정" 팝업이 열립니다.
+      </li>
+      <li>
+        <strong>"Apps Script 배포 URL"</strong> 입력란에 3단계에서 복사한 URL을 <strong>붙여넣기</strong> 합니다.
+      </li>
+      <li>
+        <strong>"💾 URL 저장"</strong> 을 클릭합니다.
+      </li>
+      <li>
+        <strong>"🔗 연결 테스트"</strong> 를 클릭하여 연결을 확인합니다.
+        <div class="highlight success">
+          <strong>"✅ 연결 성공!"</strong> 이 나오면 완료!
+        </div>
+        <div class="highlight danger">
+          <strong>"❌ 연결 실패"</strong> 가 나오면?<br>
+          - URL을 정확히 복사했는지 확인<br>
+          - 배포 시 "모든 사용자" 접근으로 설정했는지 확인<br>
+          - 3단계를 다시 진행해보세요
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== STEP 5 ===== -->
+<div class="step-card" id="step5">
+  <div class="step-title"><span class="step-num">5</span> 기존 데이터 이관하기</div>
+  <div class="step-content">
+    <p>현재 공사현황리스트에 있는 데이터를 Google Sheets로 한 번에 옮깁니다.</p>
+    <ol>
+      <li>
+        연결 테스트 성공 후, 같은 설정 팝업에서<br>
+        <strong>"📤 기존 데이터 → Sheets 이관"</strong> 버튼을 클릭합니다.
+      </li>
+      <li>
+        확인 팝업에서 <strong>"확인"</strong>을 누릅니다.
+      </li>
+      <li>
+        <strong>"데이터 이관 완료!"</strong> 메시지가 나오면 성공!
+      </li>
+      <li>
+        Google Sheets를 열어서 데이터가 들어갔는지 확인합니다.<br>
+        연도별로 탭(시트)이 자동 생성되어 있을 겁니다.
+        <div class="highlight success">
+          <strong>완료!</strong> 이제부터 공사현황리스트에서 수정하면 Google Sheets에 자동으로 반영됩니다.
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- ===== 완료 ===== -->
+<div class="step-card" style="border-left-color: var(--success); background: #f6fff6;">
+  <div class="step-title" style="color: var(--success);">🎉 설정 완료!</div>
+  <div class="step-content">
+    <p><strong>이제 이렇게 동작합니다:</strong></p>
+    <ul>
+      <li><strong>공사현황리스트에서 수정</strong> → 자동으로 Google Sheets에 반영 (저장할 때마다)</li>
+      <li><strong>Google Sheets에서 직접 수정</strong> → 공사현황리스트 새로고침 시 반영</li>
+      <li>상단 <strong>⚪/✅ 아이콘</strong>으로 동기화 상태 확인</li>
+      <li><strong>🔄 Sheets</strong> 버튼으로 수동 동기화</li>
+    </ul>
+    <div class="highlight">
+      <strong>Google Sheets는 어디서 보나요?</strong><br>
+      <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> 에서 "공사현황 데이터" 스프레드시트를 열면 됩니다.
+    </div>
+  </div>
+</div>
+
+<!-- ===== FAQ ===== -->
+<div class="faq">
+  <h3 style="margin-bottom:1rem;font-size:1.1rem;">자주 묻는 질문</h3>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. Google Sheets에서 수정하면 바로 반영되나요?</div>
+    <div class="faq-a">공사현황리스트 페이지를 <strong>새로고침</strong>해야 반영됩니다. 실시간은 아니지만, 새로고침할 때마다 최신 데이터를 가져옵니다.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. 인터넷이 안 될 때는 어떻게 되나요?</div>
+    <div class="faq-a">기존 Firebase + localStorage가 그대로 동작합니다. 인터넷이 복구되면 다음 저장/새로고침 시 자동 동기화됩니다.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. 동시에 두 곳에서 수정하면?</div>
+    <div class="faq-a"><strong>더 최근에 수정된 데이터</strong>가 우선됩니다 (연도 단위). 또한 기존 편집 잠금(edit-lock) 시스템이 동시 편집을 방지합니다.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. 코드를 수정하면 다시 배포해야 하나요?</div>
+    <div class="faq-a">Apps Script 코드를 수정하면 <strong>새 배포</strong>를 해야 합니다. 배포 → 배포 관리 → 연필 아이콘 → 버전 "새 버전" → 배포.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. Sheets URL을 잘못 입력했어요.</div>
+    <div class="faq-a">⚪ 아이콘이나 🔄 Sheets 버튼을 클릭해서 설정 화면을 열고, URL을 다시 입력하면 됩니다.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Q. 무료인가요?</div>
+    <div class="faq-a">네, 모두 <strong>무료</strong>입니다. Google Sheets, Apps Script 모두 Google 계정만 있으면 무료로 사용할 수 있습니다.</div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:2rem 0;">
+  <a href="index.html" class="back-btn">← 공사현황리스트로 돌아가기</a>
+</div>
+
+</div>
+
+<script>
+// Code.gs 코드
+const codeGsCode = `// ================================================================
+// 공사현황리스트 ↔ Google Sheets 양방향 동기화
+// Google Apps Script - Web App (doGet / doPost)
+// ================================================================
+
+// ★ 아래 SPREADSHEET_ID를 실제 Google Sheets ID로 교체하세요
+const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE';
+
+const VALID_YEAR_TABS = ['2020-2021', '2022', '2023', '2024', '2025', '2026'];
+
+// 컬럼 헤더 정의
+const HEADERS = [
+  'NO', '지역', '공사현장', '공사명', '공사유형', '영업담당자', '현장소장',
+  '계약금액_부가세별도', '계약금액_부가세포함', '계약일', '착공일', '준공일',
+  '계약금_금액', '계약금_계산서', '계약금_입금일', '계약금_미입금', '계약금_입금완료',
+  '중도금1_금액', '중도금1_계산서', '중도금1_입금일', '중도금1_미입금', '중도금1_입금완료',
+  '중도금2_금액', '중도금2_계산서', '중도금2_입금일', '중도금2_미입금', '중도금2_입금완료',
+  '잔금_금액', '잔금_계산서', '잔금_입금일', '잔금_미입금', '잔금_입금완료',
+  'updatedAt'
+];
+
+// ===== GET 요청 처리 =====
+function doGet(e) {
+  try {
+    const action = e.parameter.action || 'readAll';
+    if (action === 'readAll') {
+      return jsonResponse(readAllYears());
+    } else if (action === 'readYear') {
+      const year = e.parameter.year;
+      if (!year) return jsonResponse({ error: 'year 파라미터 필요' });
+      return jsonResponse({ success: true, year: year, data: readYear(year) });
+    } else if (action === 'getMeta') {
+      return jsonResponse({ success: true, meta: getMeta() });
+    }
+    return jsonResponse({ error: 'Unknown action: ' + action });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
+}
+
+// ===== POST 요청 처리 =====
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const action = payload.action;
+    if (action === 'writeYear') {
+      writeYear(payload.year, payload.data);
+      updateMeta(payload.year);
+      return jsonResponse({ success: true, message: payload.year + ' 저장 완료' });
+    } else if (action === 'writeAll') {
+      Object.keys(payload.data).forEach(year => {
+        if (VALID_YEAR_TABS.includes(year)) {
+          writeYear(year, payload.data[year]);
+          updateMeta(year);
+        }
+      });
+      return jsonResponse({ success: true, message: '전체 저장 완료' });
+    } else if (action === 'migrate') {
+      const data = payload.data;
+      Object.keys(data).forEach(year => {
+        if (VALID_YEAR_TABS.includes(year) && Array.isArray(data[year])) {
+          writeYear(year, data[year]);
+          updateMeta(year);
+        }
+      });
+      return jsonResponse({ success: true, message: '마이그레이션 완료', version: getMeta().version });
+    }
+    return jsonResponse({ error: 'Unknown action: ' + action });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
+}
+
+// ===== 읽기 함수 =====
+function readAllYears() {
+  const result = {};
+  VALID_YEAR_TABS.forEach(year => {
+    result[year] = readYear(year);
+  });
+  return { success: true, data: result, meta: getMeta() };
+}
+
+function readYear(yearKey) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(yearKey);
+  if (!sheet) return [];
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+  const data = sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues();
+  return data.map(row => rowToObject(row));
+}
+
+// ===== 쓰기 함수 =====
+function writeYear(yearKey, dataArray) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(yearKey);
+  if (!sheet) {
+    sheet = ss.insertSheet(yearKey);
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    sheet.setFrozenRows(1);
+    const headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
+    headerRange.setBackground('#2c3e50');
+    headerRange.setFontColor('#ffffff');
+    headerRange.setFontWeight('bold');
+    headerRange.setFontSize(9);
+  }
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, HEADERS.length).clearContent();
+  }
+  if (!dataArray || dataArray.length === 0) return;
+  const rows = dataArray.map(obj => objectToRow(obj));
+  sheet.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+  const numCols = [8, 9, 13, 18, 23, 28];
+  numCols.forEach(col => {
+    if (rows.length > 0) {
+      sheet.getRange(2, col, rows.length, 1).setNumberFormat('#,##0');
+    }
+  });
+  var statusCols = [16, 17, 21, 22, 26, 27, 31, 32];
+  statusCols.forEach(col => {
+    if (rows.length > 0) {
+      sheet.getRange(2, col, rows.length, 1).setHorizontalAlignment('center');
+    }
+  });
+}
+
+// ===== 메타데이터 =====
+function getMeta() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let metaSheet = ss.getSheetByName('_meta');
+  if (!metaSheet) {
+    metaSheet = ss.insertSheet('_meta');
+    metaSheet.getRange(1, 1).setValue('version');
+    metaSheet.getRange(1, 2).setValue(0);
+    metaSheet.getRange(2, 1).setValue('lastSync');
+    metaSheet.getRange(2, 2).setValue(Date.now());
+    VALID_YEAR_TABS.forEach((year, i) => {
+      metaSheet.getRange(3 + i, 1).setValue(year);
+      metaSheet.getRange(3 + i, 2).setValue(0);
+    });
+  }
+  const version = metaSheet.getRange(1, 2).getValue() || 0;
+  const lastSync = metaSheet.getRange(2, 2).getValue() || 0;
+  const yearMeta = {};
+  VALID_YEAR_TABS.forEach((year, i) => {
+    yearMeta[year] = metaSheet.getRange(3 + i, 2).getValue() || 0;
+  });
+  return { version: version, lastSync: lastSync, years: yearMeta };
+}
+
+function updateMeta(yearKey) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let metaSheet = ss.getSheetByName('_meta');
+  if (!metaSheet) {
+    getMeta();
+    metaSheet = ss.getSheetByName('_meta');
+  }
+  const currentVersion = metaSheet.getRange(1, 2).getValue() || 0;
+  metaSheet.getRange(1, 2).setValue(currentVersion + 1);
+  metaSheet.getRange(2, 2).setValue(Date.now());
+  const idx = VALID_YEAR_TABS.indexOf(yearKey);
+  if (idx >= 0) {
+    metaSheet.getRange(3 + idx, 2).setValue(Date.now());
+  }
+}
+
+// ===== 변환 함수 =====
+function rowToObject(row) {
+  return {
+    no: row[0] || '', region: row[1] || '', site: row[2] || '',
+    name: row[3] || '', type: row[4] || '', manager: row[5] || '',
+    siteManager: row[6] || '',
+    amount: toNum(row[7]), amountTax: toNum(row[8]),
+    contractDate: toStr(row[9]), startDate: toStr(row[10]), endDate: toStr(row[11]),
+    contract1: { amt: toNum(row[12]), bill: toStr(row[13]), paid: toStr(row[14]), isRed: toBool(row[15]), manualPaid: toBool(row[16]) },
+    interim1:  { amt: toNum(row[17]), bill: toStr(row[18]), paid: toStr(row[19]), isRed: toBool(row[20]), manualPaid: toBool(row[21]) },
+    interim2:  { amt: toNum(row[22]), bill: toStr(row[23]), paid: toStr(row[24]), isRed: toBool(row[25]), manualPaid: toBool(row[26]) },
+    balance1:  { amt: toNum(row[27]), bill: toStr(row[28]), paid: toStr(row[29]), isRed: toBool(row[30]), manualPaid: toBool(row[31]) },
+    updatedAt: toNum(row[32]) || Date.now()
+  };
+}
+
+function objectToRow(obj) {
+  const c1 = obj.contract1 || {};
+  const i1 = obj.interim1 || {};
+  const i2 = obj.interim2 || {};
+  const b1 = obj.balance1 || {};
+  return [
+    obj.no || '', obj.region || '', obj.site || '', obj.name || '',
+    obj.type || '', obj.manager || '', obj.siteManager || '',
+    toNum(obj.amount), toNum(obj.amountTax),
+    obj.contractDate || '', obj.startDate || '', obj.endDate || '',
+    toNum(c1.amt), c1.bill || '', c1.paid || '', toLabel(c1.isRed), toLabel(c1.manualPaid),
+    toNum(i1.amt), i1.bill || '', i1.paid || '', toLabel(i1.isRed), toLabel(i1.manualPaid),
+    toNum(i2.amt), i2.bill || '', i2.paid || '', toLabel(i2.isRed), toLabel(i2.manualPaid),
+    toNum(b1.amt), b1.bill || '', b1.paid || '', toLabel(b1.isRed), toLabel(b1.manualPaid),
+    obj.updatedAt || Date.now()
+  ];
+}
+
+// ===== 유틸리티 =====
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function toNum(v) {
+  if (v === '' || v === null || v === undefined) return 0;
+  const n = Number(String(v).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function toStr(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) {
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, '0');
+    const d = String(v.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+  return String(v);
+}
+
+function toBool(v) {
+  if (v === true || v === 'TRUE' || v === 'true' || v === 1 || v === 'O') return true;
+  return false;
+}
+
+function toLabel(v) {
+  return v ? 'O' : '';
+}`;
+
+// Triggers.gs 코드
+const triggersGsCode = `// ================================================================
+// Triggers.gs - Google Sheets 직접 수정 시 자동 처리
+// ================================================================
+
+function onSheetEdit(e) {
+  try {
+    const sheet = e.source.getActiveSheet();
+    const sheetName = sheet.getName();
+    if (!VALID_YEAR_TABS.includes(sheetName)) return;
+    const range = e.range;
+    const row = range.getRow();
+    if (row <= 1) return;
+    const updatedAtCol = HEADERS.length;
+    if (range.getColumn() === updatedAtCol && range.getNumColumns() === 1) return;
+    const now = Date.now();
+    const lastRow = Math.min(row + range.getNumRows() - 1, sheet.getLastRow());
+    for (let r = row; r <= lastRow; r++) {
+      sheet.getRange(r, updatedAtCol).setValue(now);
+    }
+    updateMeta(sheetName);
+  } catch (err) {
+    Logger.log('onSheetEdit error: ' + err.message);
+  }
+}
+
+// 최초 1회 실행하여 트리거 등록
+function setupOnEditTrigger() {
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'onSheetEdit') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('onSheetEdit')
+    .forSpreadsheet(SPREADSHEET_ID)
+    .onEdit()
+    .create();
+  Logger.log('onEdit 트리거 등록 완료');
+}`;
+
+// 코드 표시
+document.getElementById('codeGsContent').textContent = codeGsCode;
+document.getElementById('triggersGsContent').textContent = triggersGsCode;
+
+// 복사 기능
+function copyCode(blockId) {
+  const el = document.getElementById(blockId + 'Content');
+  const text = el.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('#' + blockId + ' .copy-btn');
+    btn.textContent = '복사됨!';
+    btn.style.background = '#34a853';
+    setTimeout(() => { btn.textContent = '복사'; btn.style.background = '#444'; }, 2000);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.querySelector('#' + blockId + ' .copy-btn');
+    btn.textContent = '복사됨!';
+    setTimeout(() => { btn.textContent = '복사'; }, 2000);
+  });
+}
+
+function scrollToStep(n) {
+  const el = document.getElementById('step' + n);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

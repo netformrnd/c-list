@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>공사현황리스트 시스템 매뉴얼</title>
+<style>
+  @page { size: A4; margin: 6mm 6mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+    font-size: 9pt; color: #333; line-height: 1.45;
+    background: #f5f5f5;
+  }
+  .page {
+    width: 198mm; max-width: 198mm; min-height: 285mm;
+    margin: 0 auto; background: white; padding: 6mm;
+  }
+  @media screen { .page { box-shadow: 0 2px 20px rgba(0,0,0,0.1); margin-top: 10px; margin-bottom: 10px; } }
+  @media print {
+    body { background: white; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    .page { padding: 0; min-height: auto; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  }
+
+  /* ===== 헤더 ===== */
+  .header {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: white; border-radius: 10px; padding: 14px 20px;
+    margin-bottom: 8px; text-align: center;
+  }
+  .header h1 { font-size: 18pt; font-weight: 800; letter-spacing: 3px; margin-bottom: 3px; }
+  .header .company { font-size: 9pt; opacity: 0.85; }
+  .url-bar {
+    background: white; border-radius: 20px; display: inline-block;
+    padding: 4px 22px; margin-top: 6px;
+    font-size: 9.5pt; font-weight: 700; color: #1565c0;
+  }
+
+  /* ===== 2컬럼 ===== */
+  .cols { display: flex; gap: 8px; }
+  .col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+
+  /* ===== 카드 ===== */
+  .card {
+    border-radius: 7px; overflow: hidden;
+    border: 1px solid #e0e0e0; flex: 1;
+  }
+  .card-head {
+    padding: 5px 10px; font-size: 9.5pt; font-weight: 700; color: white;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .card-body { padding: 7px 9px; background: white; }
+
+  /* 카드 색상 */
+  .c-blue .card-head { background: linear-gradient(90deg, #1565c0, #1976d2); }
+  .c-green .card-head { background: linear-gradient(90deg, #2e7d32, #43a047); }
+  .c-teal .card-head { background: linear-gradient(90deg, #00695c, #00897b); }
+  .c-red .card-head { background: linear-gradient(90deg, #c62828, #e53935); }
+  .c-orange .card-head { background: linear-gradient(90deg, #e65100, #ef6c00); }
+  .c-purple .card-head { background: linear-gradient(90deg, #6a1b9a, #8e24aa); }
+  .c-indigo .card-head { background: linear-gradient(90deg, #283593, #3949ab); }
+
+  /* 카드별 왼쪽 보더 */
+  .c-blue { border-left: 3.5px solid #1565c0; }
+  .c-green { border-left: 3.5px solid #2e7d32; }
+  .c-teal { border-left: 3.5px solid #00695c; }
+  .c-red { border-left: 3.5px solid #c62828; }
+  .c-orange { border-left: 3.5px solid #e65100; }
+  .c-purple { border-left: 3.5px solid #6a1b9a; }
+  .c-indigo { border-left: 3.5px solid #283593; }
+
+  /* ===== 리스트 아이템 ===== */
+  .item {
+    display: flex; align-items: flex-start; gap: 6px;
+    padding: 3px 0; font-size: 8.5pt;
+  }
+  .item-icon {
+    width: 18px; height: 18px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9pt; flex-shrink: 0;
+    background: #f0f4f8;
+  }
+  .item-text { flex: 1; }
+  .item-text b { color: #222; }
+  .item + .item { border-top: 0.5px dashed #e8e8e8; }
+
+  /* ===== 스텝 ===== */
+  .steps { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; padding: 3px 0; }
+  .s-badge {
+    font-size: 7.5pt; font-weight: 700; color: white;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  }
+  .s-arrow { font-size: 9pt; color: #bbb; }
+  .c-blue .s-badge { background: #1565c0; }
+  .c-green .s-badge { background: #2e7d32; }
+  .c-teal .s-badge { background: #00695c; }
+  .c-red .s-badge { background: #c62828; }
+  .c-orange .s-badge { background: #e65100; }
+
+  /* ===== 미니 테이블 ===== */
+  .mini-tbl { width: 100%; font-size: 8.2pt; border-collapse: collapse; }
+  .mini-tbl th {
+    background: #f5f7fa; padding: 3px 6px; text-align: left;
+    font-weight: 600; border-bottom: 1.5px solid #ddd; color: #555;
+  }
+  .mini-tbl td { padding: 3px 6px; border-bottom: 0.5px solid #eee; }
+
+  /* ===== 태그 ===== */
+  .tag {
+    display: inline-block; font-size: 7.5pt; padding: 1px 6px;
+    border-radius: 8px; font-weight: 600;
+  }
+  .tag-blue { background: #e3f2fd; color: #1565c0; }
+  .tag-green { background: #e8f5e9; color: #2e7d32; }
+  .tag-orange { background: #fff3e0; color: #e65100; }
+  .tag-red { background: #ffebee; color: #c62828; }
+  .tag-teal { background: #e0f2f1; color: #00695c; }
+  .tag-purple { background: #f3e5f5; color: #6a1b9a; }
+
+  /* ===== FAQ 박스 ===== */
+  .faq-box {
+    background: #fafafa; border: 1px solid #e0e0e0; border-radius: 7px;
+    padding: 7px 9px;
+  }
+  .faq-title { font-size: 9pt; font-weight: 700; color: #555; margin-bottom: 4px; }
+  .faq-item { font-size: 8pt; margin-bottom: 4px; }
+  .faq-item b { color: #333; }
+  .faq-item span { color: #666; }
+
+  /* ===== 주의사항 박스 ===== */
+  .notice-box {
+    background: #fff8e1; border: 1px solid #ffe082; border-radius: 7px;
+    padding: 7px 9px; margin-top: 6px;
+  }
+  .notice-box .notice-title { font-size: 8.5pt; font-weight: 700; color: #f57f17; margin-bottom: 3px; }
+  .notice-box li { font-size: 8pt; color: #555; margin-bottom: 2px; margin-left: 14px; }
+
+  /* ===== 풋터 ===== */
+  .footer {
+    text-align: center; font-size: 8pt; color: #999;
+    padding-top: 8px; margin-top: 8px;
+    border-top: 1.5px solid #e0e0e0;
+  }
+
+  /* 인쇄 버튼 */
+  .print-btn {
+    position: fixed; top: 12px; right: 12px; z-index: 9999;
+    padding: 10px 24px; background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: white; border: none; border-radius: 8px;
+    font-size: 11pt; cursor: pointer; font-weight: 700;
+    box-shadow: 0 3px 12px rgba(21,101,192,0.4);
+  }
+  .print-btn:hover { transform: scale(1.03); }
+  @media print { .print-btn { display: none !important; } }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ PDF 저장 / 인쇄</button>
+
+<div class="page">
+
+<!-- ===== 헤더 ===== -->
+<div class="header">
+  <h1>공사현황리스트 시스템</h1>
+  <div class="company">㈜석민이앤씨 | 사용 매뉴얼</div>
+  <div class="url-bar">https://netform-site.github.io/site-management/</div>
+</div>
+
+<!-- ===== 2컬럼 ===== -->
+<div class="cols">
+
+<!-- ========== 왼쪽 ========== -->
+<div class="col">
+
+  <!-- 1. 공사현황 -->
+  <div class="card c-blue">
+    <div class="card-head">📋 1. 공사현황 관리</div>
+    <div class="card-body">
+      <div class="item"><div class="item-icon">📅</div><div class="item-text"><b>년도 전환</b> - 상단 탭(2020~2026) 클릭하여 해당 년도 데이터 조회</div></div>
+      <div class="item"><div class="item-icon">🔍</div><div class="item-text"><b>검색/필터</b> - 현장명·공사명·담당자 검색 + 입금상태·유형 필터 조합</div></div>
+      <div class="item"><div class="item-icon">➕</div><div class="item-text"><b>새 공사 추가</b> - <span class="tag tag-blue">+ 새 공사 추가</span> 버튼 → 정보 입력 → 저장</div></div>
+      <div class="item"><div class="item-icon">✏️</div><div class="item-text"><b>수정</b> - 목록에서 ✏️ 아이콘 클릭 → 내용 수정 → 저장</div></div>
+      <div class="item"><div class="item-icon">🗑️</div><div class="item-text"><b>삭제</b> - 단건 삭제(🗑️) 또는 체크박스 선택 후 일괄 삭제</div></div>
+      <div class="item"><div class="item-icon">📤</div><div class="item-text"><b>엑셀 연동</b> - 업로드(.xlsx/.xls/.csv) / 다운로드(현재 년도 데이터)</div></div>
+      <div class="item"><div class="item-icon">📊</div><div class="item-text"><b>정렬</b> - 각 컬럼 헤더 클릭 시 오름차순/내림차순 정렬</div></div>
+    </div>
+  </div>
+
+  <!-- 2. 현장 상세 -->
+  <div class="card c-green">
+    <div class="card-head">🏗️ 2. 현장 상세 (총괄표)</div>
+    <div class="card-body">
+      <div class="steps">
+        <span class="s-badge" style="background:#2e7d32;">📋 상세 클릭</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#388e3c;">💰 수금내역</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#43a047;">📦 투입내역</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#66bb6a;">🔄 자동계산</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#81c784;">💾 저장</span>
+      </div>
+      <table class="mini-tbl" style="margin-top:4px;">
+        <tr><th width="35%">항목</th><th>설명</th></tr>
+        <tr><td>💰 수금내역</td><td>계약금 → 중도금(1~3차) → 잔금 (입금일·금액 입력)</td></tr>
+        <tr><td>📦 투입내역</td><td><span class="tag tag-green">+자재비</span> <span class="tag tag-green">+노무비</span> <span class="tag tag-green">+기타경비</span> 항목별 추가</td></tr>
+        <tr><td>📊 총괄표 엑셀</td><td>기존 총괄표 불러오기(📂) / 다운로드(📥)</td></tr>
+        <tr><td>📷 사진·비고</td><td>현장 사진 첨부 + 메모 기록</td></tr>
+        <tr><td>📄 정산서 탭</td><td>매출·매입·손익 상세 작성 (자동 계산)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. 기술컨설팅 -->
+  <div class="card c-teal">
+    <div class="card-head">📝 3. 기술컨설팅 관리</div>
+    <div class="card-body">
+      <div class="steps">
+        <span class="s-badge" style="background:#00695c;">📋 컨설팅 탭</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#00897b;">➕ 신규 등록</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#26a69a;">✍️ 정보 입력</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#4db6ac;">🔄 자동 계산</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#80cbc4;">💾 저장</span>
+      </div>
+      <div class="item" style="border:none;"><div class="item-icon">📝</div><div class="item-text"><b>입력 항목</b> - 년도, 구분(<span class="tag tag-teal">일반</span><span class="tag tag-teal">시지원</span><span class="tag tag-teal">사후정산</span>), 현장명, 낙찰금액, 담당자</div></div>
+      <div class="item"><div class="item-icon">💰</div><div class="item-text"><b>자동 계산</b> - 이익금 · 정산금액(15%) 실시간 미리보기</div></div>
+      <div class="item"><div class="item-icon">🔍</div><div class="item-text"><b>필터 검색</b> - 년도(24/25/26) · 구분(일반/시지원/사후정산) · 담당자별</div></div>
+      <div class="item"><div class="item-icon">📊</div><div class="item-text"><b>통계 요약</b> - 하단에 전체 건수·금액·이익금·정산금 합계 표시</div></div>
+    </div>
+  </div>
+
+  <!-- 4. 체크리스트 -->
+  <div class="card c-purple">
+    <div class="card-head">✅ 4. 공사 체크리스트</div>
+    <div class="card-body">
+      <div class="item"><div class="item-icon">📋</div><div class="item-text"><b>사용법</b> - 목록에서 <span class="tag tag-purple">체크</span> 버튼 클릭 → 체크리스트 모달 열기</div></div>
+      <div class="item"><div class="item-icon">✅</div><div class="item-text"><b>체크 항목</b> - 공사범위, 계약서, 착공계, 보험, 안전교육, 준공검사 등 <b>18개 항목</b></div></div>
+      <div class="item"><div class="item-icon">📊</div><div class="item-text"><b>완료율</b> - 체크 진행률 자동 계산 → 목록에 퍼센트 표시</div></div>
+    </div>
+  </div>
+
+  <!-- 동시수정 방지 -->
+  <div class="card c-indigo">
+    <div class="card-head">🔐 동시 수정 방지 시스템</div>
+    <div class="card-body">
+      <table class="mini-tbl">
+        <tr><th width="38%">상황</th><th>시스템 동작</th></tr>
+        <tr><td>👤 A가 현장 수정 중</td><td>Firebase에 자동 잠금 등록</td></tr>
+        <tr><td>👤 B가 같은 현장 수정 시도</td><td><span class="tag tag-red">⚠️ "A님이 수정 중입니다"</span> 알림 → 수정 차단</td></tr>
+        <tr><td>✅ A가 저장 또는 닫기</td><td>잠금 즉시 해제 → B 수정 가능</td></tr>
+        <tr><td>⚠️ 비정상 종료 (브라우저 닫기)</td><td><b>5분 후</b> 잠금 자동 만료 → 수정 가능</td></tr>
+      </table>
+      <div style="margin-top:4px; font-size:8pt; color:#666; background:#e8eaf6; border-radius:4px; padding:4px 7px;">
+        💡 공사현황 수정, 현장 상세(총괄표), 기술컨설팅 수정 모두 적용됩니다.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== 오른쪽 ========== -->
+<div class="col">
+
+  <!-- 5. 관리자 기능 -->
+  <div class="card c-red">
+    <div class="card-head">🔒 5. 관리자 기능 (관리자 전용)</div>
+    <div class="card-body">
+      <div style="font-size:8.2pt; color:#888; margin-bottom:4px;">메인 화면에서 <span class="tag tag-red">🔒 관리자 전용</span> 클릭 → 비밀번호 입력 후 사용</div>
+      <table class="mini-tbl">
+        <tr><th width="35%">기능</th><th>설명</th></tr>
+        <tr><td>👥 실적 현황</td><td>본사/외주별 담당자 계약건수·금액 통계 대시보드</td></tr>
+        <tr><td>💰 정산 관리</td><td>전 현장 정산현황 조회·필터·상태 변경 (정산완료/미정산)</td></tr>
+        <tr><td>🔒 일괄정산</td><td>공사/컨설팅 담당자별 선택 후 일괄 정산 실행</td></tr>
+        <tr><td>📋 보고서</td><td>본사/외주 보고서 (PDF/엑셀 출력) 회사수익(85%) 포함</td></tr>
+        <tr><td>📥 엑셀 다운로드</td><td>정산 데이터 전체 엑셀 내보내기</td></tr>
+        <tr><td>🔑 비밀번호 관리</td><td>담당자 비밀번호 초기화(0000) / 관리자 비밀번호 변경</td></tr>
+      </table>
+      <div style="background:#fff5f5; border-radius:5px; padding:6px 8px; margin-top:5px;">
+        <div style="font-size:8.5pt; font-weight:700; color:#c62828; margin-bottom:3px;">📌 일괄정산 3단계 프로세스</div>
+        <div class="steps">
+          <span class="s-badge" style="background:#c62828;">Step 1</span>
+          <span style="font-size:7.5pt;">유형·기간·담당자 선택</span>
+          <span class="s-arrow">→</span>
+          <span class="s-badge" style="background:#e53935;">Step 2</span>
+          <span style="font-size:7.5pt;">대상 현장 확인·실행</span>
+          <span class="s-arrow">→</span>
+          <span class="s-badge" style="background:#ef5350;">Step 3</span>
+          <span style="font-size:7.5pt;">완료 확인·PDF·이메일</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 내 정산 확인 -->
+  <div class="card c-orange">
+    <div class="card-head">👤 6. 내 정산 확인 (담당자용)</div>
+    <div class="card-body">
+      <div class="steps" style="margin-bottom:4px;">
+        <span class="s-badge" style="background:#e65100;">👤 내 정산 확인</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#ef6c00;">이름 선택</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#f57c00;">비밀번호 입력</span>
+        <span class="s-arrow">→</span>
+        <span class="s-badge" style="background:#fb8c00;">로그인 완료</span>
+      </div>
+      <div style="font-size:8.2pt; color:#888; margin-bottom:3px;">초기 비밀번호: <b style="color:#e65100;">0000</b> (최초 로그인 후 반드시 변경 권장)</div>
+      <table class="mini-tbl">
+        <tr><th width="30%">탭</th><th>조회 내용</th></tr>
+        <tr><td>🏗️ 공사정산</td><td>본인 담당 공사 현장별 이익금·정산금액(15%) 조회</td></tr>
+        <tr><td>📋 컨설팅정산</td><td>본인 담당 컨설팅 현장별 이익금·정산금액(15%) 조회</td></tr>
+        <tr><td>📊 통합현황</td><td>공사 + 컨설팅 합산 총 정산금액 현황</td></tr>
+      </table>
+      <div style="margin-top:3px; font-size:8pt; color:#999;">
+        📌 필터 옵션: 년도(전체/2024/2025/2026) · 정산상태(전체/완료/미정산/진행중)
+      </div>
+    </div>
+  </div>
+
+  <!-- 주요 정산 계산 -->
+  <div class="card c-blue">
+    <div class="card-head">💡 정산 계산 방식</div>
+    <div class="card-body">
+      <div style="font-size:8pt; color:#666; margin-bottom:4px; font-weight:600;">▶ 이익금 산출</div>
+      <div style="display:flex; gap:5px; text-align:center; font-size:8pt;">
+        <div style="flex:1; background:#e3f2fd; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">공사금액</div>
+          <div style="font-weight:700; color:#1565c0; font-size:9pt;">계약금액</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#999; font-weight:700; font-size:12pt;">−</div>
+        <div style="flex:1; background:#fce4ec; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">지출총액</div>
+          <div style="font-weight:700; color:#c62828; font-size:9pt;">자재+노무+경비</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#999; font-weight:700; font-size:12pt;">=</div>
+        <div style="flex:1; background:#e8f5e9; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">이익금</div>
+          <div style="font-weight:700; color:#2e7d32; font-size:9pt;">수익</div>
+        </div>
+      </div>
+      <div style="font-size:8pt; color:#666; margin-bottom:4px; margin-top:6px; font-weight:600;">▶ 정산 배분</div>
+      <div style="display:flex; gap:5px; text-align:center; font-size:8pt;">
+        <div style="flex:1; background:#fff3e0; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">담당자 정산</div>
+          <div style="font-weight:700; color:#e65100; font-size:9pt;">이익금 × 15%</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#999; font-weight:700; font-size:12pt;">+</div>
+        <div style="flex:1; background:#e8eaf6; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">회사수익</div>
+          <div style="font-weight:700; color:#283593; font-size:9pt;">이익금 × 85%</div>
+        </div>
+        <div style="display:flex;align-items:center;color:#999; font-weight:700; font-size:12pt;">=</div>
+        <div style="flex:1; background:#e8f5e9; border-radius:5px; padding:6px;">
+          <div style="font-size:7.5pt; color:#888;">이익금</div>
+          <div style="font-weight:700; color:#2e7d32; font-size:9pt;">100%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq-box">
+    <div class="faq-title">❓ 자주 묻는 질문 (FAQ)</div>
+    <div class="faq-item"><b>Q: 다른 PC에서도 사용 가능한가요?</b><br><span>A: 네. URL 접속하면 어디서든 동일 데이터를 사용할 수 있습니다. (스마트폰·태블릿 가능)</span></div>
+    <div class="faq-item"><b>Q: 데이터는 어디에 저장되나요?</b><br><span>A: 클라우드(Firebase)에 자동 저장됩니다. 인터넷 연결이 필요합니다.</span></div>
+    <div class="faq-item"><b>Q: 담당자 초기 비밀번호는?</b><br><span>A: <b>0000</b>입니다. 최초 로그인 후 반드시 변경해주세요.</span></div>
+    <div class="faq-item"><b>Q: 엑셀 업로드 가능한 형식은?</b><br><span>A: .xlsx / .xls / .csv 파일을 지원합니다. 기존 양식 그대로 업로드하면 됩니다.</span></div>
+    <div class="faq-item"><b>Q: 동시에 같은 현장을 수정하면 어떻게 되나요?</b><br><span>A: 먼저 수정하는 사람이 잠금을 획득하며, 다른 사용자에게 알림이 표시됩니다.</span></div>
+  </div>
+
+  <!-- 주의사항 -->
+  <div class="notice-box">
+    <div class="notice-title">⚠️ 사용 시 주의사항</div>
+    <ul style="list-style:none; padding:0; margin:0;">
+      <li style="margin-left:0;">• 데이터 수정 후 반드시 <b>저장 버튼</b>을 클릭해주세요</li>
+      <li style="margin-left:0;">• 인터넷 연결이 끊기면 저장이 되지 않습니다</li>
+      <li style="margin-left:0;">• 엑셀 업로드 시 기존 데이터가 덮어씌워질 수 있으니 주의하세요</li>
+    </ul>
+  </div>
+
+</div>
+
+</div><!-- cols end -->
+
+<!-- ===== 풋터 ===== -->
+<div class="footer">
+  ㈜석민이앤씨 공사현황리스트 시스템 매뉴얼 | 문의: 관리자 연락 | PC · 태블릿 · 스마트폰 접속 가능
+</div>
+
+</div><!-- page end -->
+</body>
+</html>

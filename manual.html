@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무 매뉴얼 - 공사현황리스트 / 기술컨설팅</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; }
+
+/* ===== 상단 헤더 ===== */
+.top-header {
+  background: #1e2a3a;
+  color: white;
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.top-header h1 { font-size: 1rem; font-weight: 700; letter-spacing: 1px; }
+.top-header .back-btn {
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.top-header .back-btn:hover { background: rgba(255,255,255,0.22); }
+
+/* ===== 메인 탭 (공사현황 / 기술컨설팅) ===== */
+.main-tabs {
+  display: flex;
+  background: #1e2a3a;
+  padding: 0 24px;
+  gap: 4px;
+}
+.main-tab-btn {
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+}
+.main-tab-btn.active {
+  color: white;
+  border-bottom-color: #4fc3f7;
+}
+.main-tab-btn:hover { color: rgba(255,255,255,0.85); }
+
+/* ===== 레이아웃 ===== */
+.layout {
+  display: flex;
+  min-height: calc(100vh - 88px);
+}
+
+/* ===== 사이드바 ===== */
+.sidebar {
+  width: 220px;
+  background: white;
+  border-right: 1px solid #e0e0e0;
+  padding: 20px 0;
+  position: sticky;
+  top: 88px;
+  height: calc(100vh - 88px);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.sidebar-title {
+  font-size: 0.72rem;
+  color: #999;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0 16px 10px;
+  text-transform: uppercase;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  font-size: 0.85rem;
+  color: #555;
+}
+.sidebar-item:hover { background: #f5f7fa; color: #1976d2; }
+.sidebar-item.active {
+  background: #e3f2fd;
+  border-left-color: #1976d2;
+  color: #1565c0;
+  font-weight: 700;
+}
+.sidebar-item .step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.sidebar-item.active .step-num {
+  background: #1976d2;
+  color: white;
+}
+.sidebar-item.done .step-num {
+  background: #43a047;
+  color: white;
+}
+.sidebar-item.done { color: #2e7d32; }
+
+/* ===== 메인 콘텐츠 ===== */
+.main-content {
+  flex: 1;
+  padding: 20px 24px;
+  min-width: 0;
+}
+
+/* ===== 통계 카드 ===== */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border: 1px solid #e8eaf0;
+}
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-label::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #90a4ae;
+}
+.stat-card:nth-child(1) .stat-label::before { background: #42a5f5; }
+.stat-card:nth-child(2) .stat-label::before { background: #66bb6a; }
+.stat-card:nth-child(3) .stat-label::before { background: #ffa726; }
+.stat-card:nth-child(4) .stat-label::before { background: #ab47bc; }
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1e2a3a;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-sub { font-size: 0.72rem; color: #aaa; }
+
+/* 진행률 바 */
+.progress-bar-wrap {
+  background: #f0f0f0;
+  border-radius: 4px;
+  height: 6px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #42a5f5, #1565c0);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* ===== STEP 탭 네비게이션 ===== */
+.step-tabs-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.step-tabs {
+  display: flex;
+  background: white;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  border: 1px solid #e0e0e0;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+.step-tab-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #888;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.step-tab-btn:hover { background: #f0f4ff; color: #1565c0; }
+.step-tab-btn.active { background: #1565c0; color: white; }
+.step-tab-btn.done { color: #43a047; }
+.step-tab-btn.done::after { content: ' ✓'; }
+
+.action-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-outline { background: white; border: 1px solid #ccc; color: #555; }
+.btn-outline:hover { background: #f5f5f5; }
+.btn-primary { background: #1565c0; color: white; }
+.btn-primary:hover { background: #0d47a1; }
+.btn-danger { background: white; border: 1px solid #ef9a9a; color: #c62828; }
+.btn-danger:hover { background: #ffebee; }
+
+/* ===== STEP 섹션 ===== */
+.step-section {
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.step-section.collapsed .step-body { display: none; }
+
+.step-header {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  gap: 12px;
+  user-select: none;
+}
+.step-header:hover { background: #fafafa; }
+
+.step-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1565c0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.step-section.done .step-badge { background: #43a047; }
+
+.step-header-text { flex: 1; }
+.step-header-title { font-size: 0.95rem; font-weight: 700; color: #1e2a3a; }
+.step-header-sub { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
+
+.step-progress-pill {
+  background: #f0f4ff;
+  color: #1565c0;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.step-section.done .step-progress-pill { background: #e8f5e9; color: #2e7d32; }
+
+.step-toggle-icon { color: #bbb; font-size: 0.8rem; transition: transform 0.2s; }
+.step-section:not(.collapsed) .step-toggle-icon { transform: rotate(180deg); }
+
+.step-body { padding: 0 16px 16px; }
+
+/* ===== CHECK POINT 그룹 ===== */
+.check-group {
+  border: 1px solid #e3f2fd;
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.check-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e3f2fd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1565c0;
+  letter-spacing: 0.5px;
+}
+.check-group-header .chk-icon {
+  width: 16px;
+  height: 16px;
+  background: #1565c0;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.65rem;
+}
+
+/* 기술컨설팅 색상 */
+.teal .check-group { border-color: #b2dfdb; }
+.teal .check-group-header { background: #b2dfdb; color: #004d40; }
+.teal .check-group-header .chk-icon { background: #00897b; }
+.teal .step-badge { background: #00897b; }
+.teal .step-section.done .step-badge { background: #43a047; }
+.teal .step-progress-pill { background: #e0f2f1; color: #00695c; }
+.teal .step-section.done .step-progress-pill { background: #e8f5e9; color: #2e7d32; }
+.teal .sidebar-item.active { background: #e0f2f1; border-left-color: #00897b; color: #004d40; }
+.teal .sidebar-item.active .step-num { background: #00897b; }
+.teal .step-tab-btn.active { background: #00897b; }
+.teal .btn-primary { background: #00897b; }
+.teal .btn-primary:hover { background: #00695c; }
+.teal .progress-bar-fill { background: linear-gradient(90deg, #4db6ac, #00897b); }
+
+/* ===== 체크박스 아이템 ===== */
+.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.1s;
+}
+.check-item:last-child { border-bottom: none; }
+.check-item:hover { background: #fafafa; }
+.check-item.checked { background: #f9fff9; }
+.check-item.checked .check-label { color: #aaa; text-decoration: line-through; }
+
+.check-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: #1565c0;
+}
+.teal .check-item input[type="checkbox"] { accent-color: #00897b; }
+
+.check-label { font-size: 0.85rem; color: #444; line-height: 1.5; cursor: pointer; }
+.check-note {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 3px;
+  padding-left: 26px;
+}
+.check-tag {
+  display: inline-block;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.teal .check-tag { background: #e0f2f1; color: #00695c; }
+.check-tag.orange { background: #fff3e0; color: #e65100; }
+.check-tag.red { background: #ffebee; color: #c62828; }
+.check-tag.green { background: #e8f5e9; color: #2e7d32; }
+
+/* ===== 노트 박스 ===== */
+.note-box {
+  background: #fffde7;
+  border: 1px solid #fff176;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: #555;
+  line-height: 1.6;
+}
+.note-box strong { color: #e65100; }
+
+/* ===== 탭 콘텐츠 숨김 ===== */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- 상단 헤더 -->
+<div class="top-header">
+  <a class="back-btn" href="index.html">← 메인으로</a>
+  <h1>📋 업무 매뉴얼</h1>
+</div>
+
+<!-- 메인 탭 -->
+<div class="main-tabs">
+  <button class="main-tab-btn active" onclick="switchMainTab('construction')">🏗️ 공사현황리스트</button>
+  <button class="main-tab-btn" onclick="switchMainTab('consulting')">📋 기술컨설팅</button>
+</div>
+
+<div class="layout">
+
+  <!-- ===== 공사현황리스트 탭 ===== -->
+  <div id="tab-construction" class="tab-content active" style="display:flex;width:100%;">
+
+    <!-- 사이드바 -->
+    <div class="sidebar" id="sidebar-construction">
+      <div class="sidebar-title">업무 단계</div>
+      <div class="sidebar-item active" onclick="goToStep('con',0)">
+        <div class="step-num">0</div><span>사전 준비</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',1)">
+        <div class="step-num">1</div><span>신규 공사 등록</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',2)">
+        <div class="step-num">2</div><span>공사 정보 수정</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',3)">
+        <div class="step-num">3</div><span>수금 내역 관리</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',4)">
+        <div class="step-num">4</div><span>정산 처리</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',5)">
+        <div class="step-num">5</div><span>엑셀 다운로드</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('con',6)">
+        <div class="step-num">6</div><span>통계 확인</span>
+      </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+
+      <!-- 통계 -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">PROGRESS</div>
+          <div class="stat-value" id="con-progress-val">0%</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="con-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">COMPLETED</div>
+          <div class="stat-value"><span id="con-done-count">0</span> / <span id="con-total-count">0</span></div>
+          <div class="stat-sub" id="con-done-sub">진행 중</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">STEPS DONE</div>
+          <div class="stat-value"><span id="con-step-done">0</span> / <span id="con-step-total">7</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">WORK MONTH</div>
+          <div class="stat-value" id="con-work-month" style="font-size:1.1rem;">-</div>
+        </div>
+      </div>
+
+      <!-- STEP 탭 + 버튼 -->
+      <div class="step-tabs-wrap">
+        <div class="step-tabs" id="con-step-tabs">
+          <button class="step-tab-btn active" onclick="jumpStep('con',0)">STEP 0</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',1)">STEP 1</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',2)">STEP 2</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',3)">STEP 3</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',4)">STEP 4</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',5)">STEP 5</button>
+          <button class="step-tab-btn" onclick="jumpStep('con',6)">STEP 6</button>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-outline" onclick="expandAll('con')">전체 펼치기</button>
+          <button class="btn btn-outline" onclick="collapseAll('con')">전체 접기</button>
+          <button class="btn btn-primary" onclick="nextStep('con')">다음 작업 →</button>
+          <button class="btn btn-danger" onclick="resetAll('con')">초기화</button>
+        </div>
+      </div>
+
+      <!-- STEP 0 -->
+      <div class="step-section" id="con-step-0" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-0')">
+          <div class="step-badge">0</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📌 사전 준비</div>
+            <div class="step-header-sub">시스템 접속 및 기본 설정 확인</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-0-pill">0/3</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">시스템 URL 접속 확인 <span class="check-tag">필수</span></div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상단 년도 탭에서 작업 년도 선택</div>
+              <div class="check-note">예: 2026년 작업 시 우측 상단 [2026] 탭 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사현황 탭이 선택되어 있는지 확인</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div class="step-section collapsed" id="con-step-1" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-1')">
+          <div class="step-badge">1</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📝 신규 공사 등록</div>
+            <div class="step-header-sub">새 공사 항목 추가</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-1-pill">0/5</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> 직접 입력 방식</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사현황 탭 하단 <strong>+ 신규 등록</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사명, 현장명 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사유형 선택 <span class="check-tag">직영(본) / 컨설팅(본) / 직영(외)</span></div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사금액(VAT별도), 담당자 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">저장 버튼 클릭</div></div>
+            </div>
+          </div>
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> 엑셀 업로드 방식 (일괄 등록)</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상단 <strong>액셀 업로드</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">지정 양식 엑셀 파일 선택 후 업로드</div>
+              <div class="check-note">※ 먼저 다운로드 버튼으로 현재 양식 확인 후 작성</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-section collapsed" id="con-step-2" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-2')">
+          <div class="step-badge">2</div>
+          <div class="step-header-text">
+            <div class="step-header-title">✏️ 공사 정보 수정</div>
+            <div class="step-header-sub">기존 공사 항목 내용 변경</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-2-pill">0/4</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">수정할 공사 행에서 <strong>✏️ 수정</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">변경할 항목 수정 (공사명, 금액, 담당자 등)</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">저장 클릭 후 목록 반영 확인</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상세보기(📋)에서 수금내역 등 추가 정보 입력</div>
+              <div class="check-note">계약금 입금일, 중도금, 잔금 등 수금 상세 기록</div></div>
+            </div>
+          </div>
+          <div class="note-box">
+            <strong>⚠️ 주의:</strong> 동일 항목을 여러 명이 동시에 수정하면 잠금(🔒) 처리됩니다. 잠금 해제 후 수정하세요.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-section collapsed" id="con-step-3" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-3')">
+          <div class="step-badge">3</div>
+          <div class="step-header-text">
+            <div class="step-header-title">💰 수금 내역 관리</div>
+            <div class="step-header-sub">계약금 / 중도금 / 잔금 입금 처리</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-3-pill">0/5</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> 입금 처리 순서</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">해당 공사 행의 <strong>📋 상세보기</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">수금내역 탭에서 계약금 입금일 입력</div>
+              <div class="check-note">계약금 입금 시 → 상태가 "계약단계"로 변경</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">중도금 1차, 2차 순서로 입금일 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">잔금 입금일 입력 → <span class="check-tag green">입금완료</span> 상태 확인</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">목록 상단 통계카드에서 입금완료 금액 반영 확인</div></div>
+            </div>
+          </div>
+          <div class="note-box">
+            <strong>💡 TIP:</strong> 입금예정일을 입력하면 오늘 기준 미래는 파란색, 과거(연체)는 빨간색으로 자동 표시됩니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-section collapsed" id="con-step-4" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-4')">
+          <div class="step-badge">4</div>
+          <div class="step-header-text">
+            <div class="step-header-title">🧾 정산 처리</div>
+            <div class="step-header-sub">공사 완료 후 담당자 정산 마감</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-4-pill">0/4</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">하단 <strong>🔒 관리자 전용</strong> 섹션 클릭 → 비밀번호 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label"><strong>정산관리</strong> 탭 선택</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">해당 공사의 지출금액 입력 (노무비, 자재비, 외주비 등)</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label"><strong>정산완료</strong> 체크 → 담당자 정산금액 자동 계산 확인</div>
+              <div class="check-note">이익금의 15% = 담당자 정산금액, 85% = 회사 수익</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="step-section collapsed" id="con-step-5" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-5')">
+          <div class="step-badge">5</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📊 엑셀 다운로드</div>
+            <div class="step-header-sub">데이터 백업 및 외부 공유</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-5-pill">0/3</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상단 <strong>다운로드</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">다운로드된 엑셀 파일 내용 확인</div>
+              <div class="check-note">현재 선택된 년도 기준으로 추출됨</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">필요 시 Google Sheets 동기화 버튼 활용 <span class="check-tag">Sheets</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6 -->
+      <div class="step-section collapsed" id="con-step-6" data-tab="con">
+        <div class="step-header" onclick="toggleStep('con-step-6')">
+          <div class="step-badge">6</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📈 통계 확인</div>
+            <div class="step-header-sub">합산 탭에서 담당자별 실적 조회</div>
+          </div>
+          <div class="step-progress-pill" id="con-step-6-pill">0/3</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상단 <strong>📊 합산</strong> 탭 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사현황 / 기술컨설팅 / 합산 3개 컬럼으로 담당자별 실적 확인</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">우측 상단 <strong>📅 전체</strong> 버튼으로 기간 필터 적용 가능</div>
+              <div class="check-note">전체 / 1분기 / 2분기 / 3분기 / 4분기 / 상반기 / 하반기</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /tab-construction -->
+
+
+  <!-- ===== 기술컨설팅 탭 ===== -->
+  <div id="tab-consulting" class="tab-content teal" style="display:none;width:100%;">
+
+    <!-- 사이드바 -->
+    <div class="sidebar" id="sidebar-consulting">
+      <div class="sidebar-title">업무 단계</div>
+      <div class="sidebar-item active" onclick="goToStep('cons',0)">
+        <div class="step-num">0</div><span>사전 준비</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('cons',1)">
+        <div class="step-num">1</div><span>컨설팅 현장 등록</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('cons',2)">
+        <div class="step-num">2</div><span>정보 수정</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('cons',3)">
+        <div class="step-num">3</div><span>입금 처리</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('cons',4)">
+        <div class="step-num">4</div><span>정산 관리</span>
+      </div>
+      <div class="sidebar-item" onclick="goToStep('cons',5)">
+        <div class="step-num">5</div><span>엑셀 다운로드</span>
+      </div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+
+      <!-- 통계 -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">PROGRESS</div>
+          <div class="stat-value" id="cons-progress-val">0%</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="cons-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">COMPLETED</div>
+          <div class="stat-value"><span id="cons-done-count">0</span> / <span id="cons-total-count">0</span></div>
+          <div class="stat-sub" id="cons-done-sub">진행 중</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">STEPS DONE</div>
+          <div class="stat-value"><span id="cons-step-done">0</span> / <span id="cons-step-total">6</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">WORK MONTH</div>
+          <div class="stat-value" id="cons-work-month" style="font-size:1.1rem;">-</div>
+        </div>
+      </div>
+
+      <!-- STEP 탭 + 버튼 -->
+      <div class="step-tabs-wrap">
+        <div class="step-tabs" id="cons-step-tabs">
+          <button class="step-tab-btn active" onclick="jumpStep('cons',0)">STEP 0</button>
+          <button class="step-tab-btn" onclick="jumpStep('cons',1)">STEP 1</button>
+          <button class="step-tab-btn" onclick="jumpStep('cons',2)">STEP 2</button>
+          <button class="step-tab-btn" onclick="jumpStep('cons',3)">STEP 3</button>
+          <button class="step-tab-btn" onclick="jumpStep('cons',4)">STEP 4</button>
+          <button class="step-tab-btn" onclick="jumpStep('cons',5)">STEP 5</button>
+        </div>
+        <div class="action-btns">
+          <button class="btn btn-outline" onclick="expandAll('cons')">전체 펼치기</button>
+          <button class="btn btn-outline" onclick="collapseAll('cons')">전체 접기</button>
+          <button class="btn btn-primary" onclick="nextStep('cons')">다음 작업 →</button>
+          <button class="btn btn-danger" onclick="resetAll('cons')">초기화</button>
+        </div>
+      </div>
+
+      <!-- STEP 0 -->
+      <div class="step-section" id="cons-step-0" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-0')">
+          <div class="step-badge">0</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📌 사전 준비</div>
+            <div class="step-header-sub">기술컨설팅 탭 진입 및 환경 확인</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-0-pill">0/3</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">메인 화면 상단 <strong>기술컨설팅</strong> 탭 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">년도 필터에서 작업 년도 선택 확인</div>
+              <div class="check-note">목록 상단의 드롭다운에서 년도 선택 가능</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">총 현장 수, 낙찰금액, 실행금액, 입금완료 통계 카드 확인</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div class="step-section collapsed" id="cons-step-1" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-1')">
+          <div class="step-badge">1</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📝 컨설팅 현장 등록</div>
+            <div class="step-header-sub">신규 기술컨설팅 현장 추가</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-1-pill">0/6</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">목록 상단 <strong>+ 신규 등록</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사현장, 공사명 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">구분 선택 <span class="check-tag">일반 / 컨설팅(Y) 등</span></div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">낙찰금액 입력 <span class="check-tag orange">VAT별도</span></div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">영업담당(담당자), 업체명, 업체담당자 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">저장 후 목록 반영 확인</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="step-section collapsed" id="cons-step-2" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-2')">
+          <div class="step-badge">2</div>
+          <div class="step-header-text">
+            <div class="step-header-title">✏️ 정보 수정</div>
+            <div class="step-header-sub">공사 진행 정보 업데이트</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-2-pill">0/5</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">수정할 행의 수정 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">실행금액 입력 (실제 투입 비용)</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">계약일 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">실착공일, 실준공일 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">하자기간, 현장소장 입력 후 저장</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="step-section collapsed" id="cons-step-3" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-3')">
+          <div class="step-badge">3</div>
+          <div class="step-header-text">
+            <div class="step-header-title">💰 입금 처리</div>
+            <div class="step-header-sub">컨설팅 수수료 입금 확인 처리</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-3-pill">0/3</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">해당 현장 행의 <strong>입금</strong> 컬럼 체크박스 클릭</div>
+              <div class="check-note">체크 시 → 입금완료 상태로 변경</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">입금예정일 설정 (미입금 현장 관리용)</div>
+              <div class="check-note">예정일 경과 시 빨간색, 미도래 시 파란색으로 표시</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">상단 통계카드 <span class="check-tag green">입금완료</span> 건수/금액 확인</div></div>
+            </div>
+          </div>
+          <div class="note-box">
+            <strong>💡 TIP:</strong> 합산 탭에서 기술컨설팅 담당자별 낙찰금액 및 입금 현황을 한눈에 확인할 수 있습니다.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="step-section collapsed" id="cons-step-4" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-4')">
+          <div class="step-badge">4</div>
+          <div class="step-header-text">
+            <div class="step-header-title">🧾 정산 관리</div>
+            <div class="step-header-sub">담당자별 컨설팅 정산 마감</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-4-pill">0/4</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">공사현황 탭 하단 <strong>🔒 관리자 전용</strong> → 비밀번호 입력</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label"><strong>정산관리</strong> 탭에서 기술컨설팅 정산 섹션 확인</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">지출금액 입력 후 이익금 자동 계산 확인</div>
+              <div class="check-note">이익금 = 낙찰금액 - 지출금액</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label"><strong>정산완료</strong> 체크 → 담당자 정산금액 확정</div>
+              <div class="check-note">입금완료와 연동되어 정산완료 처리됨</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="step-section collapsed" id="cons-step-5" data-tab="cons">
+        <div class="step-header" onclick="toggleStep('cons-step-5')">
+          <div class="step-badge">5</div>
+          <div class="step-header-text">
+            <div class="step-header-title">📊 엑셀 다운로드</div>
+            <div class="step-header-sub">기술컨설팅 데이터 내보내기</div>
+          </div>
+          <div class="step-progress-pill" id="cons-step-5-pill">0/2</div>
+          <div class="step-toggle-icon">▼</div>
+        </div>
+        <div class="step-body">
+          <div class="check-group">
+            <div class="check-group-header"><div class="chk-icon">✓</div> CHECK POINT</div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">기술컨설팅 탭 목록 상단 <strong>엑셀</strong> 버튼 클릭</div></div>
+            </div>
+            <div class="check-item" onclick="toggleCheck(this)">
+              <input type="checkbox">
+              <div><div class="check-label">다운로드된 파일에서 낙찰금액, 실행금액, 이익 데이터 확인</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /tab-consulting -->
+
+</div><!-- /layout -->
+
+<script>
+// ===== 현재 작업 월 =====
+(function() {
+  const now = new Date();
+  const label = `${now.getFullYear()}년 ${now.getMonth()+1}월`;
+  document.getElementById('con-work-month').textContent = label;
+  document.getElementById('cons-work-month').textContent = label;
+})();
+
+// ===== 메인 탭 전환 =====
+function switchMainTab(tab) {
+  document.querySelectorAll('.main-tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && tab==='construction') || (i===1 && tab==='consulting'));
+  });
+  document.getElementById('tab-construction').style.display = tab==='construction' ? 'flex' : 'none';
+  document.getElementById('tab-consulting').style.display = tab==='consulting' ? 'flex' : 'none';
+}
+
+// ===== 체크박스 토글 =====
+function toggleCheck(item) {
+  const cb = item.querySelector('input[type="checkbox"]');
+  if (event.target === cb) return; // 체크박스 직접 클릭은 기본 동작 사용
+  cb.checked = !cb.checked;
+  item.classList.toggle('checked', cb.checked);
+  updateStats(item.closest('[data-tab]').dataset.tab);
+}
+
+// 체크박스 직접 클릭 처리
+document.addEventListener('change', function(e) {
+  if (e.target.type === 'checkbox') {
+    const item = e.target.closest('.check-item');
+    if (item) {
+      item.classList.toggle('checked', e.target.checked);
+      const tab = item.closest('[data-tab]').dataset.tab;
+      updateStats(tab);
+    }
+  }
+});
+
+// ===== 통계 업데이트 =====
+function updateStats(tab) {
+  const prefix = tab === 'con' ? 'con' : 'cons';
+  const sections = document.querySelectorAll(`#${tab==='con'?'tab-construction':'tab-consulting'} .step-section`);
+  let totalChecks = 0, doneChecks = 0, stepsDone = 0;
+
+  sections.forEach((sec, i) => {
+    const checks = sec.querySelectorAll('input[type="checkbox"]');
+    const done = sec.querySelectorAll('input[type="checkbox"]:checked');
+    totalChecks += checks.length;
+    doneChecks += done.length;
+    const allDone = checks.length > 0 && done.length === checks.length;
+    if (allDone) stepsDone++;
+    sec.classList.toggle('done', allDone);
+
+    // pill 업데이트
+    const pill = document.getElementById(`${tab}-step-${i}-pill`);
+    if (pill) pill.textContent = `${done.length}/${checks.length}`;
+
+    // 사이드바 done 표시
+    const sideItems = document.querySelectorAll(`#sidebar-${tab==='con'?'construction':'consulting'} .sidebar-item`);
+    if (sideItems[i]) sideItems[i].classList.toggle('done', allDone);
+
+    // step-tab done 표시
+    const stepTabs = document.querySelectorAll(`#${prefix}-step-tabs .step-tab-btn`);
+    if (stepTabs[i]) stepTabs[i].classList.toggle('done', allDone);
+  });
+
+  const pct = totalChecks > 0 ? Math.round((doneChecks/totalChecks)*100) : 0;
+  document.getElementById(`${prefix}-progress-val`).textContent = pct + '%';
+  document.getElementById(`${prefix}-progress-bar`).style.width = pct + '%';
+  document.getElementById(`${prefix}-done-count`).textContent = doneChecks;
+  document.getElementById(`${prefix}-total-count`).textContent = totalChecks;
+  document.getElementById(`${prefix}-step-done`).textContent = stepsDone;
+  document.getElementById(`${prefix}-done-sub`).textContent = pct === 100 ? '✅ 완료!' : '진행 중';
+}
+
+// 초기 통계 로드
+updateStats('con');
+updateStats('cons');
+
+// ===== STEP 펼치기/접기 =====
+function toggleStep(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+function expandAll(tab) {
+  document.querySelectorAll(`#tab-${tab==='con'?'construction':'consulting'} .step-section`).forEach(s => s.classList.remove('collapsed'));
+}
+function collapseAll(tab) {
+  document.querySelectorAll(`#tab-${tab==='con'?'construction':'consulting'} .step-section`).forEach(s => s.classList.add('collapsed'));
+}
+
+// ===== STEP 탭 점프 =====
+function jumpStep(tab, idx) {
+  const tabId = tab === 'con' ? 'construction' : 'consulting';
+  const sec = document.getElementById(`${tab}-step-${idx}`);
+  if (!sec) return;
+  sec.classList.remove('collapsed');
+  sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // 탭 활성화
+  document.querySelectorAll(`#${tab}-step-tabs .step-tab-btn`).forEach((b,i) => b.classList.toggle('active', i===idx));
+
+  // 사이드바 활성화
+  goToStep(tab, idx);
+}
+
+function goToStep(tab, idx) {
+  const sidebarId = tab === 'con' ? 'sidebar-construction' : 'sidebar-consulting';
+  document.querySelectorAll(`#${sidebarId} .sidebar-item`).forEach((b,i) => b.classList.toggle('active', i===idx));
+  const sec = document.getElementById(`${tab}-step-${idx}`);
+  if (sec) {
+    sec.classList.remove('collapsed');
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// ===== 다음 작업 =====
+function nextStep(tab) {
+  const tabId = tab === 'con' ? 'construction' : 'consulting';
+  const sections = document.querySelectorAll(`#tab-${tabId} .step-section`);
+  for (let i = 0; i < sections.length; i++) {
+    const checks = sections[i].querySelectorAll('input[type="checkbox"]');
+    const done = sections[i].querySelectorAll('input[type="checkbox"]:checked');
+    if (done.length < checks.length) {
+      jumpStep(tab, i);
+      return;
+    }
+  }
+  alert('🎉 모든 작업이 완료되었습니다!');
+}
+
+// ===== 초기화 =====
+function resetAll(tab) {
+  if (!confirm('모든 체크를 초기화하시겠습니까?')) return;
+  const tabId = tab === 'con' ? 'construction' : 'consulting';
+  document.querySelectorAll(`#tab-${tabId} input[type="checkbox"]`).forEach(cb => {
+    cb.checked = false;
+    cb.closest('.check-item').classList.remove('checked');
+  });
+  document.querySelectorAll(`#tab-${tabId} .step-section`).forEach((s,i) => {
+    s.classList.remove('done');
+    if (i > 0) s.classList.add('collapsed');
+  });
+  updateStats(tab);
+}
+</script>
+</body>
+</html>
