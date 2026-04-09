@@ -2972,14 +2972,29 @@ async function syncFromSheets() {
   }
 }
 
+// 기술컨설팅 리스트 데이터 가져오기 (localStorage 우선)
+async function getConsultingListForSync() {
+  // 1) 메모리에 있으면 사용
+  if (consultingListData && consultingListData.length > 0) return consultingListData;
+  // 2) localStorage에서 읽기
+  try {
+    const saved = localStorage.getItem('consultingListData');
+    if (saved) { const arr = JSON.parse(saved); if (arr && arr.length > 0) return arr; }
+  } catch(e) {}
+  // 3) Firebase에서 직접 로드
+  try {
+    const fbData = await fbLoad(FB_COLLECTIONS.consultingListData, 'data');
+    if (fbData && fbData.items && fbData.items.length > 0) return fbData.items;
+  } catch(e) {}
+  return [];
+}
+
 // 최초 마이그레이션 (기존 데이터 → Sheets)
 async function migrateToSheets() {
   if (!getSheetsApiUrl()) { alert('Google Sheets URL을 먼저 설정하세요.'); return; }
   if (!confirm('현재 공사현황 데이터를 Google Sheets로 이관합니다.\n(기존 Sheets 데이터가 있으면 덮어씁니다)\n\n계속하시겠습니까?')) return;
   updateSyncStatusUI('syncing', '마이그레이션 중...');
   try {
-    // 기술컨설팅 데이터 먼저 로드
-    if (!consultingData || consultingData.length === 0) await loadConsultingData();
     const payload = {};
     Object.keys(allData).forEach(year => {
       payload[year] = (allData[year] || []).map(item => ({
@@ -2987,7 +3002,8 @@ async function migrateToSheets() {
         updatedAt: item.updatedAt || Date.now()
       }));
     });
-    const csData = (consultingData && consultingData.length > 0 ? consultingData : (consultingListData || [])).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+    const csList = await getConsultingListForSync();
+    const csData = csList.map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
     const result = await sheetsApiPost({ action: 'migrate', data: payload, consultingData: csData });
     if (result && result.success) {
       updateSyncStatusUI('success', '마이그레이션 완료');
@@ -3024,14 +3040,14 @@ async function manualSheetsSync() {
     if (!confirm('현재 데이터를 Google Sheets로 보냅니다.\n(시트의 기존 데이터를 덮어씁니다)\n\n계속하시겠습니까?')) return;
     updateSyncStatusUI('syncing', 'Sheets로 보내는 중...');
     try {
-      if (!consultingData || consultingData.length === 0) await loadConsultingData();
       const payload = {};
       Object.keys(allData).forEach(year => {
         payload[year] = (allData[year] || []).map(item => ({
           ...item, updatedAt: item.updatedAt || Date.now()
         }));
       });
-      const csData2 = (consultingData && consultingData.length > 0 ? consultingData : (consultingListData || [])).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+      const csList2 = await getConsultingListForSync();
+      const csData2 = csList2.map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
       const result = await sheetsApiPost({ action: 'migrate', data: payload, consultingData: csData2 });
       if (result && result.success) {
         updateSyncStatusUI('success', 'Sheets 전송 완료');
