@@ -2856,16 +2856,18 @@ async function syncToSheets(changedYear) {
   if (!getSheetsApiUrl()) return;
   updateSyncStatusUI('syncing', 'Google Sheets에 저장 중...');
   try {
-    if (changedYear) {
-      const yearData = (allData[changedYear] || []).map(item => ({
-        ...item,
-        updatedAt: item.updatedAt || Date.now()
-      }));
-      const result = await sheetsApiPost({
-        action: 'writeYear',
-        year: changedYear,
-        data: yearData
-      });
+    if (changedYear === 'consulting') {
+      // 기술컨설팅 동기화
+      const csData = (consultingListData || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+      const result = await sheetsApiPost({ action: 'writeConsulting', data: csData });
+      if (result && result.success) {
+        updateSyncStatusUI('success', 'Sheets 기술컨설팅 저장 완료');
+      } else {
+        throw new Error(result?.error || '알 수 없는 오류');
+      }
+    } else if (changedYear) {
+      const yearData = (allData[changedYear] || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+      const result = await sheetsApiPost({ action: 'writeYear', year: changedYear, data: yearData });
       if (result && result.success) {
         updateSyncStatusUI('success', `Sheets 저장 완료 (${changedYear})`);
         console.log(`✅ Sheets 동기화 완료: ${changedYear}`);
@@ -2873,20 +2875,21 @@ async function syncToSheets(changedYear) {
         throw new Error(result?.error || '알 수 없는 오류');
       }
     } else {
-      // 전체 동기화
+      // 전체 동기화 (공사현황 + 기술컨설팅)
       const payload = {};
       Object.keys(allData).forEach(year => {
-        payload[year] = (allData[year] || []).map(item => ({
-          ...item,
-          updatedAt: item.updatedAt || Date.now()
-        }));
+        payload[year] = (allData[year] || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
       });
-      const result = await sheetsApiPost({ action: 'writeAll', data: payload });
-      if (result && result.success) {
+      const csData = (consultingListData || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+      const [r1, r2] = await Promise.all([
+        sheetsApiPost({ action: 'writeAll', data: payload }),
+        sheetsApiPost({ action: 'writeConsulting', data: csData })
+      ]);
+      if (r1 && r1.success && r2 && r2.success) {
         updateSyncStatusUI('success', 'Sheets 전체 저장 완료');
-        console.log('✅ Sheets 전체 동기화 완료');
+        console.log('✅ Sheets 전체 동기화 완료 (공사현황 + 기술컨설팅)');
       } else {
-        throw new Error(result?.error || '알 수 없는 오류');
+        throw new Error((r1?.error || r2?.error || '알 수 없는 오류'));
       }
     }
   } catch (e) {
@@ -2933,6 +2936,25 @@ async function syncFromSheets() {
         syncToSheets(yearKey); // fire-and-forget
       }
     });
+
+    // 기술컨설팅 동기화
+    try {
+      const csResult = await sheetsApiGet({ action: 'readConsulting' });
+      if (csResult && csResult.success && Array.isArray(csResult.data) && csResult.data.length > 0) {
+        const sheetCs = csResult.data;
+        const localCs = consultingListData || [];
+        const sheetCsMaxTime = sheetCs.reduce((max, item) => Math.max(max, item.updatedAt || 0), 0);
+        const localCsMaxTime = localCs.reduce((max, item) => Math.max(max, item.updatedAt || 0), 0);
+        if (sheetCsMaxTime > localCsMaxTime) {
+          consultingListData = sheetCs;
+          localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
+          merged = true;
+          console.log('📥 Sheets → 기술컨설팅 업데이트');
+        } else if (localCsMaxTime > sheetCsMaxTime && localCs.length > 0) {
+          syncToSheets('consulting');
+        }
+      }
+    } catch(e) { console.warn('기술컨설팅 Sheets 동기화 실패:', e); }
 
     if (merged) {
       localStorage.setItem('constructionData', JSON.stringify(allData));
@@ -3080,6 +3102,7 @@ function saveConsultingDataToStorage() {
 function saveConsultingListDataToStorage() {
   localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
   fbSave(FB_COLLECTIONS.consultingListData, 'data', { items: consultingListData });
+  syncToSheets('consulting'); // Google Sheets에도 자동 동기화
 }
 
 // ========== 편집 잠금(Edit Lock) 시스템 ==========
