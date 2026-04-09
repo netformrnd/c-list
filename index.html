@@ -2985,7 +2985,8 @@ async function migrateToSheets() {
         updatedAt: item.updatedAt || Date.now()
       }));
     });
-    const result = await sheetsApiPost({ action: 'migrate', data: payload });
+    const csData = (consultingListData || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+    const result = await sheetsApiPost({ action: 'migrate', data: payload, consultingData: csData });
     if (result && result.success) {
       updateSyncStatusUI('success', '마이그레이션 완료');
       showToast('Google Sheets로 데이터 이관 완료!', 'success');
@@ -3027,7 +3028,8 @@ async function manualSheetsSync() {
           ...item, updatedAt: item.updatedAt || Date.now()
         }));
       });
-      const result = await sheetsApiPost({ action: 'migrate', data: payload });
+      const csData2 = (consultingListData || []).map(item => ({ ...item, updatedAt: item.updatedAt || Date.now() }));
+      const result = await sheetsApiPost({ action: 'migrate', data: payload, consultingData: csData2 });
       if (result && result.success) {
         updateSyncStatusUI('success', 'Sheets 전송 완료');
         showToast('Google Sheets로 데이터 전송 완료!', 'success');
