@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>온라인 서비스 계정 관리 운영 매뉴얼</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            color: #333;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 */
+        .header {
+            background: linear-gradient(135deg, #4A6FA5, #3A5A8A);
+            color: white;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .header .sub { font-size: 14px; opacity: 0.9; }
+        .header .meta {
+            margin-top: 12px;
+            font-size: 12px;
+            opacity: 0.75;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .print-btn {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .print-btn:hover { background: rgba(255,255,255,0.35); }
+
+        /* TOC */
+        .toc {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            padding: 24px 28px;
+            margin-bottom: 24px;
+        }
+        .toc h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4A6FA5;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #E8EDF3;
+        }
+        .toc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 24px;
+        }
+        .toc a {
+            color: #444;
+            text-decoration: none;
+            font-size: 13.5px;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.2s;
+        }
+        .toc a:hover { color: #4A6FA5; }
+        .toc .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: #E8EDF3;
+            color: #4A6FA5;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* 섹션 */
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            padding: 28px 28px 24px;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #4A6FA5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #4A6FA5;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #4A6FA5;
+            margin: 20px 0 10px;
+        }
+        h3:first-child { margin-top: 0; }
+
+        h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin: 16px 0 8px;
+        }
+
+        p { margin-bottom: 10px; }
+
+        /* 테이블 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0 16px;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid #E0E4EA;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #F0F3F8;
+            font-weight: 600;
+            color: #444;
+            white-space: nowrap;
+        }
+        td { color: #555; }
+        tr:hover td { background: #FAFBFD; }
+
+        /* 정보 박스 */
+        .info-box {
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0 16px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .info-box.blue {
+            background: #E8F0FE;
+            border-left: 4px solid #4A6FA5;
+            color: #2C4A7A;
+        }
+        .info-box.green {
+            background: #E6F4EA;
+            border-left: 4px solid #43A047;
+            color: #2E7D32;
+        }
+        .info-box.orange {
+            background: #FFF3E0;
+            border-left: 4px solid #FB8C00;
+            color: #E65100;
+        }
+        .info-box.red {
+            background: #FDECEA;
+            border-left: 4px solid #E53935;
+            color: #C62828;
+        }
+        .info-box.gray {
+            background: #F5F5F5;
+            border-left: 4px solid #9E9E9E;
+            color: #555;
+        }
+        .info-box strong { color: inherit; }
+
+        /* 리스트 */
+        ul, ol { margin: 8px 0 12px 20px; }
+        li { margin-bottom: 5px; }
+
+        /* 코드 */
+        code {
+            background: #F0F3F8;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 12.5px;
+            color: #4A6FA5;
+        }
+
+        /* 뱃지 */
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-blue { background: #E8F0FE; color: #4A6FA5; }
+        .badge-green { background: #E6F4EA; color: #2E7D32; }
+        .badge-orange { background: #FFF3E0; color: #E65100; }
+        .badge-red { background: #FDECEA; color: #E53935; }
+        .badge-gray { background: #F0F0F0; color: #666; }
+
+        /* 등급 */
+        .grade {
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 10px 0;
+        }
+        .grade-1 { background: #FDECEA; border-left: 4px solid #E53935; }
+        .grade-2 { background: #FFF3E0; border-left: 4px solid #FB8C00; }
+        .grade-3 { background: #E6F4EA; border-left: 4px solid #43A047; }
+        .grade-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .grade-1 .grade-dot { background: #E53935; }
+        .grade-2 .grade-dot { background: #FB8C00; }
+        .grade-3 .grade-dot { background: #43A047; }
+
+        /* 스텝 */
+        .steps { margin: 12px 0 16px; }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #4A6FA5;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-content { flex: 1; }
+        .step-content strong { color: #333; }
+        .step-content span { color: #666; font-size: 13px; }
+
+        /* 타임라인 */
+        .timeline { margin: 12px 0 16px; }
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding-bottom: 16px;
+            border-left: 2px solid #E0E4EA;
+            margin-left: 6px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .timeline-item:last-child { border-left-color: transparent; }
+        .timeline-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4A6FA5;
+            position: absolute;
+            left: -8px;
+            top: 2px;
+            flex-shrink: 0;
+        }
+        .timeline-period {
+            min-width: 60px;
+            font-weight: 600;
+            color: #4A6FA5;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+        .timeline-content { flex: 1; }
+        .timeline-content strong { color: #333; }
+        .timeline-content span { color: #666; font-size: 13px; }
+
+        /* 체크리스트 */
+        .checklist { margin: 12px 0 16px; }
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .check-item:hover { background: #F5F7FA; }
+        .check-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #CCC;
+            border-radius: 4px;
+            flex-shrink: 0;
+            position: relative;
+            margin-top: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .check-box.checked {
+            background: #4A6FA5;
+            border-color: #4A6FA5;
+        }
+        .check-box.checked::after {
+            content: '\2713';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            position: absolute;
+            top: -1px;
+            left: 3px;
+        }
+        .check-item .detail { color: #888; font-size: 12px; }
+
+        /* 도구 그리드 */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 12px 0 16px;
+        }
+        .tool-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            border: 1px solid #E0E4EA;
+            background: #FAFBFD;
+        }
+        .tool-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #4A6FA5;
+            color: white;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .tool-card .info .name { font-weight: 600; color: #333; font-size: 14px; }
+        .tool-card .info .desc { font-size: 12px; color: #888; }
+        .tool-card .info .file { font-size: 11px; color: #4A6FA5; }
+
+        /* 파일 그리드 */
+        .file-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0 16px;
+        }
+        .file-card {
+            padding: 14px;
+            border-radius: 8px;
+            border: 1px solid #E0E4EA;
+            text-align: center;
+        }
+        .file-card .name { font-weight: 600; color: #333; font-size: 13px; margin-bottom: 4px; }
+        .file-card .desc { font-size: 11px; color: #888; }
+
+        /* FAQ */
+        .faq-item {
+            border: 1px solid #E0E4EA;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        .faq-q {
+            padding: 14px 18px;
+            font-weight: 600;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .faq-q::before { content: 'Q.'; color: #4A6FA5; font-weight: 700; }
+        .faq-q:hover { background: #F5F7FA; }
+        .faq-q .arrow {
+            font-size: 10px;
+            color: #999;
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+        .faq-a {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.7;
+        }
+        .faq-item.open .faq-a {
+            max-height: 500px;
+            padding: 14px 18px;
+            padding-top: 0;
+        }
+        .faq-item.open .faq-q .arrow { transform: rotate(180deg); }
+
+        .divider { height: 1px; background: #E8EDF3; margin: 20px 0; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* 인쇄 */
+        @media print {
+            body { background: white; padding: 0; }
+            .print-btn { display: none; }
+            .section, .toc { box-shadow: none; break-inside: avoid; }
+            .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .info-box, .grade, .badge, .step-num, .tool-icon, .section-title .icon {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .faq-a { max-height: none !important; padding: 14px 18px !important; padding-top: 0 !important; }
+        }
+
+        @media (max-width: 768px) {
+            .toc-grid { grid-template-columns: 1fr; }
+            .tool-grid { grid-template-columns: 1fr; }
+            .file-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .file-grid { grid-template-columns: 1fr; }
+            .header .meta { flex-direction: column; gap: 4px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+<!-- 헤더 -->
+<div class="header">
+<h1>온라인 서비스 계정 관리 운영 매뉴얼</h1>
+<p class="sub">넷폼알앤디 경영관리팀 | 일상 운영 가이드 &amp; 인수인계 문서</p>
+<div class="meta">
+<span>최종 수정: 2026-03-19</span>
+<span>문서 버전: v1.0</span>
+<span>분류: 내부 관리 문서</span>
+</div>
+<button class="print-btn" onclick="window.print()">인쇄</button>
+</div>
+<!-- 목차 -->
+<div class="toc" id="toc">
+<h2>목차</h2>
+<div class="toc-grid">
+<a href="#sec1"><span class="num">1</span> 개요</a>
+<a href="#sec6"><span class="num">6</span> 정기 점검 업무</a>
+<a href="#sec-security"><span class="num" style="background:#FDEAEA; color:#DC3545;">!</span> 보안 수칙</a>
+<a href="#sec7"><span class="num">7</span> 도구 사용법</a>
+<a href="#sec-guide"><span class="num" style="background:#D4EDDA; color:#28A745;">순</span> 업무별 단계 가이드</a>
+<a href="#sec8"><span class="num">8</span> 하이웍스 연동</a>
+<a href="#sec2"><span class="num">2</span> 계정대장 구조</a>
+<a href="#sec9"><span class="num">9</span> 인수인계 체크리스트</a>
+<a href="#sec3"><span class="num">3</span> 신규 서비스 등록 절차</a>
+<a href="#sec10"><span class="num">10</span> FAQ / 자주 묻는 질문</a>
+<a href="#sec4"><span class="num">4</span> 등급 체계 및 비밀번호 관리</a>
+<a href="#sec5"><span class="num">5</span> 비용 관리</a>
+</div>
+</div>
+<!-- ========== 1. 개요 ========== -->
+<div class="section" id="sec1">
+<div class="section-title">
+<span class="icon">1</span>
+            개요
+        </div>
+<h3>시스템 소개</h3>
+<p><strong>온라인 서비스 계정 관리</strong>는 넷폼알앤디에서 사용하는 모든 외부 온라인 서비스(클라우드, 업무도구, 디자인, 개발, AI 등)의 계정을 체계적으로 관리하기 위한 시스템입니다.</p>
+<div class="info-box blue">
+<strong>왜 필요한가?</strong><br/>
+            개인 계정 난립 방지, 비밀번호 보안 강화, 비용 통합 관리, 퇴사 시 계정 회수 용이, 라이선스 효율적 운영을 위해 회사 차원의 계정 통합 관리 체계를 운영합니다.
+        </div>
+<div class="info-box orange">
+<strong>대외 명칭 안내:</strong> 대외적으로는 <strong>"온라인 서비스"</strong>라는 용어를 사용합니다. 내부 파일명에 "외부서비스"가 남아있을 수 있으나, 공지/안내/양식에서는 반드시 "온라인 서비스"를 사용하세요.
+        </div>
+<h3>관련 파일 목록</h3>
+<div class="file-grid">
+<div class="file-card">
+<div class="name">외부서비스_계정대장_260319.xlsx</div>
+<div class="desc">핵심 관리 대장 (5개 시트)</div>
+</div>
+<div class="file-card">
+<div class="name">계정신청서.html</div>
+<div class="desc">온라인 서비스 이용 신청서 웹폼</div>
+</div>
+<div class="file-card">
+<div class="name">계정관리_대시보드.html</div>
+<div class="desc">점검 현황 대시보드</div>
+</div>
+<div class="file-card">
+<div class="name">계정관리_보고서.html</div>
+<div class="desc">관리 체계 보고서 생성</div>
+</div>
+<div class="file-card">
+<div class="name">계정등급_분류도우미.html</div>
+<div class="desc">등급 자동 분류 도구</div>
+</div>
+<div class="file-card">
+<div class="name">계정관리_결재양식.html</div>
+<div class="desc">결재 양식 생성</div>
+</div>
+<div class="file-card">
+<div class="name">계정관리_전사공지.html</div>
+<div class="desc">전사 공지문 생성</div>
+</div>
+<div class="file-card">
+<div class="name">온라인서비스_계정관리_공지_260317.html</div>
+<div class="desc">도입 안내 공지</div>
+</div>
+</div>
+<h3>관리 계정 정보</h3>
+<table>
+<tr>
+<th>항목</th>
+<th>내용</th>
+<th>용도</th>
+</tr>
+<tr>
+<td><strong>관리 이메일 1</strong></td>
+<td><code>netformrnd.service@gmail.com</code></td>
+<td>외부 서비스 가입 전용 계정 (기존 서비스)</td>
+</tr>
+<tr>
+<td><strong>관리 이메일 2</strong></td>
+<td><code>netformrnd.service02@gmail.com</code></td>
+<td>외부 서비스 가입 전용 계정 (추가)</td>
+</tr>
+<tr>
+<td><strong>복구 이메일</strong></td>
+<td><code>netformrndmgmt@gmail.com</code></td>
+<td>비밀번호 복구 / 2차 인증용</td>
+</tr>
+<tr>
+<td><strong>법인카드</strong></td>
+<td>끝 4자리: <strong>0817</strong></td>
+<td>유료 서비스 결제 메인 카드</td>
+</tr>
+</table>
+<div class="info-box orange">
+<strong>계정 가입 정책 변경 (2026년 4월~):</strong><br/>
+기존에는 모든 서비스를 <code>netformrnd.service@gmail.com</code>으로 가입하였으나, 각 팀별로 기존 구글 계정을 보유하고 있어 <strong>신규 서비스는 각 팀의 구글 계정으로 가입</strong>을 진행합니다.<br/>
+- <strong>기존 서비스:</strong> <code>netformrnd.service@gmail.com</code> / <code>service02</code> 유지<br/>
+- <strong>신규 서비스:</strong> 해당 팀의 구글 계정으로 가입<br/>
+- <strong>계정대장:</strong> 어떤 계정으로 가입했는지 반드시 기록<br/>
+- <strong>관리 주체:</strong> 경영관리팀이 모든 서비스를 계정대장으로 통합 관리
+</div>
+<h3>GitHub 저장소 (HTML 도구 관리)</h3>
+<table>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+<tr>
+<td><strong>저장소 URL</strong></td>
+<td><code>https://github.com/netformrnd/ext</code></td>
+</tr>
+<tr>
+<td><strong>Pages URL</strong></td>
+<td><code>https://netformrnd.github.io/ext/</code></td>
+</tr>
+<tr>
+<td><strong>M-Portal</strong></td>
+<td>Quick Links에 Pages URL 등록하여 전사 접근 가능</td>
+</tr>
+</table>
+<div class="info-box blue">
+<strong>도구 업데이트 방법:</strong> HTML 파일 수정 후 GitHub에 push하면 GitHub Pages에 자동 반영됩니다. M-Portal에서 바로 최신 버전을 사용할 수 있습니다.
+</div>
+</div>
+<!-- ========== 보안 수칙 ========== -->
+<div class="section" id="sec-security">
+<div class="section-title">
+<span class="icon" style="background:#DC3545;">!</span>
+            보안 수칙 (반드시 숙지)
+        </div>
+<div class="info-box orange">
+<strong>계정관리는 회사의 모든 외부 서비스 접근 권한과 법인카드 정보를 다루는 업무입니다. 아래 보안 수칙을 반드시 준수하세요.</strong>
+</div>
+<table>
+<tr>
+<th style="width:40px;">No</th>
+<th>수칙</th>
+<th>이유</th>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>비밀번호는 대면/구두로만 전달</strong></td>
+<td>메신저, 이메일, 캡쳐 등 디지털 전달 금지. 유출 시 전체 서비스 위험</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>법인카드 정보는 담당자만 직접 입력</strong></td>
+<td>카드번호를 타인에게 전달하지 않음. 반드시 대면 등록 절차 준수</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>계정대장 파일은 암호화 보관</strong></td>
+<td>비밀번호가 포함된 파일이므로 공유 드라이브에 방치 금지</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>비밀번호 변경 주기 엄수</strong></td>
+<td>1등급 분기/2등급 반기/3등급 연1회 - 지연 시 보안 사고 위험</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td><strong>퇴사자 발생 시 즉시 비밀번호 변경</strong></td>
+<td>퇴사자가 알고 있던 모든 서비스 비밀번호를 당일 변경</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>관리 구글 계정 2차 인증 필수</strong></td>
+<td>service@gmail.com, service02@gmail.com 모두 2단계 인증 활성화</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td><strong>개인 계정으로 서비스 가입 금지</strong></td>
+<td>반드시 팀 구글 계정 또는 관리 전용 계정으로만 가입</td>
+</tr>
+</table>
+</div>
+
+<!-- ========== 업무별 단계 가이드 ========== -->
+<div class="section" id="sec-guide">
+<div class="section-title">
+<span class="icon" style="background:#28A745;">순</span>
+            업무별 단계 가이드 (순서대로 따라하기)
+        </div>
+<p>상황별로 아래 단계를 <strong>순서대로</strong> 따라하면 됩니다.</p>
+
+<h3>상황 1. 신규 서비스 요청이 들어왔을 때</h3>
+<div class="steps">
+<div class="step"><div class="step-num">1</div><div class="step-content"><strong>하이웍스 확인</strong><span>전자결재함에서 "온라인 서비스 이용 신청서" 접수 확인</span></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><strong>등급 분류</strong><span><code>계정등급_분류도우미.html</code> 열기 → 체크리스트 체크 → 1/2/3등급 자동 결정</span></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><strong>품의서 작성 (유료만)</strong><span>하이웍스 → 작성하기 → <strong>외부서비스 품의서</strong> 선택 → 비용/사유 기재 → 신청서 관련문서 첨부 → 결재 올림</span></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><strong>결재 승인 대기</strong><span>승인될 때까지 대기. 반려 시 사유 확인 후 신청 부서에 안내</span></div></div>
+<div class="step"><div class="step-num">5</div><div class="step-content"><strong>계정 생성</strong><span><strong>해당 팀의 구글 계정</strong>으로 서비스 가입. 비밀번호는 사내 패턴 규칙 적용. 2차 인증 설정</span></div></div>
+<div class="step"><div class="step-num">6</div><div class="step-content"><strong>법인카드 등록 (유료만)</strong><span>신청자가 담당자 자리 방문 → 서비스 결제 화면까지 루트 세팅 → 담당자가 카드 직접 입력</span></div></div>
+<div class="step"><div class="step-num">7</div><div class="step-content"><strong>계정대장 등록</strong><span>Excel 계정대장 열기 → 새 행 추가 → A~W열 정보 빠짐없이 입력 (등급B, 비밀번호G, 변경일Q 필수)</span></div></div>
+<div class="step"><div class="step-num">8</div><div class="step-content"><strong>팀장에게 전달</strong><span>서비스명, 가입 이메일, 비밀번호를 <strong>대면/구두로만</strong> 전달. 메신저 전송 절대 금지</span></div></div>
+</div>
+
+<h3>상황 2. 비밀번호 변경 주기가 왔을 때</h3>
+<div class="steps">
+<div class="step"><div class="step-num">1</div><div class="step-content"><strong>대상 서비스 확인</strong><span>계정대장 S열(비밀번호 상태)에서 "곧만료" 또는 "변경필요" 서비스 목록 추출</span></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><strong>등급별 확인</strong><span>1등급(분기) → 2등급(반기) → 3등급(연1회) 순서로 변경 대상 확인</span></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><strong>서비스 로그인</strong><span>해당 서비스에 현재 비밀번호(G열)로 로그인</span></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><strong>비밀번호 변경</strong><span>사내 패턴 규칙에 따라 새 비밀번호 설정</span></div></div>
+<div class="step"><div class="step-num">5</div><div class="step-content"><strong>계정대장 업데이트</strong><span>G열(비밀번호) 갱신 → Q열(변경일) 오늘 날짜 입력 → R열(다음변경일) 자동 계산 확인</span></div></div>
+<div class="step"><div class="step-num">6</div><div class="step-content"><strong>팀장에게 전달</strong><span>변경된 비밀번호를 해당 팀장에게 <strong>대면/구두로만</strong> 전달</span></div></div>
+</div>
+
+<h3>상황 3. 월간 정기 점검</h3>
+<div class="steps">
+<div class="step"><div class="step-num">1</div><div class="step-content"><strong>카드 명세서 확인</strong><span>법인카드(0817) 이번 달 결제 내역 확인</span></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><strong>비용 대조</strong><span>카드 명세서 금액과 계정대장 J열(월비용) 대조. 차이가 있으면 원인 파악</span></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><strong>미사용 서비스 점검</strong><span>사용하지 않는 서비스가 있는지 각 팀에 확인. 불필요한 서비스는 해지 진행</span></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><strong>점검 기록</strong><span>계정대장 T열(월간점검)에 오늘 날짜 기록</span></div></div>
+</div>
+
+<h3>상황 4. 퇴사자 발생 시 (긴급)</h3>
+<div class="info-box orange">
+<strong>퇴사자 발생 시 당일 처리 필수!</strong> 퇴사자가 알고 있던 모든 서비스 비밀번호를 즉시 변경해야 합니다.
+</div>
+<div class="steps">
+<div class="step"><div class="step-num">1</div><div class="step-content"><strong>관련 서비스 파악</strong><span>계정대장에서 퇴사자가 사용하던 서비스 목록 추출 (F열 사용부서 기준)</span></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><strong>비밀번호 즉시 변경</strong><span>해당 서비스 전체 비밀번호를 당일 내 변경</span></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><strong>멤버 제거</strong><span>좌석 기반 서비스의 경우 퇴사자 계정/멤버 삭제</span></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><strong>계정대장 업데이트</strong><span>G열 비밀번호 갱신, Q열 변경일 기록, V열 비고에 "퇴사자 OOO 비밀번호 변경" 기록</span></div></div>
+<div class="step"><div class="step-num">5</div><div class="step-content"><strong>팀장에게 새 비밀번호 전달</strong><span>변경된 비밀번호를 팀장에게 대면 전달</span></div></div>
+</div>
+
+<h3>상황 5. 리더로부터 잔디 요청을 받았을 때</h3>
+<div class="steps">
+<div class="step"><div class="step-num">1</div><div class="step-content"><strong>양식 확인</strong><span>비밀번호 변경 통보 / 계정 해지 요청 / 계정 변경 요청 중 어떤 양식인지 확인</span></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><strong>정보 확인</strong><span>양식에 필요한 항목(서비스명, 계정, 사유 등)이 모두 기재되었는지 확인. 누락 시 재요청</span></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><strong>처리</strong><span>비밀번호 변경 → 계정대장 G열/Q열 업데이트 | 해지 → P열 상태 변경 | 변경 → 해당 열 수정</span></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><strong>처리 완료 회신</strong><span>잔디에서 요청자에게 처리 완료 회신</span></div></div>
+</div>
+</div>
+
+<!-- ========== 2. 계정대장 구조 ========== -->
+<div class="section" id="sec2">
+<div class="section-title">
+<span class="icon">2</span>
+            계정대장 구조
+        </div>
+<h3>시트 구성</h3>
+<table>
+<tr>
+<th>시트명</th>
+<th>설명</th>
+<th>유형</th>
+</tr>
+<tr>
+<td><strong>계정 대장</strong></td>
+<td>모든 서비스의 상세 정보를 기록하는 메인 시트 (A~W열)</td>
+<td><span class="badge badge-red">핵심 시트</span></td>
+</tr>
+<tr>
+<td><strong>등급 기준</strong></td>
+<td>1/2/3등급 분류 기준표 및 변경 주기 정의</td>
+<td><span class="badge badge-blue">참조 시트</span></td>
+</tr>
+<tr>
+<td><strong>분류 코드</strong></td>
+<td>13개 서비스 분류(클라우드, 업무도구 등)의 코드 정의</td>
+<td><span class="badge badge-blue">참조 시트</span></td>
+</tr>
+<tr>
+<td><strong>상태 코드</strong></td>
+<td>서비스 상태 코드(사용중, 해지, 휴면 등) 정의</td>
+<td><span class="badge badge-blue">참조 시트</span></td>
+</tr>
+<tr>
+<td><strong>비용 취합</strong></td>
+<td>월비용 자동 합산, 분류별/등급별 비용 현황</td>
+<td><span class="badge badge-green">자동 계산</span></td>
+</tr>
+</table>
+<h3>메인 시트 열(컬럼) 설명 (A~W)</h3>
+<table>
+<tr><th>열</th><th>항목</th><th>설명</th><th>입력 방법</th></tr>
+<tr><td><strong>A</strong></td><td>No</td><td>일련번호 (자동 부여)</td><td>순차 번호</td></tr>
+<tr><td><strong>B</strong></td><td>등급</td><td>보안 등급 (1/2/3등급)</td><td>분류도우미 결과</td></tr>
+<tr><td><strong>C</strong></td><td>서비스명</td><td>서비스 이름 (예: Google Workspace)</td><td>정식 명칭 입력</td></tr>
+<tr><td><strong>D</strong></td><td>분류</td><td>13개 분류 중 해당 분류</td><td>드롭다운 선택</td></tr>
+<tr><td><strong>E</strong></td><td>가입이메일</td><td>서비스에 가입한 이메일</td><td>관리 이메일 기본</td></tr>
+<tr><td><strong>F</strong></td><td>사용부서</td><td>해당 서비스를 사용하는 부서</td><td>부서명 입력</td></tr>
+<tr><td><strong>G</strong></td><td>비밀번호</td><td>현재 비밀번호</td><td>패턴 기반 생성</td></tr>
+<tr><td><strong>H</strong></td><td>2차인증</td><td>2차 인증 설정 여부 (Y/N)</td><td>Y 또는 N</td></tr>
+<tr><td><strong>I</strong></td><td>인증번호수신자</td><td>2차 인증 수신 담당자</td><td>담당자명</td></tr>
+<tr><td><strong>J</strong></td><td>월비용</td><td>월 결제 금액 (원화 숫자만)</td><td>숫자만 (예: 15000)</td></tr>
+<tr><td><strong>K</strong></td><td>결제일</td><td>정기 결제 날짜</td><td>날짜 입력</td></tr>
+<tr><td><strong>L</strong></td><td>연결카드</td><td>결제에 연결된 카드 정보</td><td>카드 끝 4자리</td></tr>
+<tr><td><strong>M</strong></td><td>결제기간</td><td>결제 주기 (월/분기/연)</td><td>선택 입력</td></tr>
+<tr><td><strong>N</strong></td><td>계약시작일</td><td>서비스 계약 시작 날짜</td><td>날짜 입력</td></tr>
+<tr><td><strong>O</strong></td><td>계약만료일</td><td>서비스 계약 종료 날짜</td><td>날짜 입력</td></tr>
+<tr><td><strong>P</strong></td><td>상태</td><td>서비스 현재 상태 (사용중/해지/휴면)</td><td>드롭다운 선택</td></tr>
+<tr><td><strong>Q</strong></td><td>비밀번호변경일</td><td>마지막 비밀번호 변경 날짜</td><td>변경 시 갱신</td></tr>
+<tr><td><strong>R</strong></td><td>다음변경일</td><td>다음 비밀번호 변경 예정일</td><td><span class="badge badge-green">수식 자동</span></td></tr>
+<tr><td><strong>S</strong></td><td>비밀번호상태</td><td>안전 / 곧만료 / 변경필요</td><td><span class="badge badge-green">수식 자동</span></td></tr>
+<tr><td><strong>T</strong></td><td>월간점검</td><td>월간 점검 완료 여부</td><td>완료 시 날짜 입력</td></tr>
+<tr><td><strong>U</strong></td><td>계약서/증빙위치</td><td>계약서 파일 저장 위치</td><td>경로 또는 링크</td></tr>
+<tr><td><strong>V</strong></td><td>비고</td><td>추가 참고사항</td><td>자유 입력</td></tr>
+<tr><td><strong>W</strong></td><td>공유팀장</td><td>계정 정보를 전달받은 팀장</td><td>팀장명</td></tr>
+</table>
+<h3>수식 설명</h3>
+<h4>R열: 다음변경일 (자동 계산)</h4>
+<div class="info-box gray">
+<strong>계산 로직:</strong> 비밀번호변경일(Q) + 등급별 변경주기<br/>
+            - 1등급: Q열 + 90일 (분기)<br/>
+            - 2등급: Q열 + 180일 (반기)<br/>
+            - 3등급: Q열 + 365일 (연1회)<br/>
+            Q열이 비어있으면 빈 값을 반환합니다.
+        </div>
+<h4>S열: 비밀번호상태 (자동 계산)</h4>
+<div class="info-box gray">
+<strong>계산 로직:</strong> 오늘 날짜와 다음변경일(R)을 비교<br/>
+            - <span class="badge badge-green">안전</span> : 다음변경일까지 30일 이상 남음<br/>
+            - <span class="badge badge-orange">곧만료</span> : 다음변경일까지 30일 이내<br/>
+            - <span class="badge badge-red">변경필요</span> : 다음변경일이 지남
+        </div>
+<h3>비용 취합 시트 연동</h3>
+<p>J열에 <strong>원화 숫자만</strong> 입력하면 비용 취합 시트에서 자동으로 합산합니다.</p>
+<div class="info-box blue">
+<strong>입력 예시:</strong> 월 15,000원이면 J열에 <code>15000</code> 입력 (원, 쉼표 없이 숫자만). 비용 취합 시트에서 분류별, 등급별 합산이 자동으로 이루어집니다.
+        </div>
+</div>
+<!-- ========== 3. 신규 서비스 등록 절차 ========== -->
+<div class="section" id="sec3">
+<div class="section-title">
+<span class="icon">3</span>
+            신규 서비스 등록 절차
+        </div>
+<div class="steps">
+<div class="step">
+<div class="step-num">1</div>
+<div class="step-content">
+<strong>신청서 접수</strong>
+<span>사용 부서에서 하이웍스 전자결재로 <strong>"온라인 서비스 이용 신청서"</strong>를 제출합니다. 신청서에는 서비스명, 사용 목적, 예상 비용, 필요 인원 등이 포함됩니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">2</div>
+<div class="step-content">
+<strong>검토 및 등급 분류</strong>
+<span><code>계정등급_분류도우미.html</code>을 활용하여 서비스의 보안 등급을 분류합니다. 결재/금융 관련 여부, 개인정보 포함 여부 등을 기준으로 1~3등급을 결정합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">3</div>
+<div class="step-content">
+<strong>품의서 작성 (유료 서비스인 경우)</strong>
+<span><strong>경영관리팀 담당자가</strong> 신청서를 근거로 품의서를 작성하여 결재를 올립니다. 하이웍스 → 작성하기 → <strong>외부서비스 품의서</strong> 양식을 선택하고, 신청서를 관련문서로 첨부합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">4</div>
+<div class="step-content">
+<strong>계정 생성</strong>
+<span><strong>해당 팀의 구글 계정</strong>으로 서비스에 가입합니다. (기존 서비스는 <code>netformrnd.service@gmail.com</code> 유지) 비밀번호는 사내 패턴 규칙을 따릅니다. 2차 인증이 가능한 서비스는 반드시 설정합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">5</div>
+<div class="step-content">
+<strong>계정대장 등록</strong>
+<span>Excel 계정대장의 메인 시트에 A~W열의 정보를 빠짐없이 입력합니다. 특히 등급(B), 비밀번호(G), 비밀번호변경일(Q)은 필수입니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">6</div>
+<div class="step-content">
+<strong>팀장에게 전달</strong>
+<span>해당 부서 팀장에게 <strong>서비스명, 가입 이메일, 비밀번호</strong> 3가지만 전달합니다. <strong>비밀번호는 반드시 대면 또는 구두로만 전달하며, 메신저/이메일로 절대 전송하지 않습니다.</strong></span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">7</div>
+<div class="step-content">
+<strong>멤버 초대 (해당 시)</strong>
+<span>좌석(시트) 기반 서비스의 경우, 팀장 요청에 따라 사용자를 멤버로 초대합니다. 계정대장 비고(V)열에 초대 인원 수를 기록합니다.</span>
+</div>
+</div>
+</div>
+<div class="info-box green">
+<strong>등록 완료 확인:</strong> 계정대장에 모든 정보가 입력되고, 팀장에게 전달이 완료되면 등록 절차가 마무리됩니다. 대시보드에서 신규 등록 내역을 확인할 수 있습니다.
+        </div>
+
+<h3>법인카드 등록 절차</h3>
+<div class="info-box orange">
+<strong>보안 중요:</strong> 법인카드 정보는 절대 메신저/이메일로 전달하지 않습니다. 아래 절차에 따라 대면으로만 처리합니다.
+</div>
+<div class="steps">
+<div class="step">
+<div class="step-num">1</div>
+<div class="step-content">
+<strong>신청자 방문</strong>
+<span>신청서 승인 후, 신청자는 <strong>경영관리팀 담당자 자리</strong>로 직접 방문합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">2</div>
+<div class="step-content">
+<strong>루트 세팅</strong>
+<span>담당자 PC에서 해당 서비스의 <strong>카드 등록/결제 설정 화면까지 접속(루트 세팅)</strong>을 완료합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">3</div>
+<div class="step-content">
+<strong>카드 등록</strong>
+<span>담당자가 세팅된 화면에서 <strong>법인카드 정보를 최종 확인 후 직접 등록</strong>하여 처리를 완료합니다.</span>
+</div>
+</div>
+</div>
+<p style="margin-top:8px; font-size:13px; color:#888;">* 이 절차는 카드 등록 경로 파악 소요 시간을 줄이고, 법인카드 보안을 강화하기 위해 마련되었습니다.</p>
+
+<h3>잔디 요청 양식</h3>
+<p>리더들이 계정 관련 요청 시 아래 양식을 사용하여 경영관리팀에 전달합니다.</p>
+<table>
+<tr>
+<th>양식</th>
+<th>사용 시점</th>
+<th>주요 항목</th>
+</tr>
+<tr>
+<td><strong>비밀번호 변경 통보</strong></td>
+<td>리더가 직접 비밀번호를 변경한 경우</td>
+<td>서비스명, 계정, 변경자, 변경일, 변경 후 비밀번호</td>
+</tr>
+<tr>
+<td><strong>계정 해지 요청</strong></td>
+<td>퇴사, 부서이동, 미사용 등</td>
+<td>서비스명, 계정, 사용자, 해지사유, 희망 해지일</td>
+</tr>
+<tr>
+<td><strong>계정 변경 요청</strong></td>
+<td>담당자 변경, 권한 변경 등</td>
+<td>서비스명, 계정, 변경 내용, 기존/변경 후, 사유</td>
+</tr>
+</table>
+<div class="info-box blue">
+<strong>신규 서비스 신청은</strong> 잔디 양식이 아닌 <strong>하이웍스 → 온라인 서비스 이용 신청서</strong>로 진행합니다.
+</div>
+</div>
+<!-- ========== 4. 등급 체계 및 비밀번호 관리 ========== -->
+<div class="section" id="sec4">
+<div class="section-title">
+<span class="icon">4</span>
+            등급 체계 및 비밀번호 관리
+        </div>
+<h3>3등급 체계</h3>
+<table>
+<tr>
+<th>등급</th>
+<th>색상</th>
+<th>분류 기준</th>
+<th>변경 주기</th>
+</tr>
+<tr>
+<td><span class="grade grade-1"><span class="grade-dot"></span> 1등급</span></td>
+<td><span class="badge badge-red">Red</span></td>
+<td>결재/금융 관련, 관리자 권한 서비스 (하이웍스, 은행, 세무 등)</td>
+<td><strong>분기 (3개월)</strong></td>
+</tr>
+<tr>
+<td><span class="grade grade-2"><span class="grade-dot"></span> 2등급</span></td>
+<td><span class="badge badge-orange">Orange</span></td>
+<td>매출/출고/개인정보 관련 서비스 (ERP, CRM, 쇼핑몰 등)</td>
+<td><strong>반기 (6개월)</strong></td>
+</tr>
+<tr>
+<td><span class="grade grade-3"><span class="grade-dot"></span> 3등급</span></td>
+<td><span class="badge badge-blue">Blue</span></td>
+<td>그 외 일반 서비스 (디자인 도구, 협업 도구, AI 도구 등)</td>
+<td><strong>연 1회</strong></td>
+</tr>
+</table>
+<div class="info-box blue">
+<strong>등급 분류가 애매한 경우:</strong> <code>계정등급_분류도우미.html</code>에서 체크리스트를 통해 자동 분류하거나, 보수적으로(높은 등급으로) 분류합니다.
+        </div>
+<h3>비밀번호 상태 확인 (S열)</h3>
+<table>
+<tr>
+<th>상태</th>
+<th>의미</th>
+<th>조치</th>
+</tr>
+<tr>
+<td><span class="badge badge-green">안전</span></td>
+<td>다음 변경일까지 30일 이상 남음</td>
+<td>조치 불필요</td>
+</tr>
+<tr>
+<td><span class="badge badge-orange">곧만료</span></td>
+<td>다음 변경일까지 30일 이내</td>
+<td>변경 일정 확인 및 준비</td>
+</tr>
+<tr>
+<td><span class="badge badge-red">변경필요</span></td>
+<td>다음 변경일이 지남 (연체 상태)</td>
+<td><strong>즉시 비밀번호 변경</strong></td>
+</tr>
+</table>
+<h3>비밀번호 변경 절차</h3>
+<div class="steps">
+<div class="step">
+<div class="step-num">1</div>
+<div class="step-content">
+<strong>대상 서비스 확인</strong>
+<span>계정대장 S열에서 "곧만료" 또는 "변경필요" 상태인 서비스를 확인합니다. 대시보드에서도 확인 가능합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">2</div>
+<div class="step-content">
+<strong>새 비밀번호 생성</strong>
+<span>사내 비밀번호 패턴 규칙에 따라 새 비밀번호를 생성합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">3</div>
+<div class="step-content">
+<strong>서비스 로그인 후 변경</strong>
+<span>해당 서비스에 접속하여 비밀번호를 변경합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">4</div>
+<div class="step-content">
+<strong>계정대장 갱신</strong>
+<span>G열(비밀번호)과 Q열(비밀번호변경일)을 업데이트합니다. R열과 S열은 자동으로 갱신됩니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">5</div>
+<div class="step-content">
+<strong>팀장에게 재전달</strong>
+<span>변경된 비밀번호를 해당 부서 팀장에게 전달합니다.</span>
+</div>
+</div>
+</div>
+</div>
+<!-- ========== 5. 비용 관리 ========== -->
+<div class="section" id="sec5">
+<div class="section-title">
+<span class="icon">5</span>
+            비용 관리
+        </div>
+<h3>월비용 입력 방법</h3>
+<p>계정대장 J열에 <strong>원화 숫자만</strong> 입력합니다. 서식이나 단위는 포함하지 않습니다.</p>
+<table>
+<tr>
+<th>올바른 입력</th>
+<th>잘못된 입력</th>
+<th>설명</th>
+</tr>
+<tr>
+<td><code>15000</code></td>
+<td><del>15,000원</del></td>
+<td>쉼표, 원 단위 제외</td>
+</tr>
+<tr>
+<td><code>110000</code></td>
+<td><del>$85</del></td>
+<td>외화는 원화로 환산하여 입력</td>
+</tr>
+<tr>
+<td><code>0</code></td>
+<td><del>무료</del></td>
+<td>무료 서비스는 0 입력</td>
+</tr>
+</table>
+<h3>외화 서비스 환율 적용 기준</h3>
+<div class="info-box blue">
+<strong>원칙:</strong> 실제 결제 시 적용된 원화 금액을 기준으로 입력합니다. 카드 명세서 확인 후 원화 결제 금액을 J열에 입력하세요. 환율 변동에 따라 매월 소폭 변동될 수 있으며, 직전 월 결제 금액을 기준으로 합니다.
+        </div>
+<h3>비용 취합 시트 확인</h3>
+<p>비용 취합 시트는 메인 시트의 J열 데이터를 기반으로 다음 항목을 자동 계산합니다.</p>
+<ul>
+<li>분류별 월간 비용 합계 (13개 분류)</li>
+<li>등급별 월간 비용 합계 (1/2/3등급)</li>
+<li>전체 월간 비용 총계</li>
+<li>연간 비용 추정 (월비용 x 12)</li>
+</ul>
+<h3>품의서 작성 시 참고사항</h3>
+<div class="info-box orange">
+<strong>유료 서비스 신규 등록 또는 갱신 시:</strong><br/>
+            - 월 비용 및 연간 비용 예상액 명시<br/>
+            - 기존 유사 서비스와의 비교 (중복 여부)<br/>
+            - 필요 인원 수(좌석 수)와 단가 명시<br/>
+            - 법인카드(0817) 결제 기준으로 작성<br/>
+            - <code>계정관리_결재양식.html</code>에서 양식 생성 가능
+        </div>
+</div>
+<!-- ========== 6. 정기 점검 업무 ========== -->
+<div class="section" id="sec6">
+<div class="section-title">
+<span class="icon">6</span>
+            정기 점검 업무
+        </div>
+<div class="timeline">
+<div class="timeline-item">
+<div class="timeline-period">일간</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>신청서 확인</strong>
+<span>하이웍스 전자결재함에서 "온라인 서비스 이용 신청서" 접수 여부를 확인합니다. 신규 신청이 있으면 등록 절차를 시작합니다.</span>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-period">주간</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>비밀번호 상태 점검</strong>
+<span>계정대장 S열을 확인하여 "곧만료" 또는 "변경필요" 상태인 서비스를 점검합니다. 대시보드를 활용하면 한눈에 현황을 파악할 수 있습니다.</span>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-period">월간</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>비용 확인 및 미사용 서비스 점검</strong>
+<span>카드 명세서와 계정대장의 비용(J열)을 대조합니다. 사용하지 않는 서비스가 있는지 확인하고, T열(월간점검)에 점검 날짜를 기록합니다.</span>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-period">분기</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>1등급 비밀번호 변경</strong>
+<span><span class="grade grade-1"><span class="grade-dot"></span> 1등급(Red)</span> 서비스의 비밀번호를 일괄 변경합니다. 변경 후 G열, Q열을 갱신하고 관련 팀장에게 전달합니다.</span>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-period">반기</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>2등급 비밀번호 변경</strong>
+<span><span class="grade grade-2"><span class="grade-dot"></span> 2등급(Orange)</span> 서비스의 비밀번호를 일괄 변경합니다. 1등급과 동일한 절차를 수행합니다.</span>
+</div>
+</div>
+<div class="timeline-item">
+<div class="timeline-period">연간</div>
+<div class="timeline-dot"></div>
+<div class="timeline-content">
+<strong>3등급 비밀번호 변경 + 전체 감사</strong>
+<span><span class="grade grade-3"><span class="grade-dot"></span> 3등급(Blue)</span> 서비스의 비밀번호를 변경하고, 전체 서비스에 대한 종합 감사를 실시합니다. 불필요한 서비스 해지, 등급 재분류, 비용 최적화를 검토합니다.</span>
+</div>
+</div>
+</div>
+<div class="info-box green">
+<strong>점검 기록:</strong> 모든 점검 결과는 계정대장 T열(월간점검)에 날짜로 기록하고, 중요 변경 사항은 V열(비고)에 메모합니다.
+        </div>
+</div>
+<!-- ========== 7. 도구 사용법 ========== -->
+<div class="section" id="sec7">
+<div class="section-title">
+<span class="icon">7</span>
+            도구 사용법
+        </div>
+<p>각 HTML 도구는 브라우저에서 직접 열어 사용합니다. 별도 설치 없이 더블클릭으로 실행됩니다.</p>
+<div class="tool-grid">
+<div class="tool-card">
+<div class="tool-icon">신</div>
+<div class="info">
+<div class="name">온라인 서비스 이용 신청서</div>
+<div class="desc">서비스 이용 신청 웹폼입니다. 작성 후 Word 문서 다운로드 또는 하이웍스 전자결재 양식 HTML 코드를 복사할 수 있습니다. 신청서 접수 시 이 도구로 내용을 확인합니다.</div>
+<div class="file">계정신청서.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">대</div>
+<div class="info">
+<div class="name">계정 관리 대시보드</div>
+<div class="desc">전체 서비스의 점검 현황을 한눈에 보여주는 대시보드입니다. 비밀번호 상태, 비용 현황, 긴급 조치 필요 서비스 등을 확인할 수 있습니다.</div>
+<div class="file">계정관리_대시보드.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">보</div>
+<div class="info">
+<div class="name">관리 체계 보고서</div>
+<div class="desc">계정 관리 체계 현황을 보고서 형태로 생성합니다. 경영진 보고 또는 감사 시 활용할 수 있습니다.</div>
+<div class="file">계정관리_보고서.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">분</div>
+<div class="info">
+<div class="name">등급 분류 도우미</div>
+<div class="desc">새 서비스의 보안 등급을 자동으로 분류해주는 도구입니다. 체크리스트를 통해 결재/금융 관련 여부, 개인정보 포함 여부 등을 판단하여 1~3등급을 자동 결정합니다.</div>
+<div class="file">계정등급_분류도우미.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">결</div>
+<div class="info">
+<div class="name">결재 양식</div>
+<div class="desc">유료 서비스 등록/갱신 시 필요한 품의서 등 결재 양식을 생성합니다.</div>
+<div class="file">계정관리_결재양식.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">공</div>
+<div class="info">
+<div class="name">전사 공지문</div>
+<div class="desc">계정 관리 관련 전사 공지문(비밀번호 변경 안내, 새 정책 안내 등)을 생성합니다.</div>
+<div class="file">계정관리_전사공지.html</div>
+</div>
+</div>
+<div class="tool-card">
+<div class="tool-icon">안</div>
+<div class="info">
+<div class="name">도입 안내 공지</div>
+<div class="desc">온라인 서비스 계정 관리 체계 도입을 알리는 전사 공지문입니다. 제도 시행 초기에 전 직원에게 배포합니다.</div>
+<div class="file">온라인서비스_계정관리_공지_260317.html</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ========== 8. 하이웍스 연동 ========== -->
+<div class="section" id="sec8">
+<div class="section-title">
+<span class="icon">8</span>
+            하이웍스 연동
+        </div>
+<h3>양식함 등록 방법</h3>
+<div class="steps">
+<div class="step">
+<div class="step-num">1</div>
+<div class="step-content">
+<strong>계정신청서.html 열기</strong>
+<span>브라우저에서 <code>계정신청서.html</code>을 열고, 하단의 <strong>"하이웍스 양식 코드 복사"</strong> 버튼을 클릭합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">2</div>
+<div class="step-content">
+<strong>하이웍스 관리자 접속</strong>
+<span>하이웍스 관리자 페이지 &gt; 전자결재 &gt; 양식관리로 이동합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">3</div>
+<div class="step-content">
+<strong>양식 등록</strong>
+<span>새 양식 추가 &gt; 양식명: <strong>"온라인 서비스 이용 신청서"</strong> 입력 &gt; HTML 편집 모드에서 복사한 코드를 붙여넣기합니다.</span>
+</div>
+</div>
+<div class="step">
+<div class="step-num">4</div>
+<div class="step-content">
+<strong>결재선 설정</strong>
+<span>기본 결재선을 설정합니다: 신청자(기안) → 팀장(승인) → 경영관리팀(최종승인)</span>
+</div>
+</div>
+</div>
+<h3>전자결재 흐름</h3>
+<table>
+<tr>
+<th>단계</th>
+<th>담당</th>
+<th>업무 내용</th>
+</tr>
+<tr>
+<td><span class="badge badge-blue">기안</span></td>
+<td>신청자</td>
+<td>온라인 서비스 이용 신청서를 작성하여 전자결재로 제출</td>
+</tr>
+<tr>
+<td><span class="badge badge-orange">1차 승인</span></td>
+<td>팀장</td>
+<td>사용 목적 및 필요성 검토 후 승인</td>
+</tr>
+<tr>
+<td><span class="badge badge-green">최종 승인</span></td>
+<td>경영관리팀</td>
+<td>등급 분류, 중복 서비스 확인, 비용 검토 후 최종 승인 및 계정 생성 진행</td>
+</tr>
+</table>
+<h3>품의서 작성</h3>
+<p>유료 서비스의 경우, <strong>경영관리팀 담당자가</strong> 신청서를 근거로 품의서를 작성합니다. (부서가 아닌 경영관리팀이 작성)</p>
+<div class="info-box blue">
+<strong>품의서 작성 순서:</strong><br/>
+            1. 하이웍스 → 작성하기 → <strong>외부서비스 품의서</strong> 선택<br/>
+            2. 서비스명, 사용 목적, 사용 부서/인원 기재<br/>
+            3. 월 비용(VAT 포함), 결제 방법(법인카드), 계약 기간 기재<br/>
+            4. 온라인 서비스 이용 신청서를 <strong>관련문서로 첨부</strong><br/>
+            5. 결재 올림<br/>
+<br/>
+<strong>주의:</strong> 일반 품의서가 아닌 반드시 <strong>외부서비스 품의서</strong> 양식을 사용하세요.
+        </div>
+</div>
+<!-- ========== 9. 인수인계 체크리스트 ========== -->
+<div class="section" id="sec9">
+<div class="section-title">
+<span class="icon">9</span>
+            인수인계 체크리스트
+        </div>
+<div class="info-box orange">
+<strong>인수인계 시 주의:</strong> 이 체크리스트의 모든 항목을 후임자에게 직접 전달하고 확인받으세요. 특히 관리 계정 로그인과 법인카드 정보는 구두 또는 대면으로 전달합니다.
+        </div>
+<h3>필수 전달 항목</h3>
+<div class="checklist">
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>계정대장 파일 위치 및 접근 권한</strong>
+<div class="detail">외부서비스_계정대장 Excel 파일의 저장 위치, 공유 드라이브 접근 권한 확인 (파일명은 날짜에 따라 변경될 수 있음)</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>관리 Google 계정 로그인 정보</strong>
+<div class="detail">netformrnd.service@gmail.com, netformrnd.service02@gmail.com 비밀번호 및 2차 인증 수단 전달 (대면 전달 필수)</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>복구 이메일 접근 권한</strong>
+<div class="detail">netformrndmgmt@gmail.com 로그인 정보 전달</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>법인카드 정보</strong>
+<div class="detail">끝 4자리 0817 카드의 결제 관련 정보 및 담당 부서 확인</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>하이웍스 양식관리 접근 권한</strong>
+<div class="detail">전자결재 양식관리 메뉴 접근 권한 이전 (관리자 권한 필요)</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>각 서비스별 관리자 권한 확인</strong>
+<div class="detail">계정대장에 등록된 모든 서비스의 관리자(Admin) 권한이 정상 접속되는지 확인</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>현재 비밀번호 변경 일정 확인</strong>
+<div class="detail">S열에서 "곧만료" 또는 "변경필요" 상태인 서비스 파악 및 일정 공유</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>진행 중인 신청서 확인</strong>
+<div class="detail">하이웍스에서 미처리된 신청서 또는 진행 중인 등록 건 확인</div>
+</div>
+</div>
+</div>
+<h3>추가 전달 사항</h3>
+<div class="checklist">
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>HTML 도구 파일 위치 (GitHub)</strong>
+<div class="detail">GitHub 저장소: https://github.com/netformrnd/ext / Pages URL: https://netformrnd.github.io/ext/ / M-Portal Quick Links에 등록되어 있음</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>비밀번호 생성 패턴</strong>
+<div class="detail">사내 비밀번호 규칙 전달 (구두 전달 권장)</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>13개 분류 체계 숙지</strong>
+<div class="detail">클라우드, 업무도구, 디자인, 개발, 마케팅, AI도구, SNS/마케팅, 쇼핑몰/커머스, 웹사이트, 영상, 데이터, 통신, 기타</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>주요 서비스 특이사항</strong>
+<div class="detail">2차 인증 설정 서비스, 특별 관리 필요 서비스, 해지 예정 서비스 등 메모 전달</div>
+</div>
+</div>
+<div class="check-item">
+<div class="check-box"></div>
+<div>
+<strong>본 운영 매뉴얼 전달</strong>
+<div class="detail">이 문서를 후임자에게 전달하고, 내용 숙지 여부 확인</div>
+</div>
+</div>
+</div>
+</div>
+<!-- ========== 10. FAQ ========== -->
+<div class="section" id="sec10">
+<div class="section-title">
+<span class="icon">10</span>
+            FAQ / 자주 묻는 질문
+        </div>
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                개인 계정으로 이미 가입한 경우 어떻게 하나요?
+                <span class="arrow">▼</span>
+</div>
+<div class="faq-a">
+                기존 개인 계정의 관리자 권한을 회사 관리 계정(해당 팀 구글 계정 또는 <code>netformrnd.service@gmail.com</code>)으로 이전하거나, 새로 회사 계정으로 가입한 후 데이터를 마이그레이션합니다. 개인 계정은 서비스에서 제거하고, 계정대장에 회사 계정 정보를 등록합니다. 좌석 기반 서비스의 경우, 개인 이메일을 멤버로 초대하는 방식으로 전환할 수 있습니다.
+            </div>
+</div>
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                무료 서비스도 신청해야 하나요?
+                <span class="arrow">▼</span>
+</div>
+<div class="faq-a">
+<strong>네, 무료 서비스도 신청 대상입니다.</strong> 무료 서비스라도 회사 업무에 사용하는 경우 계정 관리가 필요합니다. 담당자 퇴사 시 계정 회수, 보안 관리, 유료 전환 시 비용 관리 등을 위해 계정대장에 등록해야 합니다. 다만, 품의서는 유료 서비스에만 필요합니다.
+            </div>
+</div>
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                비밀번호를 분실한 경우 어떻게 하나요?
+                <span class="arrow">▼</span>
+</div>
+<div class="faq-a">
+<strong>1단계:</strong> 계정대장 G열에서 현재 비밀번호를 확인합니다.<br/>
+<strong>2단계:</strong> 계정대장에 기록된 비밀번호로도 로그인이 되지 않으면, 관리 이메일(<code>netformrnd.service@gmail.com</code>)로 비밀번호 재설정을 진행합니다.<br/>
+<strong>3단계:</strong> 재설정 후 새 비밀번호를 계정대장 G열과 Q열에 갱신합니다.<br/>
+                2차 인증이 필요한 경우, I열에 기록된 인증번호 수신자에게 연락합니다.
+            </div>
+</div>
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                서비스 해지 절차는 어떻게 되나요?
+                <span class="arrow">▼</span>
+</div>
+<div class="faq-a">
+<strong>1.</strong> 사용 부서의 해지 요청 확인 (전자결재 또는 메일)<br/>
+<strong>2.</strong> 해당 서비스의 데이터 백업 필요 여부 확인<br/>
+<strong>3.</strong> 서비스 구독 취소 또는 계정 삭제 진행<br/>
+<strong>4.</strong> 계정대장 P열(상태)을 "해지"로 변경<br/>
+<strong>5.</strong> 유료 서비스의 경우 다음 결제일 전에 해지 완료 확인<br/>
+<strong>6.</strong> V열(비고)에 해지 사유 및 일시 기록<br/>
+                해지한 서비스는 계정대장에서 삭제하지 말고, 상태만 변경하여 이력을 보존합니다.
+            </div>
+</div>
+<div class="faq-item">
+<div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+                등급 변경이 필요한 경우 어떻게 하나요?
+                <span class="arrow">▼</span>
+</div>
+<div class="faq-a">
+                서비스의 용도가 변경되거나 새로운 기능이 추가되어 등급 재분류가 필요한 경우:<br/>
+<strong>1.</strong> <code>계정등급_분류도우미.html</code>로 재분류 실행<br/>
+<strong>2.</strong> 계정대장 B열(등급) 수정<br/>
+<strong>3.</strong> 변경된 등급에 맞춰 R열(다음변경일)이 자동 재계산됨<br/>
+<strong>4.</strong> 등급이 상향된 경우 즉시 비밀번호 변경 권장<br/>
+                연간 전체 감사 시 등급 재분류를 일괄적으로 진행하는 것이 효율적입니다.
+            </div>
+</div>
+</div>
+<!-- 푸터 -->
+<div class="footer">
+        넷폼알앤디 경영관리팀 | 온라인 서비스 계정 관리 운영 매뉴얼 v2.0 | 최종 수정: 2026-04-10
+    </div>
+</div>
+<script>
+    // 체크리스트 클릭 토글
+    document.querySelectorAll('.check-box').forEach(box => {
+        box.addEventListener('click', function() {
+            this.classList.toggle('checked');
+            // localStorage에 상태 저장
+            const idx = Array.from(document.querySelectorAll('.check-box')).indexOf(this);
+            const saved = JSON.parse(localStorage.getItem('checklist_state') || '{}');
+            saved[idx] = this.classList.contains('checked');
+            localStorage.setItem('checklist_state', JSON.stringify(saved));
+        });
+    });
+
+    // 저장된 체크 상태 복원
+    const saved = JSON.parse(localStorage.getItem('checklist_state') || '{}');
+    document.querySelectorAll('.check-box').forEach((box, idx) => {
+        if (saved[idx]) box.classList.add('checked');
+    });
+</script>
+
+
+<script>
+// 체크리스트 클릭 기능
+document.querySelectorAll('.check-box').forEach(box => {
+    box.addEventListener('click', function() {
+        this.classList.toggle('checked');
+        const idx = Array.from(document.querySelectorAll('.check-box')).indexOf(this);
+        const saved = JSON.parse(localStorage.getItem('checklist_state') || '{}');
+        saved[idx] = this.classList.contains('checked');
+        localStorage.setItem('checklist_state', JSON.stringify(saved));
+    });
+});
+
+// 저장된 체크리스트 상태 복원
+window.addEventListener('load', function() {
+    const saved = JSON.parse(localStorage.getItem('checklist_state') || '{}');
+    document.querySelectorAll('.check-box').forEach((box, idx) => {
+        if (saved[idx]) box.classList.add('checked');
+    });
+});
+</script>
+</body>
+</html>
