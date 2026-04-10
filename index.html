@@ -4967,7 +4967,20 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal
 let detailData = {};
 
 async function loadDetailData() {
-  // Firebase에서 우선 로드
+  // 이미 로드된 경우 스킵 (매번 Firebase 호출 방지)
+  if (detailData && Object.keys(detailData).length > 0) return;
+  // localStorage 우선 (빠름)
+  const saved = localStorage.getItem('constructionDetailData');
+  if (saved) {
+    try {
+      detailData = JSON.parse(saved);
+      if (Object.keys(detailData).length > 0) {
+        console.log('localStorage에서 상세데이터 로드 완료');
+        return;
+      }
+    } catch(e) {}
+  }
+  // Firebase에서 로드 (최초 1회)
   try {
     const fbData = await fbLoadAll(FB_COLLECTIONS.constructionDetailData);
     if (fbData && Object.keys(fbData).length > 0) {
