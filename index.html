@@ -4992,15 +4992,8 @@ async function loadDetailData() {
   } catch(e) {
     console.error('Firebase 상세데이터 로드 실패:', e);
   }
-  // 폴백: localStorage
-  const saved = localStorage.getItem('constructionDetailData');
-  if (saved) {
-    try {
-      detailData = JSON.parse(saved);
-      // Firebase에 마이그레이션
-      fbSaveLarge(FB_COLLECTIONS.constructionDetailData, detailData);
-    } catch(e) { detailData = {}; }
-  }
+  // 폴백: 이미 위에서 localStorage 처리됨
+  if (!detailData || Object.keys(detailData).length === 0) detailData = {};
 }
 
 async function saveDetailDataToStorage() {
