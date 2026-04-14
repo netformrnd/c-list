@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계정 등급 분류 도우미</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 */
+        .header {
+            background: linear-gradient(135deg, #4A6FA5, #3A5A8A);
+            color: white;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .header p { font-size: 13px; opacity: 0.85; margin-top: 6px; line-height: 1.6; }
+
+        /* 탭 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 4px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            color: #888;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: #4A6FA5;
+            color: white;
+        }
+        .tab:hover:not(.active) {
+            background: #F0F2F5;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ===== 탭1: 분류 도우미 ===== */
+        .tool-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .service-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .service-input-row input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #E0E7EF;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+        .service-input-row input:focus {
+            border-color: #4A6FA5;
+        }
+
+        .question-area {
+            margin-bottom: 16px;
+        }
+        .question {
+            background: #F7F9FC;
+            border: 1px solid #E0E7EF;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+        }
+        .question-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2C3E50;
+            margin-bottom: 10px;
+        }
+        .question-sub {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+        .options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .option-btn {
+            padding: 8px 18px;
+            border: 2px solid #E0E7EF;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .option-btn:hover {
+            border-color: #4A6FA5;
+            background: #F7F9FC;
+        }
+        .option-btn.selected {
+            border-color: #4A6FA5;
+            background: #4A6FA5;
+            color: white;
+        }
+
+        /* 결과 */
+        .result-area {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .result-area.show { display: block; }
+
+        .result-grade {
+            display: inline-block;
+            font-size: 48px;
+            font-weight: 700;
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+        .grade-bg-1 { background: #FFEBEE; color: #FF0000; }
+        .grade-bg-2 { background: #FFF3E0; color: #FFA500; }
+        .grade-bg-3 { background: #E3F2FD; color: #4472C4; }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2C3E50;
+            margin-bottom: 4px;
+        }
+        .result-desc {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .result-details {
+            text-align: left;
+            background: #F7F9FC;
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-size: 13px;
+            line-height: 1.8;
+            color: #555;
+        }
+        .result-details b { color: #4A6FA5; }
+
+        .result-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .result-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-copy {
+            background: #4A6FA5;
+            color: white;
+        }
+        .btn-copy:hover { background: #3A5A8A; }
+        .btn-reset {
+            background: #F0F2F5;
+            color: #666;
+        }
+        .btn-reset:hover { background: #E0E3E8; }
+
+        /* 히스토리 */
+        .history {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .history h3 {
+            font-size: 14px;
+            color: #4A6FA5;
+            margin-bottom: 10px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .history-table th {
+            background: #F7F9FC;
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #E0E7EF;
+        }
+        .history-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #F0F2F5;
+        }
+        .history-empty {
+            color: #ccc;
+            font-size: 13px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .grade-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .g1 { background: #FFEBEE; color: #FF0000; }
+        .g2 { background: #FFF3E0; color: #FFA500; }
+        .g3 { background: #E3F2FD; color: #4472C4; }
+
+        /* ===== 탭2: 기준표 ===== */
+        .ref-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .ref-header {
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ref-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .ref-table th {
+            background: #F7F9FC;
+            padding: 8px 14px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #E0E7EF;
+            border-top: 1px solid #E0E7EF;
+        }
+        .ref-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #F0F2F5;
+        }
+        .ref-table tr:hover {
+            background: #FAFBFC;
+        }
+
+        /* 내보내기 버튼 */
+        .export-area {
+            text-align: center;
+            margin: 16px 0;
+        }
+        .export-btn {
+            background: #4A6FA5;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .export-btn:hover { background: #3A5A8A; }
+
+        /* 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 999;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- 헤더 -->
+    <div class="header">
+        <h1>🏷️ 계정 등급 분류 도우미</h1>
+        <p>질문에 답하면 등급이 자동 추천됩니다. 분류 결과는 계정대장 B열에 입력하세요.</p>
+    </div>
+
+    <!-- 탭 -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('tool')">🔍 분류 도우미</div>
+        <div class="tab" onclick="switchTab('ref')">📋 서비스별 기준표</div>
+    </div>
+
+    <!-- ===== 탭1: 분류 도우미 ===== -->
+    <div class="tab-content active" id="tabTool">
+
+        <div class="tool-card">
+            <div class="service-input-row">
+                <input type="text" id="serviceName" placeholder="서비스명 입력 (예: Notion, Figma, ChatGPT...)" onkeydown="if(event.key==='Enter') checkAutoGrade()">
+            </div>
+
+            <!-- 질문들 -->
+            <div class="question-area">
+                <div class="question">
+                    <div class="question-label">Q1. 이 서비스가 중단되면 회사 운영에 심각한 영향이 있나요?</div>
+                    <div class="question-sub">예: 이메일, 도메인, 호스팅, ERP 등 핵심 인프라</div>
+                    <div class="options">
+                        <button class="option-btn" onclick="selectOption(0, 'critical')" data-q="0">회사가 멈춤 (핵심)</button>
+                        <button class="option-btn" onclick="selectOption(0, 'important')" data-q="0">불편하지만 대체 가능</button>
+                        <button class="option-btn" onclick="selectOption(0, 'minor')" data-q="0">별 영향 없음</button>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <div class="question-label">Q2. 비용이 발생하나요?</div>
+                    <div class="options">
+                        <button class="option-btn" onclick="selectOption(1, 'expensive')" data-q="1">유료 (월 5만원 이상)</button>
+                        <button class="option-btn" onclick="selectOption(1, 'paid')" data-q="1">유료 (월 5만원 미만)</button>
+                        <button class="option-btn" onclick="selectOption(1, 'free')" data-q="1">무료</button>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <div class="question-label">Q3. 민감한 데이터가 저장되어 있나요?</div>
+                    <div class="question-sub">예: 고객정보, 재무데이터, 계약서, 소스코드 등</div>
+                    <div class="options">
+                        <button class="option-btn" onclick="selectOption(2, 'sensitive')" data-q="2">매우 민감 (고객·재무·계약)</button>
+                        <button class="option-btn" onclick="selectOption(2, 'some')" data-q="2">일부 업무 데이터</button>
+                        <button class="option-btn" onclick="selectOption(2, 'none')" data-q="2">민감 정보 없음</button>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <div class="question-label">Q4. 사용 빈도는?</div>
+                    <div class="options">
+                        <button class="option-btn" onclick="selectOption(3, 'daily')" data-q="3">매일 사용</button>
+                        <button class="option-btn" onclick="selectOption(3, 'weekly')" data-q="3">주 1~2회</button>
+                        <button class="option-btn" onclick="selectOption(3, 'rarely')" data-q="3">가끔 / 거의 안 씀</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결과 -->
+        <div class="result-area" id="resultArea">
+            <div class="result-grade" id="resultGrade"></div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-desc" id="resultDesc"></div>
+            <div class="result-details" id="resultDetails"></div>
+            <div class="result-actions">
+                <button class="result-btn btn-copy" onclick="copyResult()">📋 결과 복사</button>
+                <button class="result-btn btn-reset" onclick="resetTool()">🔄 다음 서비스</button>
+            </div>
+        </div>
+
+        <!-- 분류 히스토리 -->
+        <div class="history">
+            <h3>📝 분류 히스토리 <span style="font-weight:400; color:#999; font-size:12px;">(이 페이지에서 분류한 결과)</span></h3>
+            <div id="historyContent">
+                <div class="history-empty">아직 분류한 서비스가 없습니다.</div>
+            </div>
+            <div id="historyExport" style="display:none; text-align:right; margin-top:10px;">
+                <button class="result-btn btn-copy" onclick="copyHistory()" style="font-size:12px; padding:6px 14px;">📋 전체 히스토리 복사</button>
+                <button class="result-btn btn-reset" onclick="clearHistory()" style="font-size:12px; padding:6px 14px;">🗑️ 히스토리 초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 탭2: 서비스별 기준표 ===== -->
+    <div class="tab-content" id="tabRef">
+
+        <!-- 1등급 -->
+        <div class="ref-section">
+            <div class="ref-header"><span class="grade-badge g1">1등급</span> 결재·관리 — PW 분기1회 변경</div>
+            <table class="ref-table">
+                <tr><th>분류</th><th>서비스 예시</th><th>판단 기준</th></tr>
+                <tr><td>클라우드</td><td>AWS, Cafe24, NHN, Google Workspace</td><td>클라우드 서비스 → 자동 1등급</td></tr>
+                <tr><td>통신</td><td>알리고, LG U+, KT</td><td>통신 서비스 → 자동 1등급</td></tr>
+            </table>
+        </div>
+
+        <!-- 2등급 -->
+        <div class="ref-section">
+            <div class="ref-header"><span class="grade-badge g2">2등급</span> 매출·출고·개인정보 — PW 반기1회 변경</div>
+            <table class="ref-table">
+                <tr><th>분류</th><th>서비스 예시</th><th>판단 기준</th></tr>
+                <tr><td>쇼핑몰/커머스</td><td>스마트스토어, 쿠팡, 11번가</td><td>쇼핑몰/커머스 분류 → 자동 2등급</td></tr>
+                <tr><td>특정 키워드</td><td>채널톡, 자사몰, 알리고, 나노바나나, n8n</td><td>서비스명에 키워드 포함 → 2등급</td></tr>
+            </table>
+        </div>
+
+        <!-- 3등급 -->
+        <div class="ref-section">
+            <div class="ref-header"><span class="grade-badge g3">3등급</span> 그 외 — PW 연1회 변경</div>
+            <table class="ref-table">
+                <tr><th>분류</th><th>서비스 예시</th><th>판단 기준</th></tr>
+                <tr><td>업무도구</td><td>Notion, Slack, Jira</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>디자인</td><td>Figma, Adobe CC, Canva</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>개발</td><td>GitHub, Vercel, Netlify</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>마케팅</td><td>Google Ads, Meta Ads</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>AI도구</td><td>ChatGPT, Claude, Midjourney</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>SNS/마케팅</td><td>인스타그램, 유튜브, 블로그</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+                <tr><td>기타</td><td>유틸리티, 커뮤니티, 뉴스레터 등</td><td>1·2등급에 해당하지 않는 서비스</td></tr>
+            </table>
+        </div>
+
+        <div class="export-area">
+            <button class="export-btn" onclick="copyRefTable()">📋 기준표 텍스트 복사</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 탭 전환 =====
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'tool' && i === 0) || (tab === 'ref' && i === 1));
+    });
+    document.getElementById('tabTool').classList.toggle('active', tab === 'tool');
+    document.getElementById('tabRef').classList.toggle('active', tab === 'ref');
+}
+
+// ===== 분류 도우미 =====
+const answers = [null, null, null, null];
+const gradeInfo = {
+    1: { name: '1등급', desc: '결재·관리', bg: 'grade-bg-1', badge: 'g1', pw: '분기 1회', check: '분기' },
+    2: { name: '2등급', desc: '매출·출고·개인정보', bg: 'grade-bg-2', badge: 'g2', pw: '반기 1회', check: '반기' },
+    3: { name: '3등급', desc: '그 외', bg: 'grade-bg-3', badge: 'g3', pw: '연 1회', check: '연 1회' }
+};
+
+// 분류 기반 자동 등급 판정
+const gradeRules = {
+    category1: ['클라우드', '통신'],  // → 1등급
+    category2: ['쇼핑몰/커머스', '쇼핑몰', '커머스'],  // → 2등급
+    keyword2: ['채널톡', '자사몰', '알리고', '나노바나나', 'n8n']  // 서비스명 키워드 → 2등급
+};
+
+function selectOption(qIndex, value) {
+    answers[qIndex] = value;
+
+    // 버튼 스타일
+    const btns = document.querySelectorAll(`[data-q="${qIndex}"]`);
+    btns.forEach(b => b.classList.remove('selected'));
+    event.target.classList.add('selected');
+
+    // 모든 질문 응답 완료되었으면 등급 계산
+    if (answers.every(a => a !== null)) {
+        calculateGrade();
+    }
+}
+
+function calculateGrade() {
+    let score = 0;
+
+    // Q1: 영향도 (가중치 높음)
+    if (answers[0] === 'critical') score += 40;
+    else if (answers[0] === 'important') score += 20;
+    else score += 5;
+
+    // Q2: 비용
+    if (answers[1] === 'expensive') score += 25;
+    else if (answers[1] === 'paid') score += 15;
+    else score += 3;
+
+    // Q3: 데이터 민감도
+    if (answers[2] === 'sensitive') score += 25;
+    else if (answers[2] === 'some') score += 12;
+    else score += 2;
+
+    // Q4: 사용 빈도
+    if (answers[3] === 'daily') score += 10;
+    else if (answers[3] === 'weekly') score += 5;
+    else score += 0;
+
+    // 점수 → 등급 (3단계)
+    let grade;
+    if (score >= 55) grade = 1;
+    else if (score >= 30) grade = 2;
+    else grade = 3;
+
+    showResult(grade, score);
+}
+
+function showResult(grade, score) {
+    const info = gradeInfo[grade];
+    const serviceName = document.getElementById('serviceName').value || '(서비스명 미입력)';
+
+    const resultArea = document.getElementById('resultArea');
+    resultArea.classList.add('show');
+
+    document.getElementById('resultGrade').className = `result-grade ${info.bg}`;
+    document.getElementById('resultGrade').textContent = grade;
+    document.getElementById('resultTitle').textContent = `${serviceName} → ${info.name} (${info.desc})`;
+    document.getElementById('resultDesc').textContent = `종합 점수: ${score}점`;
+    document.getElementById('resultDetails').innerHTML = `
+        <b>비밀번호 변경주기:</b> ${info.pw}<br>
+        <b>점검 주기:</b> ${info.check}<br>
+        <b>계정대장 B열에 입력:</b> ${grade}
+    `;
+
+    // 히스토리에 추가
+    addToHistory(serviceName, grade, score);
+
+    // 결과로 스크롤
+    resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ===== 히스토리 =====
+let history = [];
+
+function addToHistory(name, grade, score) {
+    history.push({ name, grade, score, time: new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'}) });
+    renderHistory();
+}
+
+function renderHistory() {
+    if (history.length === 0) {
+        document.getElementById('historyContent').innerHTML = '<div class="history-empty">아직 분류한 서비스가 없습니다.</div>';
+        document.getElementById('historyExport').style.display = 'none';
+        return;
+    }
+
+    let html = '<table class="history-table"><tr><th>서비스명</th><th>등급</th><th>점수</th><th>시간</th></tr>';
+    history.forEach(h => {
+        const info = gradeInfo[h.grade];
+        html += `<tr>
+            <td>${h.name}</td>
+            <td><span class="grade-badge ${info.badge}">${info.name}</span></td>
+            <td>${h.score}점</td>
+            <td>${h.time}</td>
+        </tr>`;
+    });
+    html += '</table>';
+
+    document.getElementById('historyContent').innerHTML = html;
+    document.getElementById('historyExport').style.display = 'block';
+}
+
+function clearHistory() {
+    if (!confirm('히스토리를 초기화할까요?')) return;
+    history = [];
+    renderHistory();
+}
+
+// ===== 복사 =====
+function copyResult() {
+    const name = document.getElementById('serviceName').value || '(서비스명 미입력)';
+    const grade = document.getElementById('resultGrade').textContent;
+    const info = gradeInfo[parseInt(grade)];
+
+    const text = `${name}\t${grade}등급\t${info.desc}\tPW ${info.pw} 변경\t${info.check} 점검`;
+    navigator.clipboard.writeText(text);
+    showToast('결과가 복사되었습니다! Excel에 붙여넣기 하세요.');
+}
+
+function copyHistory() {
+    let text = '서비스명\t등급\t구분\tPW변경주기\t점검주기\n';
+    history.forEach(h => {
+        const info = gradeInfo[h.grade];
+        text += `${h.name}\t${h.grade}등급\t${info.desc}\t${info.pw}\t${info.check}\n`;
+    });
+    navigator.clipboard.writeText(text);
+    showToast(`${history.length}개 서비스 분류 결과가 복사되었습니다!`);
+}
+
+function copyRefTable() {
+    const text = `[계정 등급 분류 기준표]
+
+■ 1등급 (결재·관리) — PW 분기1회 변경
+  분류: 클라우드, 통신 → 자동 1등급
+  예시: AWS, Cafe24, Google Workspace, 알리고, LG U+
+
+■ 2등급 (매출·출고·개인정보) — PW 반기1회 변경
+  분류: 쇼핑몰/커머스 → 자동 2등급
+  키워드: 채널톡, 자사몰, 알리고, 나노바나나, n8n → 2등급
+
+■ 3등급 (그 외) — PW 연1회 변경
+  1·2등급에 해당하지 않는 모든 서비스
+  예시: 업무도구, 디자인, 개발, 마케팅, AI도구, SNS 등`;
+
+    navigator.clipboard.writeText(text);
+    showToast('기준표가 복사되었습니다!');
+}
+
+// ===== 리셋 =====
+function resetTool() {
+    answers.fill(null);
+    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('resultArea').classList.remove('show');
+    document.getElementById('serviceName').value = '';
+    document.getElementById('serviceName').focus();
+}
+
+// ===== 토스트 =====
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+
+</body>
+</html>

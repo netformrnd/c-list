@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전사 공지 - 외부 서비스 계정 관리 안내</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .notice {
+            width: 700px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* 상단 배너 */
+        .banner {
+            background: linear-gradient(135deg, #4A6FA5, #3A5A8A);
+            color: white;
+            padding: 28px 32px;
+            text-align: center;
+        }
+        .banner h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .banner p {
+            font-size: 13px;
+            opacity: 0.85;
+            margin-top: 6px;
+        }
+
+        /* 본문 */
+        .body {
+            padding: 28px 32px;
+        }
+
+        .greeting {
+            font-size: 14px;
+            color: #444;
+            line-height: 1.8;
+            margin-bottom: 24px;
+        }
+
+        /* 섹션 */
+        .section {
+            margin-bottom: 22px;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #4A6FA5;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #E8EDF2;
+        }
+
+        /* 주요 변경사항 카드 */
+        .change-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .change-card {
+            display: flex;
+            align-items: flex-start;
+            background: #F7F9FC;
+            border: 1px solid #E0E7EF;
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+        .change-card .num {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #4A6FA5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .change-card .desc {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+        .change-card .desc b {
+            color: #2C3E50;
+        }
+
+        /* 신청 프로세스 */
+        .process {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        .process-step {
+            background: #4A6FA5;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .process-arrow {
+            font-size: 20px;
+            color: #4A6FA5;
+            margin: 0 6px;
+        }
+
+        /* 주의사항 박스 */
+        .warning-box {
+            background: #FFF3E0;
+            border: 1px solid #FFB74D;
+            border-radius: 6px;
+            padding: 14px 16px;
+        }
+        .warning-box .warning-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #E65100;
+            margin-bottom: 8px;
+        }
+        .warning-box ul {
+            list-style: none;
+            font-size: 13px;
+            color: #555;
+            line-height: 2;
+        }
+        .warning-box ul li {
+            padding-left: 18px;
+            position: relative;
+        }
+        .warning-box ul li::before {
+            content: '✕';
+            position: absolute;
+            left: 0;
+            color: #E65100;
+            font-weight: 700;
+        }
+
+        /* 문의 */
+        .contact {
+            background: #E3F2FD;
+            border: 1px solid #90CAF9;
+            border-radius: 6px;
+            padding: 14px 16px;
+            font-size: 13px;
+            color: #1565C0;
+            line-height: 1.8;
+        }
+
+        /* 서명 */
+        .signature {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #E8EDF2;
+            font-size: 13px;
+            color: #888;
+        }
+        .signature b {
+            color: #4A6FA5;
+            font-size: 14px;
+        }
+
+        /* 복사 버튼 */
+        .copy-area {
+            padding: 16px 32px;
+            background: #F7F9FC;
+            border-top: 1px solid #E8EDF2;
+            text-align: center;
+        }
+        .copy-btn {
+            background: #4A6FA5;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .copy-btn:hover {
+            background: #3A5A8A;
+        }
+
+        /* 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 999;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* 인쇄 */
+        @media print {
+            body { background: white; padding: 0; }
+            .notice { box-shadow: none; width: 100%; }
+            .copy-area { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="notice">
+
+    <!-- 배너 -->
+    <div class="banner">
+        <h1>📢 외부 서비스 계정 관리 안내</h1>
+        <p>경영관리팀 | 2026년 3월</p>
+    </div>
+
+    <!-- 본문 -->
+    <div class="body" id="noticeContent">
+
+        <div class="greeting">
+            안녕하세요, 경영관리팀입니다.<br>
+            외부 서비스(SaaS) 계정의 체계적 관리를 위해 아래와 같이 안내드리오니,<br>
+            업무에 참고하여 주시기 바랍니다.
+        </div>
+
+        <!-- 1. 주요 변경사항 -->
+        <div class="section">
+            <div class="section-title">1. 주요 변경사항</div>
+            <div class="change-cards">
+                <div class="change-card">
+                    <div class="num">1</div>
+                    <div class="desc"><b>외부 서비스 신청은 전자결재로</b><br>업무에 필요한 외부 서비스(Notion, Figma, ChatGPT 등)는 하이웍스 전자결재「외부 서비스 이용 신청서」로 신청해 주세요.</div>
+                </div>
+                <div class="change-card">
+                    <div class="num">2</div>
+                    <div class="desc"><b>계정은 경영관리팀에서 생성</b><br>승인 후 경영관리팀 전용계정으로 가입 처리하며, 로그인 정보는 사용부서 팀장에게 전달드립니다.</div>
+                </div>
+                <div class="change-card">
+                    <div class="num">3</div>
+                    <div class="desc"><b>계정 정보는 팀장을 통해 공유</b><br>계정 ID·비밀번호는 팀장을 통해서만 팀 내 공유합니다. 외부 유출은 금지됩니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 신청 방법 -->
+        <div class="section">
+            <div class="section-title">2. 신청 방법</div>
+            <div class="process">
+                <div class="process-step">하이웍스<br>전자결재</div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">「외부 서비스<br>이용 신청서」<br>양식 선택</div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">양식 작성<br>후 결재</div>
+                <div class="process-arrow">→</div>
+                <div class="process-step">승인 후<br>1~2일 내<br>계정 생성</div>
+            </div>
+        </div>
+
+        <!-- 3. 금지사항 -->
+        <div class="section">
+            <div class="section-title">3. 금지사항</div>
+            <div class="warning-box">
+                <div class="warning-title">아래 행위는 금지됩니다</div>
+                <ul>
+                    <li>개인 명의(개인 이메일)로 외부 서비스 가입</li>
+                    <li>법인카드를 임의로 등록하여 결제</li>
+                    <li>전자결재 없이 외부 서비스 가입 또는 유료 전환</li>
+                    <li>계정 정보(ID, 비밀번호)를 외부에 공유</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 4. 기존 계정 이관 안내 -->
+        <div class="section">
+            <div class="section-title">4. 기존 개인 명의 계정 안내</div>
+            <div class="contact">
+                업무용으로 사용 중인 외부 서비스 중 <b>개인 명의(개인 이메일)로 가입한 계정</b>이 있으시면 경영관리팀으로 알려주세요.<br>
+                확인 후 전용계정으로 순차 이관 진행하겠습니다. (이관 전까지는 기존 계정을 그대로 사용하시면 됩니다.)
+            </div>
+        </div>
+
+        <!-- 문의 -->
+        <div class="section">
+            <div class="section-title">5. 문의</div>
+            <div class="contact">
+                외부 서비스 관련 문의사항은 <b>경영관리팀</b>으로 연락 부탁드립니다.<br>
+                감사합니다.
+            </div>
+        </div>
+
+        <!-- 서명 -->
+        <div class="signature">
+            <b>넷폼알앤디 경영관리팀</b><br>
+            2026년 3월
+        </div>
+    </div>
+
+    <!-- 복사 버튼 -->
+    <div class="copy-area">
+        <button class="copy-btn" onclick="copyNotice()">📋 공지 텍스트 복사 (하이웍스 게시판 · 잔디 공유용)</button>
+    </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast"></div>
+
+<script>
+function copyNotice() {
+    const text = `[공지] 외부 서비스 계정 관리 안내
+
+안녕하세요, 경영관리팀입니다.
+외부 서비스(SaaS) 계정의 체계적 관리를 위해 아래와 같이 안내드리오니, 업무에 참고하여 주시기 바랍니다.
+
+
+■ 주요 변경사항
+
+1. 외부 서비스 신청은 전자결재로
+   - 업무에 필요한 외부 서비스(Notion, Figma, ChatGPT 등)는 하이웍스 전자결재「외부 서비스 이용 신청서」로 신청해 주세요.
+
+2. 계정은 경영관리팀에서 생성
+   - 승인 후 경영관리팀 전용계정으로 가입 처리하며, 로그인 정보는 사용부서 팀장에게 전달드립니다.
+
+3. 계정 정보는 팀장을 통해 공유
+   - 계정 ID·비밀번호는 팀장을 통해서만 팀 내 공유합니다. 외부 유출은 금지됩니다.
+
+
+■ 신청 방법
+
+하이웍스 전자결재 → 「외부 서비스 이용 신청서」 양식 선택 → 양식 작성 후 결재 → 승인 후 1~2일 내 계정 생성
+
+
+■ 금지사항
+
+✕ 개인 명의(개인 이메일)로 외부 서비스 가입
+✕ 법인카드를 임의로 등록하여 결제
+✕ 전자결재 없이 외부 서비스 가입 또는 유료 전환
+✕ 계정 정보(ID, 비밀번호)를 외부에 공유
+
+
+■ 기존 개인 명의 계정 안내
+
+업무용으로 사용 중인 외부 서비스 중 개인 명의(개인 이메일)로 가입한 계정이 있으시면 경영관리팀으로 알려주세요.
+확인 후 전용계정으로 순차 이관 진행하겠습니다. (이관 전까지는 기존 계정을 그대로 사용하시면 됩니다.)
+
+
+■ 문의
+
+외부 서비스 관련 문의사항은 경영관리팀으로 연락 부탁드립니다.
+감사합니다.
+
+넷폼알앤디 경영관리팀
+2026년 3월`;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('공지 텍스트가 복사되었습니다! 하이웍스 게시판에 붙여넣기 하세요.');
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('공지 텍스트가 복사되었습니다!');
+    });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+
+</body>
+</html>

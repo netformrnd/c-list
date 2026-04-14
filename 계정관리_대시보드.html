@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계정 관리 대시보드</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .dashboard {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 */
+        .header {
+            background: linear-gradient(135deg, #4A6FA5, #3A5A8A);
+            color: white;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .header .date {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .header .today-info {
+            text-align: right;
+        }
+        .header .week-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* 요약 카드 */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        .summary-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .summary-card .label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 6px;
+        }
+        .summary-card.danger .number { color: #E53935; }
+        .summary-card.warning .number { color: #FB8C00; }
+        .summary-card.safe .number { color: #43A047; }
+        .summary-card.info .number { color: #4A6FA5; }
+
+        /* 섹션 */
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-bottom: 1px solid #F0F2F5;
+            cursor: pointer;
+        }
+        .section-header:hover {
+            background: #FAFBFC;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title .badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .badge-daily { background: #E3F2FD; color: #1565C0; }
+        .badge-weekly { background: #F3E5F5; color: #7B1FA2; }
+        .badge-monthly { background: #FFF3E0; color: #E65100; }
+        .badge-quarterly { background: #E8F5E9; color: #2E7D32; }
+
+        .section-toggle {
+            font-size: 18px;
+            color: #999;
+            transition: transform 0.2s;
+        }
+        .section.collapsed .section-toggle {
+            transform: rotate(-90deg);
+        }
+        .section.collapsed .section-body {
+            display: none;
+        }
+
+        .section-body {
+            padding: 10px 20px 16px;
+        }
+
+        /* 체크리스트 */
+        .checklist {
+            list-style: none;
+        }
+        .checklist li {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #F5F5F5;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .checklist li:last-child { border-bottom: none; }
+
+        .checklist input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            margin-top: 1px;
+            cursor: pointer;
+            accent-color: #4A6FA5;
+            flex-shrink: 0;
+        }
+
+        .checklist .task-text {
+            flex: 1;
+        }
+        .checklist .task-text b {
+            color: #2C3E50;
+        }
+        .checklist .task-text .sub {
+            color: #999;
+            font-size: 12px;
+        }
+        .checklist li.done .task-text {
+            text-decoration: line-through;
+            color: #bbb;
+        }
+        .checklist li.done .task-text b {
+            color: #bbb;
+        }
+
+        .grade-tag {
+            display: inline-block;
+            font-size: 11px;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+        .grade-1 { background: #FFEBEE; color: #FF0000; }
+        .grade-2 { background: #FFF3E0; color: #FFA500; }
+        .grade-3 { background: #E3F2FD; color: #4472C4; }
+
+        /* 리셋 버튼 */
+        .reset-area {
+            text-align: center;
+            padding: 16px;
+        }
+        .reset-btn {
+            background: white;
+            border: 1px solid #DDD;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .reset-btn:hover {
+            background: #F5F5F5;
+        }
+
+        /* 루틴 가이드 */
+        .routine-guide {
+            background: #F7F9FC;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.7;
+        }
+        .routine-guide b {
+            color: #4A6FA5;
+        }
+
+        /* 진행률 바 */
+        .progress-bar-wrap {
+            background: #F0F2F5;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #4A6FA5;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        /* 알림 배너 */
+        .alert-banner {
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .alert-banner.urgent {
+            background: #FFEBEE;
+            border: 1px solid #EF9A9A;
+            color: #C62828;
+        }
+        .alert-banner.info {
+            background: #E3F2FD;
+            border: 1px solid #90CAF9;
+            color: #1565C0;
+        }
+        .alert-banner .alert-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        @media print {
+            body { background: white; padding: 10px; }
+            .section { box-shadow: none; border: 1px solid #eee; }
+            .reset-area { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+
+    <!-- 헤더 -->
+    <div class="header">
+        <div>
+            <h1>📋 계정 관리 대시보드</h1>
+            <div style="font-size:12px; opacity:0.8; margin-top:4px;">넷폼알앤디 경영관리팀</div>
+        </div>
+        <div class="today-info">
+            <div class="date" id="todayDate"></div>
+            <div class="week-badge" id="weekInfo"></div>
+        </div>
+    </div>
+
+    <!-- 알림 배너 (동적) -->
+    <div id="alertArea"></div>
+
+    <!-- 요약 카드 -->
+    <div class="summary-cards">
+        <div class="summary-card info">
+            <div class="number">107+</div>
+            <div class="label">총 관리 계정</div>
+        </div>
+        <div class="summary-card danger" id="cardUrgent">
+            <div class="number" id="urgentCount">0</div>
+            <div class="label">오늘 할 일</div>
+        </div>
+        <div class="summary-card warning" id="cardPending">
+            <div class="number" id="pendingCount">0</div>
+            <div class="label">이번 주 할 일</div>
+        </div>
+        <div class="summary-card safe" id="cardDone">
+            <div class="number" id="doneCount">0</div>
+            <div class="label">완료</div>
+        </div>
+    </div>
+
+    <!-- ===== 일일 업무 ===== -->
+    <div class="section" id="sectionDaily">
+        <div class="section-header" onclick="toggleSection('sectionDaily')">
+            <div class="section-title">
+                📌 오늘 할 일 <span class="badge badge-daily">매일 · 약 5분</span>
+                <span id="dailyProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="dailyList">
+                <li data-group="daily">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>전자결재 확인</b><br>
+                        <span class="sub">하이웍스 → 전자결재 → 신규 「외부 서비스 이용 신청서」 확인 및 처리</span>
+                    </div>
+                </li>
+                <li data-group="daily">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>계정대장 비밀번호 상태 확인</b><br>
+                        <span class="sub">Excel 계정대장 → S열(비밀번호 상태) → "변경필요" 빨간색 있는지 확인</span>
+                    </div>
+                </li>
+            </ul>
+            <div class="routine-guide">
+                💡 <b>팁:</b> 출근 후 하이웍스 확인할 때 같이 보면 5분이면 됩니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 주간 업무 (월요일) ===== -->
+    <div class="section" id="sectionWeekly">
+        <div class="section-header" onclick="toggleSection('sectionWeekly')">
+            <div class="section-title">
+                📅 이번 주 할 일 <span class="badge badge-weekly">매주 월요일 · 약 10분</span>
+                <span id="weeklyProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="weeklyList">
+                <li data-group="weekly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>계정대장 비밀번호 상태 점검</b><br>
+                        <span class="sub">계정대장 → S열(비밀번호 상태) 확인 → "변경필요" 항목 처리</span>
+                    </div>
+                </li>
+                <li data-group="weekly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>1등급 계정 로그인 확인</b> <span class="grade-tag grade-1">1등급</span><br>
+                        <span class="sub">클라우드·통신 서비스(AWS, Google Workspace 등) 정상 로그인 확인</span>
+                    </div>
+                </li>
+                <li data-group="weekly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>지난주 신규 계정 정리</b><br>
+                        <span class="sub">지난주 전자결재로 생성한 계정 → 계정대장에 등록 완료 확인</span>
+                    </div>
+                </li>
+            </ul>
+            <div class="routine-guide">
+                💡 <b>팁:</b> 월요일 오전에 10분만 투자하면 1등급 보안 관리가 됩니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 월간 업무 (매월 1일) ===== -->
+    <div class="section" id="sectionMonthly">
+        <div class="section-header" onclick="toggleSection('sectionMonthly')">
+            <div class="section-title">
+                🗓️ 이번 달 할 일 <span class="badge badge-monthly">매월 1일 · 약 30분</span>
+                <span id="monthlyProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="monthlyList">
+                <li data-group="monthly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>1등급 계정 비밀번호 변경 확인</b> <span class="grade-tag grade-1">1등급</span><br>
+                        <span class="sub">계정대장 → B열 1등급 필터 → 분기 변경주기에 해당하면 변경</span>
+                    </div>
+                </li>
+                <li data-group="monthly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>유료 서비스 결제 확인</b><br>
+                        <span class="sub">법인카드 결제 내역 → 계정대장 비용(L열)과 대조 → 이상 없는지 확인</span>
+                    </div>
+                </li>
+                <li data-group="monthly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>Google Drive 증빙 정리</b><br>
+                        <span class="sub">이번 달 결제 영수증·스크린샷 → 해당 서비스 폴더에 업로드</span>
+                    </div>
+                </li>
+                <li data-group="monthly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>신규 계정 등급 분류</b><br>
+                        <span class="sub">이번 달 새로 생성된 계정 → B열 등급 분류 완료 확인</span>
+                    </div>
+                </li>
+            </ul>
+            <div class="routine-guide">
+                💡 <b>팁:</b> 매월 1일에 30분만 투자하면 한 달 관리가 편해집니다. 법인카드 명세서 나오는 날에 맞추면 더 좋아요.
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 분기 업무 ===== -->
+    <div class="section" id="sectionQuarterly">
+        <div class="section-header" onclick="toggleSection('sectionQuarterly')">
+            <div class="section-title">
+                📊 분기 할 일 <span class="badge badge-quarterly">1·4·7·10월 · 약 1시간</span>
+                <span id="quarterlyProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="quarterlyList">
+                <li data-group="quarterly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>1등급 계정 비밀번호 분기 변경</b> <span class="grade-tag grade-1">1등급</span><br>
+                        <span class="sub">계정대장 → 1등급(클라우드·통신) 필터 → 비밀번호 일괄 변경 → Q열 날짜 업데이트</span>
+                    </div>
+                </li>
+                <li data-group="quarterly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>전체 계정 현황 점검</b><br>
+                        <span class="sub">계정대장 전체 리뷰 → 미사용 계정 체크 → 해지 검토 목록 작성</span>
+                    </div>
+                </li>
+                <li data-group="quarterly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>비용 분석</b><br>
+                        <span class="sub">분기 결제 총액 집계 → 불필요 비용 있는지 검토 → 요금제 변경 검토</span>
+                    </div>
+                </li>
+                <li data-group="quarterly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>팀장님 보고</b><br>
+                        <span class="sub">분기 계정 현황 보고서 작성 → 신규/해지/비용 변동 사항 보고</span>
+                    </div>
+                </li>
+                <li data-group="quarterly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>개인 명의 계정 이관 진행</b><br>
+                        <span class="sub">아직 전용계정으로 이관하지 않은 계정 → 순차 이관 처리</span>
+                    </div>
+                </li>
+            </ul>
+            <div class="routine-guide">
+                💡 <b>팁:</b> 분기 첫째 주에 1시간 잡아서 한 번에 처리하세요. 보고서는 계정관리_보고서.html 업데이트하면 됩니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 반기 업무 ===== -->
+    <div class="section collapsed" id="sectionHalf">
+        <div class="section-header" onclick="toggleSection('sectionHalf')">
+            <div class="section-title">
+                📦 반기 할 일 <span class="badge badge-quarterly">1·7월 · 약 30분</span>
+                <span id="halfProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="halfList">
+                <li data-group="half">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>2등급 계정 비밀번호 반기 변경</b> <span class="grade-tag grade-2">2등급</span><br>
+                        <span class="sub">계정대장 → 2등급(매출·출고·개인정보) 필터 → 비밀번호 일괄 변경 → Q열 날짜 업데이트</span>
+                    </div>
+                </li>
+                <li data-group="half">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>등급 기준 재검토</b><br>
+                        <span class="sub">서비스 중요도 변화 확인 → 등급 조정 필요한 계정 업데이트</span>
+                    </div>
+                </li>
+                <li data-group="half">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>전사 공지 재안내</b><br>
+                        <span class="sub">외부 서비스 계정 관리 규정 리마인드 공지 발송</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ===== 연간 업무 ===== -->
+    <div class="section collapsed" id="sectionYearly">
+        <div class="section-header" onclick="toggleSection('sectionYearly')">
+            <div class="section-title">
+                📅 연간 할 일 <span class="badge badge-quarterly">매년 1월 · 약 1시간</span>
+                <span id="yearlyProgress" style="font-size:12px; color:#999;"></span>
+            </div>
+            <div class="section-toggle">▼</div>
+        </div>
+        <div class="section-body">
+            <ul class="checklist" id="yearlyList">
+                <li data-group="yearly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>3등급 계정 비밀번호 연간 변경</b> <span class="grade-tag grade-3">3등급</span><br>
+                        <span class="sub">계정대장 → 3등급(그 외) 필터 → 비밀번호 일괄 변경 → Q열 날짜 업데이트</span>
+                    </div>
+                </li>
+                <li data-group="yearly">
+                    <input type="checkbox" onchange="saveState()">
+                    <div class="task-text">
+                        <b>전체 계정 등급 재분류</b><br>
+                        <span class="sub">서비스 중요도 변화 확인 → 등급 조정 필요한 계정 업데이트</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 리셋 -->
+    <div class="reset-area">
+        <button class="reset-btn" onclick="resetDaily()">🔄 오늘 할 일 초기화</button>
+        &nbsp;&nbsp;
+        <button class="reset-btn" onclick="resetAll()">🗑️ 전체 초기화</button>
+    </div>
+
+</div>
+
+<script>
+// ===== 날짜 정보 =====
+function updateDateInfo() {
+    const now = new Date();
+    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const month = now.getMonth() + 1;
+    const date = now.getDate();
+    const day = days[now.getDay()];
+
+    document.getElementById('todayDate').textContent =
+        `${now.getFullYear()}년 ${month}월 ${date}일 (${day})`;
+
+    // 몇째 주인지
+    const weekNum = Math.ceil(date / 7);
+    document.getElementById('weekInfo').textContent = `${month}월 ${weekNum}째 주`;
+
+    // 알림 배너
+    const alertArea = document.getElementById('alertArea');
+    let alerts = '';
+
+    // 월요일이면
+    if (now.getDay() === 1) {
+        alerts += `<div class="alert-banner info">
+            <span class="alert-icon">📅</span>
+            <span><b>월요일입니다!</b> 주간 업무(1등급 점검)를 확인하세요.</span>
+        </div>`;
+    }
+
+    // 매월 1일이면
+    if (date === 1) {
+        alerts += `<div class="alert-banner urgent">
+            <span class="alert-icon">🗓️</span>
+            <span><b>이달 첫날!</b> 월간 업무(2등급 점검, 결제 확인)를 처리하세요.</span>
+        </div>`;
+    }
+
+    // 분기 시작월(1,4,7,10) 첫째 주
+    if ([1,4,7,10].includes(month) && date <= 7) {
+        alerts += `<div class="alert-banner urgent">
+            <span class="alert-icon">📊</span>
+            <span><b>분기 시작!</b> 분기 업무(3등급 변경, 현황 점검, 보고)를 처리하세요.</span>
+        </div>`;
+    }
+
+    // 반기 시작월(1,7)
+    if ([1,7].includes(month) && date <= 7) {
+        alerts += `<div class="alert-banner info">
+            <span class="alert-icon">📦</span>
+            <span><b>반기 시작!</b> 2등급 비밀번호 변경과 등급 재검토를 진행하세요.</span>
+        </div>`;
+    }
+
+    alertArea.innerHTML = alerts;
+}
+
+// ===== 체크리스트 상태 저장/불러오기 =====
+const STORAGE_KEY = 'accountDashboard_v1';
+
+function getStorageData() {
+    try {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (data && data.date) return data;
+    } catch(e) {}
+    return null;
+}
+
+function saveState() {
+    const allChecks = document.querySelectorAll('.checklist input[type="checkbox"]');
+    const states = [];
+    allChecks.forEach((cb, i) => {
+        states.push(cb.checked);
+        const li = cb.closest('li');
+        if (cb.checked) li.classList.add('done');
+        else li.classList.remove('done');
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        date: today,
+        states: states
+    }));
+
+    updateCounts();
+}
+
+function loadState() {
+    const data = getStorageData();
+    const today = new Date().toISOString().split('T')[0];
+
+    if (data && data.date === today) {
+        const allChecks = document.querySelectorAll('.checklist input[type="checkbox"]');
+        allChecks.forEach((cb, i) => {
+            if (data.states[i]) {
+                cb.checked = true;
+                cb.closest('li').classList.add('done');
+            }
+        });
+    }
+    updateCounts();
+}
+
+function updateCounts() {
+    const groups = {daily: {total:0, done:0}, weekly: {total:0, done:0}, monthly: {total:0, done:0}, quarterly: {total:0, done:0}, half: {total:0, done:0}, yearly: {total:0, done:0}};
+
+    document.querySelectorAll('.checklist li').forEach(li => {
+        const group = li.dataset.group;
+        if (groups[group] !== undefined) {
+            groups[group].total++;
+            if (li.querySelector('input').checked) groups[group].done++;
+        }
+    });
+
+    // 오늘 할 일 = daily 미완료
+    const dailyLeft = groups.daily.total - groups.daily.done;
+    // 이번 주 = weekly 미완료
+    const weeklyLeft = groups.weekly.total - groups.weekly.done;
+    // 전체 완료
+    let totalDone = 0;
+    let totalAll = 0;
+    Object.values(groups).forEach(g => { totalDone += g.done; totalAll += g.total; });
+
+    document.getElementById('urgentCount').textContent = dailyLeft;
+    document.getElementById('pendingCount').textContent = weeklyLeft;
+    document.getElementById('doneCount').textContent = totalDone;
+
+    // 카드 색상 업데이트
+    document.getElementById('cardUrgent').className = 'summary-card ' + (dailyLeft > 0 ? 'danger' : 'safe');
+    document.getElementById('cardPending').className = 'summary-card ' + (weeklyLeft > 0 ? 'warning' : 'safe');
+
+    // 진행률 텍스트
+    const progressText = (g) => `(${g.done}/${g.total})`;
+    document.getElementById('dailyProgress').textContent = progressText(groups.daily);
+    document.getElementById('weeklyProgress').textContent = progressText(groups.weekly);
+    document.getElementById('monthlyProgress').textContent = progressText(groups.monthly);
+    document.getElementById('quarterlyProgress').textContent = progressText(groups.quarterly);
+    document.getElementById('halfProgress').textContent = progressText(groups.half);
+    document.getElementById('yearlyProgress').textContent = progressText(groups.yearly);
+}
+
+// ===== 섹션 접기/펼치기 =====
+function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+}
+
+// ===== 리셋 =====
+function resetDaily() {
+    document.querySelectorAll('#dailyList input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.closest('li').classList.remove('done');
+    });
+    saveState();
+}
+
+function resetAll() {
+    if (!confirm('모든 체크리스트를 초기화할까요?')) return;
+    document.querySelectorAll('.checklist input[type="checkbox"]').forEach(cb => {
+        cb.checked = false;
+        cb.closest('li').classList.remove('done');
+    });
+    saveState();
+}
+
+// ===== 초기화 =====
+updateDateInfo();
+loadState();
+</script>
+
+</body>
+</html>
