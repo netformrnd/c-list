@@ -6541,7 +6541,7 @@ function openFieldSettlementModal() {
     select.innerHTML += `<option value="${manager}">${manager}</option>`;
   });
   
-  // ★ 항상 메인 정산서(총괄표) 100% 데이터를 먼저 로드
+  // ★ 항상 현장상세(총괄표) 100% 데이터 로드 - 현장상세가 기준
   initFieldSettlementFromMain();
 
   // 첫 번째 소장 기본 선택 (1명이면 자동 선택)
@@ -6551,8 +6551,8 @@ function openFieldSettlementModal() {
     document.getElementById('selectedManagerDisplay').style.display = 'block';
     document.getElementById('selectedManagerName').textContent = managers[0];
 
-    // ★ 저장된 데이터가 있으면 전체 복원
-    restoreFieldSavedData(managers[0]);
+    // ★ 사진·메모만 복원 (works/materials/labors는 현장상세 기준 유지)
+    restoreFieldMemoAndPhotos(managers[0]);
   } else if (managers.length > 1) {
     document.getElementById('field_manager').value = '';
     document.getElementById('selectedManagerDisplay').style.display = 'none';
@@ -6567,6 +6567,25 @@ function openFieldSettlementModal() {
   updateFieldTotals();
 
   document.getElementById('fieldSettlementModal').style.display = 'flex';
+}
+
+// ★ 메모·사진만 복원 (현장상세 연동 원칙: works/materials/labors는 항상 현장상세 기준)
+function restoreFieldMemoAndPhotos(manager) {
+  const idx = document.getElementById('detailIndex').value;
+  const data = allData[currentYear] || [];
+  const item = data[idx];
+  if (!item || !manager) return;
+  const key = `${currentYear}_${item.no}`;
+  if (!fieldSettlementByManager[key] || !fieldSettlementByManager[key][manager]) return;
+  const saved = fieldSettlementByManager[key][manager];
+  if (saved.memo) {
+    fieldSettlementData.memo = saved.memo;
+    document.getElementById('fieldMemo').value = saved.memo;
+  }
+  if (saved.photos && saved.photos.length > 0) {
+    fieldSettlementData.photos = saved.photos;
+    renderFieldPhotoPreview();
+  }
 }
 
 // ★ 저장된 데이터 전체 복원 (works/materials/labors + memo/photos)
@@ -7499,37 +7518,17 @@ function openSalesSettlementModal() {
   document.getElementById('sales_manager').value = document.getElementById('detail_hq_manager').value || item.manager || '';
   document.getElementById('sales_field_manager').value = document.getElementById('detail_site_manager').value || item.siteManager || '';
   
-  // 저장된 데이터 불러오기
+  // ★ 항상 현장상세 기준으로 초기화 (현장상세 연동 원칙)
+  initSalesSettlementData();
+  // 메모·제외여부만 저장된 값 복원
   const key = `${currentYear}_${item.no}`;
   const savedSales = salesSettlementByManager[key];
-  // 저장된 데이터의 금액이 비정상인지 체크 (parseFloat 버그로 만원단위 잘림 감지)
-  // 계약금액과 비교하여 1000분의1 미만이면 잘못된 데이터로 판단
-  const contractAmtCheck = parseAmt(document.getElementById('detail_amount_input').value);
-  let savedDataCorrupted = false;
-  if (savedSales && savedSales.works && savedSales.works[0]) {
-    const savedWorkSales = savedSales.works[0].sales || 0;
-    if (contractAmtCheck > 10000 && savedWorkSales > 0 && savedWorkSales < contractAmtCheck / 100) {
-      savedDataCorrupted = true;
-      console.log('[영업담당자] 저장된 데이터 금액 이상 감지 - 재초기화:', savedWorkSales, 'vs', contractAmtCheck);
-    }
+  if (savedSales) {
+    salesSettlementData.memo = savedSales.memo || '';
+    salesSettlementData.excluded = savedSales.excluded || false;
+    document.getElementById('salesMemo').value = salesSettlementData.memo;
   }
-  if (savedSales && !savedDataCorrupted) {
-    salesSettlementData = JSON.parse(JSON.stringify(savedSales));
-    document.getElementById('salesMemo').value = salesSettlementData.memo || '';
-    document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
-    // ★ 경비는 항상 현장상세에서 새로 읽어오기 (현장상세 입력 반영)
-    syncExpensesFromDetail();
-  } else {
-    // 기본 데이터 초기화 (저장된 데이터 없거나 금액 손상)
-    initSalesSettlementData();
-    if (savedSales) {
-      // 비고, 제외 등 기존 설정은 유지
-      salesSettlementData.memo = savedSales.memo || '';
-      salesSettlementData.excluded = savedSales.excluded || false;
-      document.getElementById('salesMemo').value = salesSettlementData.memo;
-    }
-    document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
-  }
+  document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
   
   // 테이블 렌더링
   renderSalesWorkTable();
