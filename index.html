@@ -7517,6 +7517,8 @@ function openSalesSettlementModal() {
     salesSettlementData = JSON.parse(JSON.stringify(savedSales));
     document.getElementById('salesMemo').value = salesSettlementData.memo || '';
     document.getElementById('sales_exclude').checked = salesSettlementData.excluded || false;
+    // ★ 경비는 항상 현장상세에서 새로 읽어오기 (현장상세 입력 반영)
+    syncExpensesFromDetail();
   } else {
     // 기본 데이터 초기화 (저장된 데이터 없거나 금액 손상)
     initSalesSettlementData();
@@ -7539,6 +7541,45 @@ function openSalesSettlementModal() {
 
 function closeSalesSettlementModal() {
   document.getElementById('salesSettlementModal').style.display = 'none';
+}
+
+// 현장상세 경비를 영업담당자용으로 동기화 (항상 최신 경비 반영)
+function syncExpensesFromDetail() {
+  const newExpenses = [];
+  // 정산서 자재비
+  document.querySelectorAll('#settlementMaterialBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) newExpenses.push({ type: '자재비', content, amount: purchase, payDate: '', note: '' });
+  });
+  // 정산서 노무비
+  document.querySelectorAll('#settlementLaborBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) newExpenses.push({ type: '노무비', content, amount: purchase, payDate: '', note: '' });
+  });
+  // 정산서 기타경비
+  document.querySelectorAll('#settlementOtherBody tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    const content = inputs[0]?.value || '';
+    const purchase = parseAmt(inputs[1]?.value);
+    if (content || purchase) newExpenses.push({ type: '기타경비', content, amount: purchase, payDate: '', note: '' });
+  });
+  // 정산서에 없으면 투입내역에서 가져오기
+  if (newExpenses.length === 0) {
+    document.querySelectorAll('#expenseTableBody tr').forEach(tr => {
+      const typeSelect = tr.querySelector('td:nth-child(1) select');
+      const inputs = tr.querySelectorAll('input');
+      const type = typeSelect?.value || '자재비';
+      const amount = parseAmt(inputs[1]?.value);
+      const content = inputs[2]?.value || '';
+      const payDate = inputs[3]?.value || '';
+      if (amount > 0 || content) newExpenses.push({ type, content, amount, payDate, note: '' });
+    });
+  }
+  if (newExpenses.length > 0) salesSettlementData.expenses = newExpenses;
 }
 
 function initSalesSettlementData() {
