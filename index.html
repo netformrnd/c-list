@@ -3563,7 +3563,7 @@ function renderTable() {
       <td class="text-center">${cs}</td><td class="text-center">${is}</td><td class="text-center">${bs}</td>
       <td>${item.type ? '<span class="type-badge ' + typeClass + '">' + item.type + '</span>' : '-'}</td>
       <td>${highlightKeyword(item.manager) || '-'}</td><td style="min-width:130px !important;max-width:150px;white-space:normal !important;word-break:break-all;">${highlightKeyword(item.siteManager) || '-'}</td>
-      <td><button class="btn btn-sm" onclick="openChecklistModal(${originalIdx})" style="background:var(--mint);color:white;font-size:0.7rem;">체크</button></td>
+      <td><button class="btn btn-sm" onclick="openChecklistModal('${item.no}')" style="background:var(--mint);color:white;font-size:0.7rem;">체크</button></td>
     </tr>`;
   }).join('');
   document.getElementById('selectAll').checked = selectedItems.size === displayData.length && displayData.length > 0;
@@ -5152,12 +5152,13 @@ const CLM_FIELDS = [
   { key: 'specialNotes', type: 'textarea' }
 ];
 
-function openChecklistModal(idx) {
+function openChecklistModal(no) {
   const data = allData[currentYear] || [];
-  const item = data[idx];
+  // 배열 인덱스 대신 no로 검색 (필터링/정렬 후 인덱스 불일치 방지)
+  const item = data.find(d => String(d.no) === String(no));
   if (!item) { alert('데이터를 찾을 수 없습니다.'); return; }
 
-  currentChecklistIdx = idx;
+  currentChecklistIdx = data.indexOf(item);
   const key = `${currentYear}_${item.no}`;
   currentChecklistKey = key;
 
