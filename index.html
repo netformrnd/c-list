@@ -611,6 +611,7 @@ tr.selected { background: var(--primary-light); }
             <th style="width:85px;">실준공일</th>
             <th style="width:55px;">입금</th>
             <th style="min-width:80px;">비고</th>
+            <th style="width:45px;">삭제</th>
           </tr>
         </thead>
         <tbody id="consultingMainTableBody"></tbody>
@@ -1538,6 +1539,7 @@ tr.selected { background: var(--primary-light); }
               <th style="width:80px;">실준공일</th>
               <th style="width:50px;">입금</th>
               <th style="min-width:80px;">비고</th>
+              <th style="width:45px;">삭제</th>
             </tr>
           </thead>
           <tbody id="consultingListTableBody">
@@ -3197,6 +3199,7 @@ let allData = {};
 let currentYear = '2026';
 let selectedItems = new Set();
 let deleteTarget = null;
+let deleteSingleNo = null;
 let searchFilter = { keyword: '', status: '', type: '' };
 let filteredData = null;
 
@@ -3563,7 +3566,7 @@ function renderTable() {
       <td class="text-center">${cs}</td><td class="text-center">${is}</td><td class="text-center">${bs}</td>
       <td>${item.type ? '<span class="type-badge ' + typeClass + '">' + item.type + '</span>' : '-'}</td>
       <td>${highlightKeyword(item.manager) || '-'}</td><td style="min-width:130px !important;max-width:150px;white-space:normal !important;word-break:break-all;">${highlightKeyword(item.siteManager) || '-'}</td>
-      <td><button class="btn btn-sm" onclick="openChecklistModal('${item.no}')" style="background:var(--mint);color:white;font-size:0.7rem;">체크</button></td>
+      <td style="white-space:nowrap;"><button class="btn btn-sm" onclick="openChecklistModal('${item.no}')" style="background:var(--mint);color:white;font-size:0.7rem;">체크</button> <button onclick="deleteSingleItem('${item.no}')" style="padding:0.2rem 0.4rem;border:none;background:#ef5350;color:white;border-radius:4px;cursor:pointer;font-size:0.7rem;" title="삭제">🗑</button></td>
     </tr>`;
   }).join('');
   document.getElementById('selectAll').checked = selectedItems.size === displayData.length && displayData.length > 0;
@@ -4147,12 +4150,25 @@ function syncEditToDetail(item) {
 }
 
 function deleteSelected() { if (selectedItems.size === 0) return; deleteTarget = 'selected'; document.getElementById('deleteMessage').textContent = `선택한 ${selectedItems.size}개 항목을 삭제하시겠습니까?`; document.getElementById('deleteModal').classList.add('active'); }
-function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('active'); deleteTarget = null; }
+function deleteSingleItem(no) {
+  const data = allData[currentYear] || [];
+  const item = data.find(d => String(d.no) === String(no));
+  if (!item) { showToast('항목을 찾을 수 없습니다.', 'error'); return; }
+  deleteTarget = 'single'; deleteSingleNo = no;
+  document.getElementById('deleteMessage').textContent = `"${item.site || item.name || no}" 항목을 삭제하시겠습니까?`;
+  document.getElementById('deleteModal').classList.add('active');
+}
+function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('active'); deleteTarget = null; deleteSingleNo = null; }
 function confirmDelete() {
   if (deleteTarget === 'selected') {
     Array.from(selectedItems).sort((a,b) => b-a).forEach(i => allData[currentYear].splice(i, 1));
     showToast(`${selectedItems.size}개 항목이 삭제되었습니다.`, 'info');
     selectedItems.clear(); updateDeleteButton();
+  } else if (deleteTarget === 'single' && deleteSingleNo !== null) {
+    const data = allData[currentYear] || [];
+    const idx = data.findIndex(d => String(d.no) === String(deleteSingleNo));
+    if (idx !== -1) { data.splice(idx, 1); showToast('항목이 삭제되었습니다.', 'info'); }
+    deleteSingleNo = null;
   }
   saveToStorage(currentYear); renderTable(); updateStats(); closeDeleteModal();
 }
@@ -15501,7 +15517,7 @@ function renderConsultingMain() {
   const tbody = document.getElementById('consultingMainTableBody');
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="19" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
     document.getElementById('consultingMainCount').textContent = '0건';
     return;
   }
@@ -15537,6 +15553,7 @@ function renderConsultingMain() {
         <td style="text-align:center;font-size:0.85rem;">${item.endDate || '-'}</td>
         <td style="text-align:center;">${paidBadge}</td>
         <td style="font-size:0.85rem;color:#666;">${item.note || ''}</td>
+        <td style="text-align:center;"><button onclick="deleteConsultingListItem('${item.id}')" style="padding:0.2rem 0.4rem;border:none;background:#ef5350;color:white;border-radius:4px;cursor:pointer;font-size:0.7rem;" title="삭제">🗑</button></td>
       </tr>
     `;
   });
@@ -15692,7 +15709,7 @@ async function loadConsultingListData() {
     const saved = localStorage.getItem('consultingListData');
     if (saved) {
       consultingListData = JSON.parse(saved);
-      fbSave(FB_COLLECTIONS.consultingListData, 'data', { items: consultingListData });
+      // ★ Firebase 로드 실패 시 로컬 캐시로 폴백만 (Firebase 덮어쓰기 금지 - 다른 사용자 데이터 손실 방지)
     }
   } catch(e) {
     console.error('기술컨설팅 리스트 로드 실패:', e);
@@ -15754,7 +15771,7 @@ function renderConsultingList() {
   const tbody = document.getElementById('consultingListTableBody');
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="19" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다.</td></tr>';
     document.getElementById('consultingListCount').textContent = '0건';
     return;
   }
@@ -15799,10 +15816,11 @@ function renderConsultingList() {
         <td style="text-align:center;font-size:0.8rem;">${item.endDate || '-'}</td>
         <td style="text-align:center;">${paidBadge}</td>
         <td style="font-size:0.8rem;color:#666;">${item.note || ''}</td>
+        <td style="text-align:center;"><button onclick="deleteConsultingListItem('${item.id}')" style="padding:0.2rem 0.4rem;border:none;background:#ef5350;color:white;border-radius:4px;cursor:pointer;font-size:0.7rem;" title="삭제">🗑</button></td>
       </tr>
     `;
   });
-  
+
   tbody.innerHTML = html;
   document.getElementById('consultingListCount').textContent = `${filtered.length}건`;
 }
