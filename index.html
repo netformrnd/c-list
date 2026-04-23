@@ -5277,29 +5277,23 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal
 let detailData = {};
 
 async function loadDetailData() {
-  // ★ 이미 로드된 경우 건너뜀 (매번 Firebase 호출 방지 → 속도 개선)
-  if (detailData && Object.keys(detailData).length > 0) return;
-
-  // 먼저 localStorage에서 빠르게 로드
+  // ★ 속도 개선: localStorage 먼저 즉시 반환 (UI 블로킹 없음)
+  // Firebase는 백그라운드에서 갱신 (다음 모달 열 때 최신 데이터 반영)
   const saved = localStorage.getItem('constructionDetailData');
-  if (saved) {
+  if (saved && (!detailData || Object.keys(detailData).length === 0)) {
     try {
       detailData = JSON.parse(saved);
       console.log('localStorage에서 상세데이터 로드 완료');
     } catch(e) { detailData = {}; }
   }
-
-  // Firebase에서 최신 데이터 로드 (백그라운드로 갱신)
-  try {
-    const fbData = await fbLoadAll(FB_COLLECTIONS.constructionDetailData);
+  // Firebase 백그라운드 갱신 (await 없음 → 모달 즉시 열림)
+  fbLoadAll(FB_COLLECTIONS.constructionDetailData).then(fbData => {
     if (fbData && Object.keys(fbData).length > 0) {
       detailData = fbData;
       localStorage.setItem('constructionDetailData', JSON.stringify(detailData));
-      console.log('Firebase에서 상세데이터 로드 완료');
+      console.log('Firebase 상세데이터 백그라운드 갱신 완료');
     }
-  } catch(e) {
-    console.error('Firebase 상세데이터 로드 실패:', e);
-  }
+  }).catch(e => console.error('Firebase 상세데이터 로드 실패:', e));
 }
 
 async function saveDetailDataToStorage() {
