@@ -5341,7 +5341,9 @@ async function openDetailModal(idx) {
   // 공사 정보 채우기
   document.getElementById('detail_site_input').value = detail.siteInput || item.site || '';
   document.getElementById('detail_project_input').value = detail.projectInput || item.name || '';
-  document.getElementById('detail_period_input').value = detail.periodInput || '';
+  // 공사기간: 총괄표 저장값 우선, 없으면 공사리스트 착공일~준공일 자동 연동
+  const _periodFallback = item.startDate && item.endDate ? `${item.startDate} ~ ${item.endDate}` : (item.startDate || item.endDate || '');
+  document.getElementById('detail_period_input').value = detail.periodInput || _periodFallback;
   document.getElementById('detail_amount_input').value = detail.amountInput !== undefined && detail.amountInput !== null ? fmtInput(detail.amountInput) : fmtInput(item.amount || '');
 
   // 상단 헤더: 저장된 금액/기간이 있으면 우선 사용
