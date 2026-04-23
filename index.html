@@ -5277,26 +5277,28 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal
 let detailData = {};
 
 async function loadDetailData() {
-  // Firebase에서 우선 로드
+  // ★ 이미 로드된 경우 건너뜀 (매번 Firebase 호출 방지 → 속도 개선)
+  if (detailData && Object.keys(detailData).length > 0) return;
+
+  // 먼저 localStorage에서 빠르게 로드
+  const saved = localStorage.getItem('constructionDetailData');
+  if (saved) {
+    try {
+      detailData = JSON.parse(saved);
+      console.log('localStorage에서 상세데이터 로드 완료');
+    } catch(e) { detailData = {}; }
+  }
+
+  // Firebase에서 최신 데이터 로드 (백그라운드로 갱신)
   try {
     const fbData = await fbLoadAll(FB_COLLECTIONS.constructionDetailData);
     if (fbData && Object.keys(fbData).length > 0) {
       detailData = fbData;
       localStorage.setItem('constructionDetailData', JSON.stringify(detailData));
       console.log('Firebase에서 상세데이터 로드 완료');
-      return;
     }
   } catch(e) {
     console.error('Firebase 상세데이터 로드 실패:', e);
-  }
-  // 폴백: localStorage
-  const saved = localStorage.getItem('constructionDetailData');
-  if (saved) {
-    try {
-      detailData = JSON.parse(saved);
-      // Firebase에 마이그레이션
-      fbSaveLarge(FB_COLLECTIONS.constructionDetailData, detailData);
-    } catch(e) { detailData = {}; }
   }
 }
 
