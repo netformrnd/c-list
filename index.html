@@ -304,12 +304,12 @@ tr.selected { background: var(--primary-light); }
       <span class="logo-text">공사현황리스트</span>
     </div>
     <div class="year-tabs" id="yearTabs">
-      <button type="button" class="year-tab" data-year="2020-2021">2020~2021</button>
-      <button type="button" class="year-tab" data-year="2022">2022</button>
-      <button type="button" class="year-tab" data-year="2023">2023</button>
-      <button type="button" class="year-tab" data-year="2024">2024</button>
-      <button type="button" class="year-tab" data-year="2025">2025</button>
       <button type="button" class="year-tab active" data-year="2026">2026</button>
+      <button type="button" class="year-tab" data-year="2025">2025</button>
+      <button type="button" class="year-tab" data-year="2024">2024</button>
+      <button type="button" class="year-tab" data-year="2023">2023</button>
+      <button type="button" class="year-tab" data-year="2022">2022</button>
+      <button type="button" class="year-tab" data-year="2020-2021">2020~2021</button>
     </div>
     <div class="header-actions">
       <span id="sheetsSyncStatus" onclick="manualSheetsSync()" title="Google Sheets 동기화 (클릭)" style="font-size:1.1rem;cursor:pointer;">⚪</span>
@@ -16293,18 +16293,8 @@ function renderConsultingMain() {
   const typeFilter = document.getElementById('consultingMainTypeFilter').value;
   const managerFilter = document.getElementById('consultingMainManagerFilter').value;
   
-  // 헤더 년도 탭 또는 드롭다운 필터 사용
-  let yearFilter = yearFilterDropdown;
-  if (!yearFilter && currentYear) {
-    if (currentYear.includes('-')) {
-      yearFilter = '2020-2021';
-    } else {
-      yearFilter = currentYear;
-    }
-    // 드롭다운도 동기화
-    const dropdown = document.getElementById('consultingMainYearFilter');
-    if (dropdown) dropdown.value = yearFilter;
-  }
+  // 드롭다운 값 그대로 사용 (빈값="" = 전체 년도)
+  const yearFilter = yearFilterDropdown;
 
   let filtered = consultingListData.filter(item => {
     if (searchText && !(item.site || '').toLowerCase().includes(searchText) && !(item.project || '').toLowerCase().includes(searchText)) return false;
@@ -16317,12 +16307,6 @@ function renderConsultingMain() {
     if (typeFilter && item.type !== typeFilter) return false;
     if (managerFilter && item.manager !== managerFilter) return false;
     return true;
-  });
-  
-  // 정렬 (년도 내림차순, ID 내림차순)
-  filtered.sort((a, b) => {
-    if (b.year !== a.year) return (b.year || '').localeCompare(a.year || '');
-    return (b.id || '').localeCompare(a.id || '');
   });
   
   // 통계 업데이트
@@ -16340,6 +16324,16 @@ function renderConsultingMain() {
                   consultingData.find(c => c.site === item.site && c.bidAmount === item.bidAmount);
     return cItem && cItem.settled === '정산완료';
   };
+
+  // 정렬: 미입금 먼저 → 년도 최신순 → 등록 최신순
+  filtered.sort((a, b) => {
+    const aPaid = getItemPaidStatus(a) ? 1 : 0;
+    const bPaid = getItemPaidStatus(b) ? 1 : 0;
+    if (aPaid !== bPaid) return aPaid - bPaid;           // 미입금(0) 먼저, 완료(1) 나중
+    if (b.year !== a.year) return (b.year || '').localeCompare(a.year || ''); // 최신 년도 먼저
+    return (b.id || '').localeCompare(a.id || '');       // 최신 등록 먼저
+  });
+
   const paidItems = filtered.filter(d => getItemPaidStatus(d));
   const paidCount = paidItems.length;
   const paidAmount = paidItems.reduce((s, d) => s + (d.bidAmount || 0), 0);
