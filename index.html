@@ -658,6 +658,16 @@ tr.selected { background: var(--primary-light); }
         <div class="stat-value" id="consultingMainStatPaid" style="color:#43a047;">0건</div>
         <div class="stat-sub" id="consultingMainStatPaidAmount" style="font-size:0.75rem;color:#888;">0원</div>
       </div>
+      <div class="stat-card" style="border-left-color:#5c6bc0;background:linear-gradient(135deg,#fff 0%,#e8eaf6 100%);">
+        <div class="stat-label">📑 총 컨설팅비</div>
+        <div class="stat-value" id="consultingMainStatFeeTotal" style="color:#5c6bc0;font-size:1rem;">0원</div>
+        <div class="stat-sub" id="consultingMainStatFeeNote" style="font-size:0.7rem;color:#9fa8da;">(추정포함)</div>
+      </div>
+      <div class="stat-card" style="border-left-color:#e53935;background:linear-gradient(135deg,#fff 0%,#ffebee 100%);">
+        <div class="stat-label">⚠️ 미수금</div>
+        <div class="stat-value" id="consultingMainStatUnpaid" style="color:#e53935;font-size:1rem;">0건</div>
+        <div class="stat-sub" id="consultingMainStatUnpaidAmount" style="font-size:0.75rem;color:#ef9a9a;">0원</div>
+      </div>
     </div>
     
     <!-- 필터 및 추가 버튼 -->
@@ -824,6 +834,7 @@ tr.selected { background: var(--primary-light); }
             <th style="width:85px;">계약일</th>
             <th style="width:85px;">실착공일</th>
             <th style="width:85px;">실준공일</th>
+            <th style="width:100px;">컨설팅비(예상)</th>
             <th style="width:55px;">입금</th>
             <th style="min-width:100px;">이슈사항</th>
           </tr>
@@ -16339,9 +16350,30 @@ function renderConsultingMain() {
     return (b.id || '').localeCompare(a.id || '');       // 최신 등록 먼저
   });
 
+  // ★ 컨설팅비(예상) 계산 헬퍼
+  // - 실행금액 있음: 낙찰금액 - 실행금액 - 낙찰금액×10%
+  // - 실행금액 없음: 낙찰금액 × 50% (40%실행+10%경비 추정)
+  const calcConsultingFee = (item) => {
+    const bid = item.bidAmount || 0;
+    const exec = item.execAmount || 0;
+    if (!bid) return { fee: 0, estimated: false };
+    if (exec > 0) {
+      return { fee: bid - exec - Math.round(bid * 0.1), estimated: false };
+    } else {
+      return { fee: Math.round(bid * 0.5), estimated: true };
+    }
+  };
+
   const paidItems = filtered.filter(d => getItemPaidStatus(d));
   const paidCount = paidItems.length;
   const paidAmount = paidItems.reduce((s, d) => s + (d.bidAmount || 0), 0);
+
+  // 컨설팅비 통계
+  const totalFee = filtered.reduce((s, d) => s + calcConsultingFee(d).fee, 0);
+  const estimatedCount = filtered.filter(d => calcConsultingFee(d).estimated).length;
+  const unpaidItems = filtered.filter(d => !getItemPaidStatus(d));
+  const unpaidCount = unpaidItems.length;
+  const unpaidFee = unpaidItems.reduce((s, d) => s + calcConsultingFee(d).fee, 0);
 
   document.getElementById('consultingMainStatTotal').textContent = `${totalCount}건`;
   document.getElementById('consultingMainStatY').textContent = `${yCount}건`;
@@ -16349,11 +16381,15 @@ function renderConsultingMain() {
   document.getElementById('consultingMainStatExec').textContent = fmtAmount(totalExec);
   document.getElementById('consultingMainStatPaid').textContent = `${paidCount}건`;
   document.getElementById('consultingMainStatPaidAmount').textContent = fmtAmount(paidAmount);
+  document.getElementById('consultingMainStatFeeTotal').textContent = fmtAmount(totalFee);
+  document.getElementById('consultingMainStatFeeNote').textContent = estimatedCount > 0 ? `추정 ${estimatedCount}건 포함` : '실행금액 기준';
+  document.getElementById('consultingMainStatUnpaid').textContent = `${unpaidCount}건`;
+  document.getElementById('consultingMainStatUnpaidAmount').textContent = fmtAmount(unpaidFee);
   
   const tbody = document.getElementById('consultingMainTableBody');
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="19" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="20" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
     document.getElementById('consultingMainCount').textContent = '0건';
     return;
   }
@@ -16367,6 +16403,11 @@ function renderConsultingMain() {
     const paidBadge = isPaid
       ? `<span style="padding:0.15rem 0.4rem;background:#c8e6c9;color:#2e7d32;border-radius:4px;font-size:0.7rem;font-weight:600;">완료</span>`
       : `<span style="padding:0.15rem 0.4rem;background:#ffcdd2;color:#c62828;border-radius:4px;font-size:0.7rem;">미입금</span>`;
+
+    const { fee: consultingFee, estimated: feeEstimated } = calcConsultingFee(item);
+    const feeDisplay = consultingFee > 0
+      ? `<span style="font-family:monospace;color:${feeEstimated?'#7b1fa2':'#5c6bc0'};font-weight:600;">${fmt(consultingFee)}</span>${feeEstimated ? '<br><span style="font-size:0.65rem;color:#9c27b0;">(추정)</span>' : ''}`
+      : `<span style="color:#bbb;font-size:0.8rem;">-</span>`;
 
     html += `
       <tr>
@@ -16387,6 +16428,7 @@ function renderConsultingMain() {
         <td style="text-align:center;font-size:0.85rem;">${item.contractDate || '-'}</td>
         <td style="text-align:center;font-size:0.85rem;">${item.startDate || '-'}</td>
         <td style="text-align:center;font-size:0.85rem;">${item.endDate || '-'}</td>
+        <td style="text-align:right;line-height:1.4;">${feeDisplay}</td>
         <td style="text-align:center;">${paidBadge}</td>
         <td style="font-size:0.82rem;color:#444;">
           ${(() => {
