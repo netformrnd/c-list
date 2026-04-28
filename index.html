@@ -336,6 +336,9 @@ tr.selected { background: var(--primary-light); }
     <button type="button" class="main-list-tab" onclick="switchMainListTab('consulting')" id="mainTabConsulting" style="padding:0.75rem 2rem;border:none;background:#e0e0e0;color:#666;font-weight:600;font-size:1rem;cursor:pointer;border-radius:8px 8px 0 0;">
       📋 기술컨설팅
     </button>
+    <button type="button" onclick="refreshAllData()" id="mainTabRefresh" style="padding:0.75rem 1.5rem;border:none;background:#e0e0e0;color:#666;font-weight:600;font-size:1rem;cursor:pointer;border-radius:8px 8px 0 0;margin-left:auto;" title="최신 데이터로 새로고침">
+      🔄 새로고침
+    </button>
   </div>
   
   <!-- 공사현황 섹션 -->
@@ -4469,6 +4472,32 @@ function saveToStorage(changedYear) {
   // Google Sheets에도 동기화 (비동기 백그라운드)
   syncToSheets(changedYear || null);
 }
+async function refreshAllData() {
+  const btn = document.getElementById('mainTabRefresh');
+  if (btn) { btn.textContent = '⏳ 로딩중...'; btn.disabled = true; }
+  try {
+    const fbData = await fbLoadAll(FB_COLLECTIONS.constructionData);
+    if (fbData && Object.keys(fbData).length > 0) {
+      allData = fbData;
+      localStorage.setItem('constructionData', JSON.stringify(allData));
+      applyRedCellInfo();
+      renderTable();
+      updateStats();
+    }
+    const csListRaw = await fbLoad(FB_COLLECTIONS.consultingListData, 'data');
+    if (csListRaw && csListRaw.items) {
+      consultingListData = csListRaw.items;
+      localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
+      renderConsultingMain();
+    }
+    showToast('최신 데이터로 새로고침 완료!', 'success');
+  } catch(e) {
+    showToast('새로고침 실패: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.textContent = '🔄 새로고침'; btn.disabled = false; }
+  }
+}
+
 async function loadFromStorage() {
   // Firebase에서 우선 로드 시도
   try {
