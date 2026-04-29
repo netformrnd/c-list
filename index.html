@@ -6588,9 +6588,14 @@ async function saveDetailData() {
   document.getElementById('detailSiteName').textContent = siteInputValue || item.site;
   document.getElementById('detailProjectName').textContent = projectInputValue || item.name;
 
-  // 수금내역 → 공사현황 리스트 자동 동기화 (입금예정일, 입금일 반영)
-  const syncPayment = (paymentObj, dateValue, expectedValue) => {
+  // 수금내역 → 공사현황 리스트 자동 동기화 (입금예정일, 입금일, 금액 반영)
+  const syncPayment = (paymentObj, dateValue, expectedValue, amtValue) => {
     if (!paymentObj) return;
+    // ★ 금액 동기화: 상세 모달에서 입력한 금액을 공사현황 리스트에도 반영
+    if (amtValue !== undefined && amtValue !== '') {
+      const parsedAmt = parseInt(amtValue.replace(/,/g, '')) || 0;
+      if (parsedAmt > 0) paymentObj.amt = parsedAmt;
+    }
     // 입금예정일 동기화
     if (expectedValue !== undefined) {
       paymentObj.expected = expectedValue;
@@ -6616,11 +6621,15 @@ async function saveDetailData() {
   const detailInterimExpected = document.getElementById('収interim_expected').value;
   const detailInterim2Expected = document.getElementById('収interim2_expected').value;
   const detailBalanceExpected = document.getElementById('収balance_expected').value;
+  const detailContractAmt = document.getElementById('収contract_amt').value;
+  const detailInterimAmt = document.getElementById('収interim_amt').value;
+  const detailInterim2Amt = document.getElementById('収interim2_amt').value;
+  const detailBalanceAmt = document.getElementById('収balance_amt').value;
 
-  if (item.contract1) syncPayment(item.contract1, detailContractDate, detailContractExpected);
-  if (item.interim1) syncPayment(item.interim1, detailInterimDate, detailInterimExpected);
-  if (item.interim2) syncPayment(item.interim2, detailInterim2Date, detailInterim2Expected);
-  if (item.balance1) syncPayment(item.balance1, detailBalanceDate, detailBalanceExpected);
+  if (item.contract1) syncPayment(item.contract1, detailContractDate, detailContractExpected, detailContractAmt);
+  if (item.interim1) syncPayment(item.interim1, detailInterimDate, detailInterimExpected, detailInterimAmt);
+  if (item.interim2) syncPayment(item.interim2, detailInterim2Date, detailInterim2Expected, detailInterim2Amt);
+  if (item.balance1) syncPayment(item.balance1, detailBalanceDate, detailBalanceExpected, detailBalanceAmt);
 
   // allData 저장
   saveToStorage(currentYear);
