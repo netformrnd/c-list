@@ -3350,15 +3350,33 @@ function getCurrentUserName() {
 async function acquireEditLock(lockKey) {
   try {
     const userName = getCurrentUserName();
-    const doc = await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).get();
+    // ★ 속도 개선: Firebase 잠금 확인에 1.5초 타임아웃 적용
+    // Firebase가 느리거나 연결 오류일 때 모달이 멈추는 현상 방지
+    const timeout = new Promise(resolve =>
+      setTimeout(() => resolve({ timedOut: true }), 1500)
+    );
+    const lockCheck = db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).get();
+    const result = await Promise.race([lockCheck, timeout]);
+
+    // 타임아웃 발생 → 잠금 없는 것으로 처리 후 즉시 진행
+    if (result.timedOut) {
+      console.warn('편집 잠금 확인 타임아웃 - 잠금 없이 진행');
+      // 백그라운드에서 잠금 등록 시도
+      db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
+        user: userName, timestamp: Date.now()
+      }).catch(e => console.warn('백그라운드 잠금 등록 실패:', e));
+      return { locked: false };
+    }
+
+    const doc = result;
     if (doc.exists) {
       const lockData = doc.data();
       const elapsed = Date.now() - (lockData.timestamp || 0);
       // 같은 사용자면 잠금 갱신
       if (lockData.user === userName) {
-        await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
+        db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
           user: userName, timestamp: Date.now()
-        });
+        }).catch(() => {});
         return { locked: false };
       }
       // 다른 사용자이고 5분 이내면 차단
@@ -3367,10 +3385,10 @@ async function acquireEditLock(lockKey) {
       }
       // 만료된 잠금 → 덮어쓰기
     }
-    // 잠금 등록
-    await db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
+    // 잠금 등록 (백그라운드)
+    db.collection(FB_COLLECTIONS.editLocks).doc(lockKey).set({
       user: userName, timestamp: Date.now()
-    });
+    }).catch(() => {});
     return { locked: false };
   } catch (e) {
     console.error('잠금 확인 실패:', e);
