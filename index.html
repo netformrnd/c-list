@@ -1686,9 +1686,10 @@ tr.selected { background: var(--primary-light); }
           </div>
           <div>
             <label style="font-size:0.85rem;color:#666;display:block;margin-bottom:0.25rem;">영업담당자 *</label>
-            <select id="consultingItemManager" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+            <select id="consultingItemManager" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;" onchange="toggleConsultingItemManagerInput()">
               <option value="">선택</option>
             </select>
+            <input type="text" id="consultingItemManagerCustom" placeholder="✏️ 새 담당자 이름 입력" style="display:none;width:100%;margin-top:0.35rem;padding:0.5rem;border:1.5px solid #00897b;border-radius:4px;font-size:0.9rem;" oninput="this.value=this.value.trimStart()">
           </div>
         </div>
         
@@ -15902,7 +15903,21 @@ async function openConsultingAddModal(editId = null) {
   calcConsultingPreview();
 }
 
-// 담당자 직접 입력 토글
+// 기술컨설팅 메인 탭 - 담당자 직접 입력 토글
+function toggleConsultingItemManagerInput() {
+  const select = document.getElementById('consultingItemManager');
+  const customInput = document.getElementById('consultingItemManagerCustom');
+  if (!customInput) return;
+  if (select.value === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.value = '';
+  }
+}
+
+// 기술컨설팅 정산관리 탭 - 담당자 직접 입력 토글
 function toggleConsultingManagerInput() {
   const select = document.getElementById('consultingManager');
   const customInput = document.getElementById('consultingManagerCustom');
@@ -16816,7 +16831,12 @@ async function openConsultingItemModal(editId = null) {
   Array.from(allManagers).sort().forEach(m => {
     managerSelect.innerHTML += `<option value="${m}">${m}</option>`;
   });
+  // ★ 직접 입력 옵션 (항상 맨 마지막)
+  managerSelect.innerHTML += `<option value="__custom__">✏️ 직접 입력...</option>`;
   managerSelect.value = '';
+  // 직접 입력 필드 초기화
+  const itemCustomInput = document.getElementById('consultingItemManagerCustom');
+  if (itemCustomInput) { itemCustomInput.style.display = 'none'; itemCustomInput.value = ''; }
   
   document.getElementById('consultingItemModalTitle').textContent = '📋 기술컨설팅 현장 등록';
   
@@ -16831,7 +16851,17 @@ async function openConsultingItemModal(editId = null) {
       document.getElementById('consultingItemProject').value = item.project || '';
       document.getElementById('consultingItemBidAmount').value = fmtInput(item.bidAmount);
       document.getElementById('consultingItemExecAmount').value = fmtInput(item.execAmount);
-      managerSelect.value = item.manager || '';
+      // 담당자 설정: 목록에 없으면 직접 입력 모드로
+      const itemManagerOptions = Array.from(managerSelect.options).map(o => o.value).filter(v => v && v !== '__custom__');
+      if (item.manager && !itemManagerOptions.includes(item.manager)) {
+        managerSelect.value = '__custom__';
+        const ic = document.getElementById('consultingItemManagerCustom');
+        if (ic) { ic.style.display = 'block'; ic.value = item.manager; }
+      } else {
+        managerSelect.value = item.manager || '';
+        const ic = document.getElementById('consultingItemManagerCustom');
+        if (ic) { ic.style.display = 'none'; ic.value = ''; }
+      }
       document.getElementById('consultingItemCompany').value = item.company || '';
       document.getElementById('consultingItemCompanyManager').value = item.companyManager || '';
       document.getElementById('consultingItemWarranty').value = item.warranty || '';
@@ -16883,7 +16913,10 @@ async function saveConsultingItem() {
   const editId = document.getElementById('consultingItemEditId').value;
 
   const site = document.getElementById('consultingItemSite').value.trim();
-  const manager = document.getElementById('consultingItemManager').value;
+  const itemManagerSel = document.getElementById('consultingItemManager');
+  const manager = itemManagerSel.value === '__custom__'
+    ? (document.getElementById('consultingItemManagerCustom').value || '').trim()
+    : itemManagerSel.value;
 
   if (!site) {
     showToast('공사현장을 입력해주세요.', 'error');
