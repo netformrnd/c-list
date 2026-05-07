@@ -1503,9 +1503,10 @@ tr.selected { background: var(--primary-light); }
           </div>
           <div>
             <label style="font-size:0.85rem;color:#666;display:block;margin-bottom:0.25rem;">담당자 *</label>
-            <select id="consultingManager" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;">
+            <select id="consultingManager" style="width:100%;padding:0.5rem;border:1px solid #ddd;border-radius:4px;" onchange="toggleConsultingManagerInput()">
               <option value="">선택</option>
             </select>
+            <input type="text" id="consultingManagerCustom" placeholder="✏️ 새 담당자 이름 입력" style="display:none;width:100%;margin-top:0.35rem;padding:0.5rem;border:1.5px solid #00897b;border-radius:4px;font-size:0.9rem;" oninput="this.value=this.value.trimStart()">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
@@ -15557,7 +15558,10 @@ async function saveConsultingData() {
   const companyExp = parseAmt(document.getElementById('consultingCompanyExp').value);
   const otherExpItems = getOtherExpItems();
   const otherExp = otherExpItems.reduce((s, i) => s + i.amount, 0);
-  const manager = document.getElementById('consultingManager').value;
+  const managerSel = document.getElementById('consultingManager');
+  const manager = managerSel.value === '__custom__'
+    ? (document.getElementById('consultingManagerCustom').value || '').trim()
+    : managerSel.value;
 
   console.log('editId:', editId);
   console.log('site:', site, 'year:', year);
@@ -15839,10 +15843,16 @@ async function openConsultingAddModal(editId = null) {
   managerSelect.innerHTML = '<option value="">선택</option>';
   const allManagers = new Set([...HQ_MANAGERS]);
   consultingData.forEach(d => { if (d.manager) allManagers.add(d.manager); });
+  consultingListData.forEach(d => { if (d.manager) allManagers.add(d.manager); });
   Array.from(allManagers).sort().forEach(m => {
     managerSelect.innerHTML += `<option value="${m}">${m}</option>`;
   });
+  // ★ 직접 입력 옵션 (항상 맨 마지막)
+  managerSelect.innerHTML += `<option value="__custom__">✏️ 직접 입력...</option>`;
   managerSelect.value = '';
+  // 직접 입력 필드 초기화
+  const customInput = document.getElementById('consultingManagerCustom');
+  if (customInput) { customInput.style.display = 'none'; customInput.value = ''; }
   
   document.getElementById('consultingAddModalTitle').textContent = '📋 기술컨설팅 등록';
   
@@ -15867,7 +15877,17 @@ async function openConsultingAddModal(editId = null) {
         addOtherExpEntry(item.otherExpContent || '', item.otherExp);
       }
       calcOtherExpTotal();
-      managerSelect.value = item.manager || '';
+      // 담당자 설정: 목록에 없으면 직접 입력 모드로
+      const managerOptions = Array.from(managerSelect.options).map(o => o.value).filter(v => v && v !== '__custom__');
+      if (item.manager && !managerOptions.includes(item.manager)) {
+        managerSelect.value = '__custom__';
+        const customInput = document.getElementById('consultingManagerCustom');
+        if (customInput) { customInput.style.display = 'block'; customInput.value = item.manager; }
+      } else {
+        managerSelect.value = item.manager || '';
+        const customInput = document.getElementById('consultingManagerCustom');
+        if (customInput) { customInput.style.display = 'none'; customInput.value = ''; }
+      }
       document.getElementById('consultingAddModalTitle').textContent = '📋 기술컨설팅 수정';
     } else {
       // ID로 못 찾으면 테이블 새로고침
@@ -15880,6 +15900,20 @@ async function openConsultingAddModal(editId = null) {
   }
   
   calcConsultingPreview();
+}
+
+// 담당자 직접 입력 토글
+function toggleConsultingManagerInput() {
+  const select = document.getElementById('consultingManager');
+  const customInput = document.getElementById('consultingManagerCustom');
+  if (!customInput) return;
+  if (select.value === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.value = '';
+  }
 }
 
 // 기술컨설팅 모달 닫기
