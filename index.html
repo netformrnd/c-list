@@ -862,7 +862,6 @@ tr.selected { background: var(--primary-light); }
         <button id="siteReportYearAll" onclick="setSiteReportYear('all')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.2);color:white;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">전체</button>
         <button id="siteReportYear2026" onclick="setSiteReportYear('2026')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2026년</button>
         <button id="siteReportYear2025" onclick="setSiteReportYear('2025')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2025년</button>
-        <button id="siteReportYear2024" onclick="setSiteReportYear('2024')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2024년</button>
       </div>
     </div>
 
@@ -17063,7 +17062,7 @@ function toggleConsultingPresent(id, checked) {
 function setSiteReportYear(year) {
   window._siteReportYear = year;
   // 버튼 활성 스타일 업데이트
-  ['all','2026','2025','2024'].forEach(y => {
+  ['all','2026','2025'].forEach(y => {
     const btn = document.getElementById('siteReportYear' + (y === 'all' ? 'All' : y));
     if (!btn) return;
     const active = y === year;
