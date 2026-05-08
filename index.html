@@ -846,14 +846,23 @@ tr.selected { background: var(--primary-light); }
   <div id="mainReportSection" style="display:none;padding:0 0 2rem 0;">
 
     <!-- 리포트 헤더 -->
-    <div style="background:linear-gradient(135deg,#1A237E 0%,#283593 100%);border-radius:10px;padding:1.25rem 1.75rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="color:white;font-size:1.4rem;font-weight:700;letter-spacing:0.03em;">📊 기술컨설팅 현장보고</div>
-        <div id="reportDateLabel" style="color:#B3C5FF;font-size:0.85rem;margin-top:0.2rem;"></div>
+    <div style="background:linear-gradient(135deg,#1A237E 0%,#283593 100%);border-radius:10px;padding:1.25rem 1.75rem;margin-bottom:1.25rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+        <div>
+          <div style="color:white;font-size:1.4rem;font-weight:700;letter-spacing:0.03em;">📊 기술컨설팅 현장보고</div>
+          <div id="reportDateLabel" style="color:#B3C5FF;font-size:0.85rem;margin-top:0.2rem;"></div>
+        </div>
+        <div style="display:flex;gap:0.6rem;align-items:center;">
+          <button onclick="renderSiteReport()" style="padding:0.45rem 1rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">🔄 새로고침</button>
+          <button onclick="downloadConsultingReport()" style="padding:0.45rem 1rem;background:#43A047;border:none;color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">📥 엑셀 저장</button>
+        </div>
       </div>
-      <div style="display:flex;gap:0.6rem;align-items:center;">
-        <button onclick="renderSiteReport()" style="padding:0.45rem 1rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">🔄 새로고침</button>
-        <button onclick="downloadConsultingReport()" style="padding:0.45rem 1rem;background:#43A047;border:none;color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">📥 엑셀 저장</button>
+      <!-- 년도 선택 탭 -->
+      <div style="display:flex;gap:0.4rem;">
+        <button id="siteReportYearAll" onclick="setSiteReportYear('all')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.2);color:white;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">전체</button>
+        <button id="siteReportYear2026" onclick="setSiteReportYear('2026')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2026년</button>
+        <button id="siteReportYear2025" onclick="setSiteReportYear('2025')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2025년</button>
+        <button id="siteReportYear2024" onclick="setSiteReportYear('2024')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2024년</button>
       </div>
     </div>
 
@@ -16416,7 +16425,10 @@ function switchMainListTab(tab) {
   } else if (tab === 'report') {
     if (tabReport) { tabReport.style.background = '#1A237E'; tabReport.style.color = 'white'; }
     if (sectionReport) sectionReport.style.display = 'block';
-    setTimeout(() => renderSiteReport(), 10);
+    setTimeout(() => {
+      if (window._siteReportYear === undefined) window._siteReportYear = 'all';
+      setSiteReportYear(window._siteReportYear);
+    }, 10);
   }
 }
 
@@ -17047,6 +17059,22 @@ function toggleConsultingPresent(id, checked) {
   showToast(`현장투입 ${checked ? 'O' : 'X'}로 변경되었습니다.`, 'success');
 }
 
+// 현장보고 년도 선택
+function setSiteReportYear(year) {
+  window._siteReportYear = year;
+  // 버튼 활성 스타일 업데이트
+  ['all','2026','2025','2024'].forEach(y => {
+    const btn = document.getElementById('siteReportYear' + (y === 'all' ? 'All' : y));
+    if (!btn) return;
+    const active = y === year;
+    btn.style.background = active ? 'rgba(255,255,255,0.3)' : 'transparent';
+    btn.style.border = active ? '1.5px solid rgba(255,255,255,0.8)' : '1.5px solid rgba(255,255,255,0.3)';
+    btn.style.color = active ? 'white' : 'rgba(255,255,255,0.7)';
+    btn.style.fontWeight = active ? '700' : '600';
+  });
+  renderSiteReport();
+}
+
 // 현장보고 탭 HTML 리포트 렌더링 (v2)
 function renderSiteReport() {
   const today = new Date().toISOString().split('T')[0];
@@ -17057,8 +17085,11 @@ function renderSiteReport() {
   const label = document.getElementById('reportDateLabel');
   if (label) label.textContent = reportDate + ' 기준';
 
-  // 데이터 분류 (25년, 26년만 표시)
-  const all = consultingListData.filter(d => d.year === '2025' || d.year === '2026');
+  // 선택된 년도 필터 적용
+  const siteReportYear = window._siteReportYear || 'all';
+  const all = siteReportYear === 'all'
+    ? consultingListData
+    : consultingListData.filter(d => d.year === siteReportYear);
   const presentItems   = all.filter(d => !!d.todayPresent);
   const absentItems    = all.filter(d => !d.todayPresent && (!d.endDate || d.endDate > today));
   const ongoingItems   = all.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
