@@ -16380,41 +16380,42 @@ let consultingListData = [];
 function switchMainListTab(tab) {
   console.log('탭 전환:', tab);
 
+  // 탭 버튼
   const tabConstruction = document.getElementById('mainTabConstruction');
   const tabConsulting   = document.getElementById('mainTabConsulting');
   const tabReport       = document.getElementById('mainTabReport');
+  // 섹션
   const sectionConstruction = document.getElementById('mainConstructionSection');
   const sectionConsulting   = document.getElementById('mainConsultingSection');
   const sectionReport       = document.getElementById('mainReportSection');
 
-  // 모든 탭 초기화
+  // 모든 탭·섹션 초기화
   [tabConstruction, tabConsulting, tabReport].forEach(t => {
     if (t) { t.style.background = '#e0e0e0'; t.style.color = '#666'; }
   });
-  [sectionConstruction, sectionConsulting, sectionReport].forEach(s => {
-    if (s) s.style.display = 'none';
-  });
+  if (sectionConstruction) sectionConstruction.style.display = 'none';
+  if (sectionConsulting)   sectionConsulting.style.display   = 'none';
+  if (sectionReport)       sectionReport.style.display       = 'none';
 
   if (tab === 'construction') {
-    tabConstruction.style.background = '#1976d2';
-    tabConstruction.style.color = 'white';
-    sectionConstruction.style.display = 'block';
+    if (tabConstruction) { tabConstruction.style.background = '#1976d2'; tabConstruction.style.color = 'white'; }
+    if (sectionConstruction) sectionConstruction.style.display = 'block';
 
   } else if (tab === 'consulting') {
-    tabConsulting.style.background = '#00897b';
-    tabConsulting.style.color = 'white';
-    sectionConsulting.style.display = 'block';
-    const yearFilter = document.getElementById('consultingMainYearFilter');
-    if (yearFilter && currentYear) yearFilter.value = currentYear;
-    setTimeout(() => {
+    if (tabConsulting) { tabConsulting.style.background = '#00897b'; tabConsulting.style.color = 'white'; }
+    if (sectionConsulting) sectionConsulting.style.display = 'block';
+    setTimeout(async () => {
+      // 데이터 없으면 재로드
+      if (!consultingListData || consultingListData.length === 0) {
+        await loadConsultingListData();
+      }
       populateConsultingMainManagerFilter();
       renderConsultingMain();
     }, 10);
 
   } else if (tab === 'report') {
-    tabReport.style.background = '#1A237E';
-    tabReport.style.color = 'white';
-    sectionReport.style.display = 'block';
+    if (tabReport) { tabReport.style.background = '#1A237E'; tabReport.style.color = 'white'; }
+    if (sectionReport) sectionReport.style.display = 'block';
     setTimeout(() => renderSiteReport(), 10);
   }
 }
