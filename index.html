@@ -17056,8 +17056,8 @@ function renderSiteReport() {
   const label = document.getElementById('reportDateLabel');
   if (label) label.textContent = reportDate + ' 기준';
 
-  // 데이터 분류
-  const all = consultingListData;
+  // 데이터 분류 (25년, 26년만 표시)
+  const all = consultingListData.filter(d => d.year === '2025' || d.year === '2026');
   const presentItems   = all.filter(d => !!d.todayPresent);
   const absentItems    = all.filter(d => !d.todayPresent && (!d.endDate || d.endDate > today));
   const ongoingItems   = all.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
