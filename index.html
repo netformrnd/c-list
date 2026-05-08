@@ -17026,117 +17026,187 @@ function downloadConsultingReport() {
     showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error');
     return;
   }
+
   const today = new Date().toISOString().split('T')[0];
   const reportDate = today.replace(/-/g, '.');
+  const COLS = 8; // A~H
 
-  // 현재 필터 적용된 항목 기준 (없으면 전체)
-  const yearFilter = (document.getElementById('consultingMainYearFilter') || {}).value || '';
-  const typeFilter = (document.getElementById('consultingMainTypeFilter') || {}).value || '';
-  const managerFilter = (document.getElementById('consultingMainManagerFilter') || {}).value || '';
+  // ── 스타일 헬퍼 ──────────────────────────────────────────
+  const border = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
+  const borderMed = { top:{style:'medium',color:{rgb:'9E9E9E'}}, bottom:{style:'medium',color:{rgb:'9E9E9E'}}, left:{style:'medium',color:{rgb:'9E9E9E'}}, right:{style:'medium',color:{rgb:'9E9E9E'}} };
 
-  let baseItems = consultingListData.filter(item => {
-    if (yearFilter === '2020-2021') {
-      if (item.year !== '2020' && item.year !== '2021') return false;
-    } else if (yearFilter) {
-      if (item.year !== yearFilter) return false;
+  // 셀 스타일 팩토리
+  const cell = (v, { bold=false, italic=false, fontSize=10, fontColor='333333', bg=null, align='center', valign='center', wrap=true, borders=border, sz=null } = {}) => ({
+    v,
+    s: {
+      font: { bold, italic, sz: sz||fontSize, color: { rgb: fontColor }, name: '맑은 고딕' },
+      fill: bg ? { fgColor: { rgb: bg } } : { fgColor: { rgb: 'FFFFFF' } },
+      alignment: { horizontal: align, vertical: valign, wrapText: wrap },
+      border: borders
     }
-    if (typeFilter && item.type !== typeFilter) return false;
+  });
+
+  // 자주 쓰는 셀 유형
+  const empty = () => cell('', { borders: border });
+  const hdr = (v, bg, fontColor='FFFFFF') => cell(v, { bold:true, fontSize:10, fontColor, bg, borders: borderMed });
+  const secTitle = (v, bg, fontColor='FFFFFF') => cell(v, { bold:true, fontSize:11, fontColor, bg, align:'left', borders: borderMed });
+  const subTitle = (v, bg, fontColor='FFFFFF') => cell(v, { bold:true, fontSize:10, fontColor, bg, align:'left', borders: border });
+  const dataC = (v, bg=null, fontColor='333333') => cell(v, { fontSize:10, fontColor, bg: bg||'FFFFFF', align:'center' });
+  const dataL = (v, bg=null, fontColor='333333') => cell(v, { fontSize:10, fontColor, bg: bg||'FFFFFF', align:'left' });
+  const noCell = (v) => cell(v, { fontSize:9, fontColor:'888888', bg:'F5F5F5', align:'center' });
+
+  // ── 필터 적용 ─────────────────────────────────────────────
+  const yearFilter    = (document.getElementById('consultingMainYearFilter')   ||{}).value||'';
+  const typeFilter    = (document.getElementById('consultingMainTypeFilter')    ||{}).value||'';
+  const managerFilter = (document.getElementById('consultingMainManagerFilter') ||{}).value||'';
+
+  const baseItems = consultingListData.filter(item => {
+    if (yearFilter === '2020-2021') { if (item.year!=='2020' && item.year!=='2021') return false; }
+    else if (yearFilter && item.year !== yearFilter) return false;
+    if (typeFilter   && item.type    !== typeFilter)    return false;
     if (managerFilter && item.manager !== managerFilter) return false;
     return true;
   });
 
-  // 섹션 분류
-  const presentItems  = baseItems.filter(item => !!item.todayPresent);
-  const absentItems   = baseItems.filter(item => !item.todayPresent && item.consulting === 'Y' && (!item.endDate || item.endDate > today));
-  const completedItems = baseItems.filter(item => item.endDate && item.endDate <= today).sort((a,b) => (b.endDate||'').localeCompare(a.endDate||''));
-  const upcomingItems  = baseItems.filter(item => item.startDate && item.startDate > today).sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
+  const presentItems   = baseItems.filter(d => !!d.todayPresent);
+  const absentItems    = baseItems.filter(d => !d.todayPresent && d.consulting==='Y' && (!d.endDate || d.endDate > today));
+  const completedItems = baseItems.filter(d => d.endDate && d.endDate <= today).sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
+  const upcomingItems  = baseItems.filter(d => d.startDate && d.startDate > today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
 
+  const pRate = (item) => (item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate + '%' : '-';
+
+  // ── 시트 데이터 ───────────────────────────────────────────
   const wsData = [];
-  const S = (v, bold, bg, color) => ({ v, s: { font: { bold: !!bold, color: { rgb: color||'000000' } }, fill: bg ? { fgColor: { rgb: bg } } : undefined, alignment: { vertical:'center', horizontal:'center', wrapText: true } } });
-  const L = (v, bold) => ({ v, s: { font: { bold: !!bold }, alignment: { vertical:'center', horizontal:'left', wrapText: true } } });
+  const merges = [];
+  let row = 0; // 0-based
 
-  // 제목 행
-  wsData.push([L(`기술컨설팅 현장보고 (${reportDate})`, true)]);
-  wsData.push([]);
+  const pushRow = (arr) => { wsData.push(arr); row++; };
+  const pushEmpty = (bg='FAFAFA') => {
+    pushRow(Array(COLS).fill(null).map(() => cell('', { bg, borders:{ top:{style:'thin',color:{rgb:'EEEEEE'}}, bottom:{style:'thin',color:{rgb:'EEEEEE'}}, left:{style:'thin',color:{rgb:'EEEEEE'}}, right:{style:'thin',color:{rgb:'EEEEEE'}} } })));
+  };
+  const merge = (r, cs, ce) => merges.push({ s:{r,c:cs}, e:{r,c:ce} });
 
-  // === 섹션 1: 현장투입 현황 ===
-  wsData.push([L('■ 현장투입 현황', true)]);
-  wsData.push([S('NO',true,'BBDEFB'), S('공사현장',true,'BBDEFB'), S('공사명',true,'BBDEFB'), S('영업담당',true,'BBDEFB'), S('현장소장',true,'BBDEFB'), S('공정률(%)',true,'BBDEFB'), S('금일투입',true,'BBDEFB'), S('비고',true,'BBDEFB')]);
+  // ── 1. 대제목 ─────────────────────────────────────────────
+  pushRow([ cell('기술컨설팅  현장보고', { bold:true, fontSize:16, fontColor:'FFFFFF', bg:'1A237E', align:'left', borders:borderMed }),
+    ...Array(COLS-2).fill(cell('', { bg:'1A237E', borders:borderMed })),
+    cell(reportDate, { fontSize:10, fontColor:'B3C5FF', bg:'1A237E', align:'right', borders:borderMed }) ]);
+  merge(row-1, 0, COLS-2);
 
-  // 투입 O
-  wsData.push([L('▷ 투입 O', true)]);
+  pushRow([ cell('㈜넷폼알앤디  기술컨설팅팀', { italic:true, fontSize:10, fontColor:'FFFFFF', bg:'283593', align:'left', borders:borderMed }),
+    ...Array(COLS-1).fill(cell('', { bg:'283593', borders:borderMed })) ]);
+  merge(row-1, 0, COLS-1);
+
+  pushEmpty('FFFFFF');
+
+  // ── 2. 현장투입 현황 섹션 ─────────────────────────────────
+  pushRow([ secTitle('  📍 현장투입 현황', '00695C'), ...Array(COLS-1).fill(cell('', {bg:'00695C', borders:borderMed})) ]);
+  merge(row-1, 0, COLS-1);
+
+  // 투입 O 서브헤더
+  pushRow([ subTitle('  ▶ 투입 O  (' + presentItems.length + '건)', 'E8F5E9', '1B5E20'),
+    ...Array(COLS-1).fill(cell('', {bg:'E8F5E9', borders:border})) ]);
+  merge(row-1, 0, COLS-1);
+
+  // 컬럼 헤더
+  pushRow([ hdr('NO','37474F'), hdr('공사현장','37474F'), hdr('공사명','37474F'), hdr('영업담당','37474F'), hdr('현장소장','37474F'), hdr('공정률','37474F'), hdr('금일투입','37474F'), hdr('비고','37474F') ]);
+
   if (presentItems.length > 0) {
-    presentItems.forEach((item, idx) => {
-      wsData.push([
-        S(idx+1), L(item.site||''), L(item.project||'-'), S(item.manager||'-'), S(item.fieldManager||'-'),
-        S(item.progressRate !== undefined && item.progressRate !== '' ? item.progressRate+'%' : '-'),
-        S('O', true, 'C8E6C9', '2E7D32'), L('')
-      ]);
+    presentItems.forEach((item, i) => {
+      const bg = i%2===0 ? 'F1F8E9' : 'FFFFFF';
+      pushRow([ noCell(i+1), dataL(item.site||'', bg), dataL(item.project||'-', bg), dataC(item.manager||'-', bg), dataC(item.fieldManager||'-', bg),
+        cell(pRate(item), {bold:true, fontSize:11, fontColor:'1565C0', bg, align:'center'}),
+        cell('O', {bold:true, fontSize:11, fontColor:'2E7D32', bg:'C8E6C9', align:'center', borders:borderMed}),
+        dataL('', bg) ]);
     });
   } else {
-    wsData.push([L(''), L('해당 없음')]);
+    pushRow([ cell('', {bg:'F9FBE7'}), cell('해당 없음', {fontSize:10, fontColor:'AAAAAA', bg:'F9FBE7', align:'left', borders:border}), ...Array(COLS-2).fill(cell('',{bg:'F9FBE7'})) ]);
+    merge(row-1, 1, COLS-1);
   }
 
-  wsData.push([]);
+  pushEmpty();
 
-  // 투입 X
-  wsData.push([L('▷ 투입 X', true)]);
+  // 투입 X 서브헤더
+  pushRow([ subTitle('  ▶ 투입 X  (' + absentItems.length + '건)', 'FFEBEE', 'B71C1C'),
+    ...Array(COLS-1).fill(cell('', {bg:'FFEBEE', borders:border})) ]);
+  merge(row-1, 0, COLS-1);
+
+  pushRow([ hdr('NO','37474F'), hdr('공사현장','37474F'), hdr('공사명','37474F'), hdr('영업담당','37474F'), hdr('현장소장','37474F'), hdr('공정률','37474F'), hdr('금일투입','37474F'), hdr('비고','37474F') ]);
+
   if (absentItems.length > 0) {
-    absentItems.forEach((item, idx) => {
-      wsData.push([
-        S(idx+1), L(item.site||''), L(item.project||'-'), S(item.manager||'-'), S(item.fieldManager||'-'),
-        S(item.progressRate !== undefined && item.progressRate !== '' ? item.progressRate+'%' : '-'),
-        S('X', true, 'FFCDD2', 'C62828'), L('')
-      ]);
+    absentItems.forEach((item, i) => {
+      const bg = i%2===0 ? 'FFF8F8' : 'FFFFFF';
+      pushRow([ noCell(i+1), dataL(item.site||'', bg), dataL(item.project||'-', bg), dataC(item.manager||'-', bg), dataC(item.fieldManager||'-', bg),
+        cell(pRate(item), {bold:true, fontSize:11, fontColor:'1565C0', bg, align:'center'}),
+        cell('X', {bold:true, fontSize:11, fontColor:'C62828', bg:'FFCDD2', align:'center', borders:borderMed}),
+        dataL('', bg) ]);
     });
   } else {
-    wsData.push([L(''), L('해당 없음')]);
+    pushRow([ cell('', {bg:'FFF8F8'}), cell('해당 없음', {fontSize:10, fontColor:'AAAAAA', bg:'FFF8F8', align:'left', borders:border}), ...Array(COLS-2).fill(cell('',{bg:'FFF8F8'})) ]);
+    merge(row-1, 1, COLS-1);
   }
 
-  wsData.push([]);
-  wsData.push([]);
+  pushEmpty();
+  pushEmpty('FFFFFF');
 
-  // === 섹션 2: 준공현장 ===
-  wsData.push([L('■ 준공현장', true)]);
-  wsData.push([S('NO',true,'F3E5F5'), S('공사현장',true,'F3E5F5'), S('공사명',true,'F3E5F5'), S('영업담당',true,'F3E5F5'), S('현장소장',true,'F3E5F5'), S('공정률(%)',true,'F3E5F5'), S('실준공일',true,'F3E5F5'), S('비고',true,'F3E5F5')]);
+  // ── 3. 준공현장 섹션 ─────────────────────────────────────
+  pushRow([ secTitle('  🏁 준공현장  (' + completedItems.length + '건)', '4A148C'), ...Array(COLS-1).fill(cell('', {bg:'4A148C', borders:borderMed})) ]);
+  merge(row-1, 0, COLS-1);
+
+  pushRow([ hdr('NO','6A1B9A'), hdr('공사현장','6A1B9A'), hdr('공사명','6A1B9A'), hdr('영업담당','6A1B9A'), hdr('현장소장','6A1B9A'), hdr('공정률','6A1B9A'), hdr('실준공일','6A1B9A'), hdr('비고','6A1B9A') ]);
+
   if (completedItems.length > 0) {
-    completedItems.forEach((item, idx) => {
-      wsData.push([
-        S(idx+1), L(item.site||''), L(item.project||'-'), S(item.manager||'-'), S(item.fieldManager||'-'),
-        S(item.progressRate !== undefined && item.progressRate !== '' ? item.progressRate+'%' : '-'),
-        S(item.endDate||''), L('')
-      ]);
+    completedItems.forEach((item, i) => {
+      const bg = i%2===0 ? 'F3E5F5' : 'FFFFFF';
+      pushRow([ noCell(i+1), dataL(item.site||'', bg), dataL(item.project||'-', bg), dataC(item.manager||'-', bg), dataC(item.fieldManager||'-', bg),
+        cell(pRate(item), {bold:true, fontSize:11, fontColor:'6A1B9A', bg, align:'center'}),
+        dataC(item.endDate||'', bg), dataL('', bg) ]);
     });
   } else {
-    wsData.push([L(''), L('해당 없음')]);
+    pushRow([ cell('',{bg:'FAF3FF'}), cell('해당 없음', {fontSize:10, fontColor:'AAAAAA', bg:'FAF3FF', align:'left', borders:border}), ...Array(COLS-2).fill(cell('',{bg:'FAF3FF'})) ]);
+    merge(row-1, 1, COLS-1);
   }
 
-  wsData.push([]);
-  wsData.push([]);
+  pushEmpty();
+  pushEmpty('FFFFFF');
 
-  // === 섹션 3: 착공예정현장 ===
-  wsData.push([L('■ 착공예정현장', true)]);
-  wsData.push([S('NO',true,'E8F5E9'), S('공사현장',true,'E8F5E9'), S('공사명',true,'E8F5E9'), S('영업담당',true,'E8F5E9'), S('현장소장',true,'E8F5E9'), S('착공예정일',true,'E8F5E9'), S('',true,'E8F5E9'), S('비고',true,'E8F5E9')]);
+  // ── 4. 착공예정현장 섹션 ─────────────────────────────────
+  pushRow([ secTitle('  🚧 착공예정현장  (' + upcomingItems.length + '건)', 'E65100'), ...Array(COLS-1).fill(cell('', {bg:'E65100', borders:borderMed})) ]);
+  merge(row-1, 0, COLS-1);
+
+  pushRow([ hdr('NO','F57C00'), hdr('공사현장','F57C00'), hdr('공사명','F57C00'), hdr('영업담당','F57C00'), hdr('현장소장','F57C00'), hdr('착공예정일','F57C00'), hdr('','F57C00'), hdr('비고','F57C00') ]);
+
   if (upcomingItems.length > 0) {
-    upcomingItems.forEach((item, idx) => {
-      wsData.push([
-        S(idx+1), L(item.site||''), L(item.project||'-'), S(item.manager||'-'), S(item.fieldManager||'-'),
-        S(item.startDate||''), S(''), L('')
-      ]);
+    upcomingItems.forEach((item, i) => {
+      const bg = i%2===0 ? 'FFF3E0' : 'FFFFFF';
+      pushRow([ noCell(i+1), dataL(item.site||'', bg), dataL(item.project||'-', bg), dataC(item.manager||'-', bg), dataC(item.fieldManager||'-', bg),
+        dataC(item.startDate||'', bg), dataC('', bg), dataL('', bg) ]);
     });
   } else {
-    wsData.push([L(''), L('해당 없음')]);
+    pushRow([ cell('',{bg:'FFF8F0'}), cell('해당 없음', {fontSize:10, fontColor:'AAAAAA', bg:'FFF8F0', align:'left', borders:border}), ...Array(COLS-2).fill(cell('',{bg:'FFF8F0'})) ]);
+    merge(row-1, 1, COLS-1);
   }
 
+  pushEmpty();
+
+  // ── 시트 생성 ─────────────────────────────────────────────
   const ws = XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols'] = [
-    {wch:5}, {wch:22}, {wch:18}, {wch:10}, {wch:10}, {wch:10}, {wch:12}, {wch:15}
-  ];
+
+  ws['!cols'] = [ {wch:5}, {wch:24}, {wch:20}, {wch:10}, {wch:10}, {wch:9}, {wch:12}, {wch:16} ];
+
+  // 행 높이 설정
+  ws['!rows'] = [];
+  wsData.forEach((_, i) => {
+    if (i === 0) ws['!rows'][i] = { hpt: 32 };       // 대제목
+    else if (i === 1) ws['!rows'][i] = { hpt: 18 };  // 부제목
+    else ws['!rows'][i] = { hpt: 20 };
+  });
+
+  ws['!merges'] = merges;
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '현장보고');
 
-  const fileName = `현장보고_${reportDate.replace(/\./g,'')}.xlsx`;
+  const fileName = `현장보고_${today.replace(/-/g,'')}.xlsx`;
   XLSX.writeFile(wb, fileName);
   showToast('현장보고가 다운로드되었습니다.', 'success');
 }
