@@ -336,6 +336,9 @@ tr.selected { background: var(--primary-light); }
     <button type="button" class="main-list-tab" onclick="switchMainListTab('consulting')" id="mainTabConsulting" style="padding:0.75rem 2rem;border:none;background:#e0e0e0;color:#666;font-weight:600;font-size:1rem;cursor:pointer;border-radius:8px 8px 0 0;">
       📋 기술컨설팅
     </button>
+    <button type="button" class="main-list-tab" onclick="switchMainListTab('report')" id="mainTabReport" style="padding:0.75rem 2rem;border:none;background:#e0e0e0;color:#666;font-weight:600;font-size:1rem;cursor:pointer;border-radius:8px 8px 0 0;margin-left:4px;">
+      📊 현장보고
+    </button>
     <button type="button" onclick="refreshAllData()" id="mainTabRefresh" style="padding:0.75rem 1.5rem;border:none;background:#e0e0e0;color:#666;font-weight:600;font-size:1rem;cursor:pointer;border-radius:8px 8px 0 0;margin-left:auto;" title="최신 데이터로 새로고침">
       🔄 새로고침
     </button>
@@ -838,6 +841,29 @@ tr.selected { background: var(--primary-light); }
       </table>
     </div>
   </div><!-- mainConsultingSection 끝 -->
+
+  <!-- 현장보고 섹션 -->
+  <div id="mainReportSection" style="display:none;padding:0 0 2rem 0;">
+
+    <!-- 리포트 헤더 -->
+    <div style="background:linear-gradient(135deg,#1A237E 0%,#283593 100%);border-radius:10px;padding:1.25rem 1.75rem;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="color:white;font-size:1.4rem;font-weight:700;letter-spacing:0.03em;">📊 기술컨설팅 현장보고</div>
+        <div id="reportDateLabel" style="color:#B3C5FF;font-size:0.85rem;margin-top:0.2rem;"></div>
+      </div>
+      <div style="display:flex;gap:0.6rem;align-items:center;">
+        <button onclick="renderConsultingReport()" style="padding:0.45rem 1rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">🔄 새로고침</button>
+        <button onclick="downloadConsultingReport()" style="padding:0.45rem 1rem;background:#43A047;border:none;color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">📥 엑셀 저장</button>
+      </div>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div id="reportSummaryCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1.25rem;"></div>
+
+    <!-- 섹션 컨테이너 -->
+    <div id="reportSectionsContainer"></div>
+
+  </div><!-- mainReportSection 끝 -->
 </main>
 
 <div class="modal" id="editModal">
@@ -16353,43 +16379,43 @@ let consultingListData = [];
 // 메인 리스트 탭 전환
 function switchMainListTab(tab) {
   console.log('탭 전환:', tab);
-  
+
   const tabConstruction = document.getElementById('mainTabConstruction');
-  const tabConsulting = document.getElementById('mainTabConsulting');
+  const tabConsulting   = document.getElementById('mainTabConsulting');
+  const tabReport       = document.getElementById('mainTabReport');
   const sectionConstruction = document.getElementById('mainConstructionSection');
-  const sectionConsulting = document.getElementById('mainConsultingSection');
-  
-  if (!tabConstruction || !tabConsulting || !sectionConstruction || !sectionConsulting) {
-    console.error('탭 요소를 찾을 수 없음');
-    return;
-  }
-  
+  const sectionConsulting   = document.getElementById('mainConsultingSection');
+  const sectionReport       = document.getElementById('mainReportSection');
+
+  // 모든 탭 초기화
+  [tabConstruction, tabConsulting, tabReport].forEach(t => {
+    if (t) { t.style.background = '#e0e0e0'; t.style.color = '#666'; }
+  });
+  [sectionConstruction, sectionConsulting, sectionReport].forEach(s => {
+    if (s) s.style.display = 'none';
+  });
+
   if (tab === 'construction') {
     tabConstruction.style.background = '#1976d2';
     tabConstruction.style.color = 'white';
-    tabConsulting.style.background = '#e0e0e0';
-    tabConsulting.style.color = '#666';
     sectionConstruction.style.display = 'block';
-    sectionConsulting.style.display = 'none';
-  } else {
-    tabConstruction.style.background = '#e0e0e0';
-    tabConstruction.style.color = '#666';
+
+  } else if (tab === 'consulting') {
     tabConsulting.style.background = '#00897b';
     tabConsulting.style.color = 'white';
-    sectionConstruction.style.display = 'none';
     sectionConsulting.style.display = 'block';
-    
-    // 년도 필터 동기화 (모든 년도 처리)
     const yearFilter = document.getElementById('consultingMainYearFilter');
-    if (yearFilter && currentYear) {
-      yearFilter.value = currentYear; // '2020-2021' 포함 모든 년도 정상 동기화
-    }
-    
-    // 약간의 지연 후 렌더링 (display 변경 후)
+    if (yearFilter && currentYear) yearFilter.value = currentYear;
     setTimeout(() => {
       populateConsultingMainManagerFilter();
       renderConsultingMain();
     }, 10);
+
+  } else if (tab === 'report') {
+    tabReport.style.background = '#1A237E';
+    tabReport.style.color = 'white';
+    sectionReport.style.display = 'block';
+    setTimeout(() => renderConsultingReport(), 10);
   }
 }
 
@@ -17018,6 +17044,166 @@ function toggleConsultingPresent(id, checked) {
   item.todayPresent = checked;
   saveConsultingListDataToStorage();
   showToast(`현장투입 ${checked ? 'O' : 'X'}로 변경되었습니다.`, 'success');
+}
+
+// 현장보고 HTML 리포트 렌더링
+function renderConsultingReport() {
+  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const weekDay = ['일','월','화','수','목','금','토'][d.getDay()];
+  const reportDate = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${weekDay})`;
+
+  const label = document.getElementById('reportDateLabel');
+  if (label) label.textContent = reportDate + ' 기준';
+
+  // 데이터 분류
+  const all = consultingListData;
+  const presentItems   = all.filter(d => !!d.todayPresent);
+  const absentItems    = all.filter(d => !d.todayPresent && d.consulting==='Y' && (!d.endDate || d.endDate > today));
+  const ongoingItems   = all.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const completedItems = all.filter(d => d.endDate && d.endDate <= today).sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
+  const upcomingItems  = all.filter(d => d.startDate && d.startDate > today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  const pRate = item => (item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate + '%' : '-';
+
+  // ── 요약 카드 ──────────────────────────────────────────────
+  const cards = document.getElementById('reportSummaryCards');
+  if (cards) {
+    cards.innerHTML = `
+      <div style="background:white;border-radius:10px;padding:1rem 1.25rem;border-left:4px solid #00897b;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size:0.8rem;color:#888;margin-bottom:0.25rem;">금일 투입</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#00897b;">${presentItems.length}<span style="font-size:0.9rem;font-weight:400;margin-left:2px;">건</span></div>
+      </div>
+      <div style="background:white;border-radius:10px;padding:1rem 1.25rem;border-left:4px solid #1565C0;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size:0.8rem;color:#888;margin-bottom:0.25rem;">공사중</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#1565C0;">${ongoingItems.length}<span style="font-size:0.9rem;font-weight:400;margin-left:2px;">건</span></div>
+      </div>
+      <div style="background:white;border-radius:10px;padding:1rem 1.25rem;border-left:4px solid #6A1B9A;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size:0.8rem;color:#888;margin-bottom:0.25rem;">준공</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#6A1B9A;">${completedItems.length}<span style="font-size:0.9rem;font-weight:400;margin-left:2px;">건</span></div>
+      </div>
+      <div style="background:white;border-radius:10px;padding:1rem 1.25rem;border-left:4px solid #E65100;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size:0.8rem;color:#888;margin-bottom:0.25rem;">착공예정</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#E65100;">${upcomingItems.length}<span style="font-size:0.9rem;font-weight:400;margin-left:2px;">건</span></div>
+      </div>
+    `;
+  }
+
+  // ── 공통 테이블 렌더러 ──────────────────────────────────────
+  const thStyle = 'padding:0.55rem 0.75rem;font-size:0.8rem;font-weight:600;color:white;text-align:center;white-space:nowrap;';
+  const tdStyle = 'padding:0.5rem 0.75rem;font-size:0.85rem;border-bottom:1px solid #f0f0f0;vertical-align:middle;';
+
+  function buildTable(items, colDefs, emptyMsg, rowBg) {
+    if (items.length === 0) {
+      return `<div style="text-align:center;padding:1.2rem;color:#bbb;font-size:0.9rem;">${emptyMsg}</div>`;
+    }
+    const thead = colDefs.map(c => `<th style="${thStyle}text-align:${c.align||'center'};">${c.label}</th>`).join('');
+    const rows = items.map((item, i) => {
+      const bg = i%2===0 ? rowBg : '#ffffff';
+      const cells = colDefs.map(c => {
+        const v = c.render ? c.render(item) : (item[c.key] || '-');
+        return `<td style="${tdStyle}text-align:${c.align||'center'};background:${bg};">${v}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+    return `<table style="width:100%;border-collapse:collapse;">
+      <thead><tr>${thead}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  // ── 섹션 공통 래퍼 ──────────────────────────────────────────
+  function buildSection(icon, title, count, headerBg, subHeaderBg, content) {
+    return `
+      <div style="background:white;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.08);margin-bottom:1.25rem;overflow:hidden;">
+        <div style="background:${headerBg};padding:0.85rem 1.25rem;display:flex;align-items:center;gap:0.5rem;">
+          <span style="font-size:1.05rem;">${icon}</span>
+          <span style="color:white;font-weight:700;font-size:1rem;">${title}</span>
+          <span style="margin-left:auto;background:rgba(255,255,255,0.25);color:white;font-size:0.8rem;font-weight:600;padding:0.15rem 0.6rem;border-radius:20px;">${count}건</span>
+        </div>
+        ${content}
+      </div>`;
+  }
+
+  // ── 현장투입 전용 섹션 (O/X 구분) ───────────────────────────
+  const investCols = [
+    { label:'NO',     render:(item,_,i)=>i+1, align:'center' },
+    { label:'공사현장', render:item=>`<span style="font-weight:600;color:#1a1a1a;">${item.site||''}</span>`, align:'left' },
+    { label:'공사명',  render:item=>item.project||'-', align:'left' },
+    { label:'영업담당', key:'manager' },
+    { label:'현장소장', key:'fieldManager' },
+    { label:'공정률',  render:item=>`<span style="font-weight:700;color:#1565C0;">${pRate(item)}</span>` },
+    { label:'금일투입', render:item=>`<span style="font-weight:700;font-size:0.95rem;color:${item.todayPresent?'#2E7D32':'#C62828'};background:${item.todayPresent?'#E8F5E9':'#FFEBEE'};padding:0.15rem 0.6rem;border-radius:4px;">${item.todayPresent?'O':'X'}</span>` }
+  ];
+  // NO 렌더 수정 (idx 전달 방식)
+  function buildInvestTable(items, rowBg) {
+    if (items.length === 0) return `<div style="text-align:center;padding:1.2rem;color:#bbb;font-size:0.9rem;">해당 없음</div>`;
+    const thead = investCols.map(c=>`<th style="${thStyle}">${c.label}</th>`).join('');
+    const rows = items.map((item,i) => {
+      const bg = i%2===0 ? rowBg : '#ffffff';
+      return `<tr>
+        <td style="${tdStyle}background:${bg};color:#999;font-size:0.8rem;">${i+1}</td>
+        <td style="${tdStyle}background:${bg};font-weight:600;">${item.site||''}</td>
+        <td style="${tdStyle}background:${bg};color:#555;">${item.project||'-'}</td>
+        <td style="${tdStyle}background:${bg};text-align:center;">${item.manager||'-'}</td>
+        <td style="${tdStyle}background:${bg};text-align:center;">${item.fieldManager||'-'}</td>
+        <td style="${tdStyle}background:${bg};text-align:center;font-weight:700;color:#1565C0;">${pRate(item)}</td>
+        <td style="${tdStyle}background:${bg};text-align:center;"><span style="font-weight:700;color:${item.todayPresent?'#2E7D32':'#C62828'};background:${item.todayPresent?'#E8F5E9':'#FFEBEE'};padding:0.2rem 0.7rem;border-radius:4px;">${item.todayPresent?'O':'X'}</span></td>
+      </tr>`;
+    }).join('');
+    return `<table style="width:100%;border-collapse:collapse;"><thead><tr>${thead}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  const investContent = `
+    <div style="padding:0.6rem 1.25rem 0.4rem;background:#E8F5E9;font-size:0.82rem;font-weight:600;color:#1B5E20;">▶ 투입 O (${presentItems.length}건)</div>
+    ${buildInvestTable(presentItems, '#F1F8E9')}
+    <div style="padding:0.6rem 1.25rem 0.4rem;background:#FFEBEE;font-size:0.82rem;font-weight:600;color:#B71C1C;">▶ 투입 X (${absentItems.length}건)</div>
+    ${buildInvestTable(absentItems, '#FFF8F8')}
+  `;
+
+  // ── 공사중 컬럼 ─────────────────────────────────────────────
+  const ongoingContent = buildTable(ongoingItems,
+    [
+      { label:'NO',    render:(_,i)=>i+1 },
+      { label:'공사현장', render:item=>`<span style="font-weight:600;">${item.site||''}</span>`, align:'left' },
+      { label:'공사명',  render:item=>item.project||'-', align:'left' },
+      { label:'영업담당', key:'manager' },
+      { label:'현장소장', key:'fieldManager' },
+      { label:'공정률',  render:item=>`<span style="font-weight:700;color:#1565C0;">${pRate(item)}</span>` },
+      { label:'실착공일', key:'startDate' }
+    ], '해당 없음', '#E3F2FD');
+
+  // ── 준공현장 컬럼 ───────────────────────────────────────────
+  const completedContent = buildTable(completedItems,
+    [
+      { label:'NO',    render:(_,i)=>i+1 },
+      { label:'공사현장', render:item=>`<span style="font-weight:600;">${item.site||''}</span>`, align:'left' },
+      { label:'공사명',  render:item=>item.project||'-', align:'left' },
+      { label:'영업담당', key:'manager' },
+      { label:'현장소장', key:'fieldManager' },
+      { label:'공정률',  render:item=>`<span style="font-weight:700;color:#6A1B9A;">${pRate(item)}</span>` },
+      { label:'실준공일', key:'endDate' }
+    ], '해당 없음', '#F3E5F5');
+
+  // ── 착공예정 컬럼 ───────────────────────────────────────────
+  const upcomingContent = buildTable(upcomingItems,
+    [
+      { label:'NO',    render:(_,i)=>i+1 },
+      { label:'공사현장', render:item=>`<span style="font-weight:600;">${item.site||''}</span>`, align:'left' },
+      { label:'공사명',  render:item=>item.project||'-', align:'left' },
+      { label:'영업담당', key:'manager' },
+      { label:'현장소장', key:'fieldManager' },
+      { label:'착공예정일', key:'startDate' }
+    ], '해당 없음', '#FFF3E0');
+
+  // ── 최종 렌더 ───────────────────────────────────────────────
+  const container = document.getElementById('reportSectionsContainer');
+  if (container) {
+    container.innerHTML =
+      buildSection('📍','현장투입 현황', presentItems.length + absentItems.length, '#00695C', '#E8F5E9', investContent) +
+      buildSection('🔨','공사중현장',    ongoingItems.length,   '#0D47A1', '#E3F2FD', ongoingContent) +
+      buildSection('🏁','준공현장',      completedItems.length, '#4A148C', '#F3E5F5', completedContent) +
+      buildSection('🚧','착공예정현장',  upcomingItems.length,  '#E65100', '#FFF3E0', upcomingContent);
+  }
 }
 
 // 현장보고 Excel 다운로드
