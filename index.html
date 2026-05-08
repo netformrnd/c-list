@@ -852,7 +852,7 @@ tr.selected { background: var(--primary-light); }
         <div id="reportDateLabel" style="color:#B3C5FF;font-size:0.85rem;margin-top:0.2rem;"></div>
       </div>
       <div style="display:flex;gap:0.6rem;align-items:center;">
-        <button onclick="renderConsultingReport()" style="padding:0.45rem 1rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">🔄 새로고침</button>
+        <button onclick="renderSiteReport()" style="padding:0.45rem 1rem;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">🔄 새로고침</button>
         <button onclick="downloadConsultingReport()" style="padding:0.45rem 1rem;background:#43A047;border:none;color:white;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;">📥 엑셀 저장</button>
       </div>
     </div>
@@ -16415,7 +16415,7 @@ function switchMainListTab(tab) {
     tabReport.style.background = '#1A237E';
     tabReport.style.color = 'white';
     sectionReport.style.display = 'block';
-    setTimeout(() => renderConsultingReport(), 10);
+    setTimeout(() => renderSiteReport(), 10);
   }
 }
 
@@ -17046,8 +17046,8 @@ function toggleConsultingPresent(id, checked) {
   showToast(`현장투입 ${checked ? 'O' : 'X'}로 변경되었습니다.`, 'success');
 }
 
-// 현장보고 HTML 리포트 렌더링
-function renderConsultingReport() {
+// 현장보고 탭 HTML 리포트 렌더링
+function renderSiteReport() {
   const today = new Date().toISOString().split('T')[0];
   const d = new Date();
   const weekDay = ['일','월','화','수','목','금','토'][d.getDay()];
@@ -17059,7 +17059,7 @@ function renderConsultingReport() {
   // 데이터 분류
   const all = consultingListData;
   const presentItems   = all.filter(d => !!d.todayPresent);
-  const absentItems    = all.filter(d => !d.todayPresent && d.consulting==='Y' && (!d.endDate || d.endDate > today));
+  const absentItems    = all.filter(d => !d.todayPresent && (!d.endDate || d.endDate > today));
   const ongoingItems   = all.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const completedItems = all.filter(d => d.endDate && d.endDate <= today).sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
   const upcomingItems  = all.filter(d => d.startDate && d.startDate > today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
