@@ -17070,6 +17070,7 @@ function downloadConsultingReport() {
 
   const presentItems   = baseItems.filter(d => !!d.todayPresent);
   const absentItems    = baseItems.filter(d => !d.todayPresent && d.consulting==='Y' && (!d.endDate || d.endDate > today));
+  const ongoingItems   = baseItems.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const completedItems = baseItems.filter(d => d.endDate && d.endDate <= today).sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
   const upcomingItems  = baseItems.filter(d => d.startDate && d.startDate > today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
 
@@ -17148,7 +17149,28 @@ function downloadConsultingReport() {
   pushEmpty();
   pushEmpty('FFFFFF');
 
-  // ── 3. 준공현장 섹션 ─────────────────────────────────────
+  // ── 3. 공사중현장 섹션 ───────────────────────────────────
+  pushRow([ secTitle('  🔨 공사중현장  (' + ongoingItems.length + '건)', '0D47A1'), ...Array(COLS-1).fill(cell('', {bg:'0D47A1', borders:borderMed})) ]);
+  merge(row-1, 0, COLS-1);
+
+  pushRow([ hdr('NO','1565C0'), hdr('공사현장','1565C0'), hdr('공사명','1565C0'), hdr('영업담당','1565C0'), hdr('현장소장','1565C0'), hdr('공정률','1565C0'), hdr('실착공일','1565C0'), hdr('비고','1565C0') ]);
+
+  if (ongoingItems.length > 0) {
+    ongoingItems.forEach((item, i) => {
+      const bg = i%2===0 ? 'E3F2FD' : 'FFFFFF';
+      pushRow([ noCell(i+1), dataL(item.site||'', bg), dataL(item.project||'-', bg), dataC(item.manager||'-', bg), dataC(item.fieldManager||'-', bg),
+        cell(pRate(item), {bold:true, fontSize:11, fontColor:'1565C0', bg, align:'center'}),
+        dataC(item.startDate||'', bg), dataL('', bg) ]);
+    });
+  } else {
+    pushRow([ cell('',{bg:'EAF4FF'}), cell('해당 없음', {fontSize:10, fontColor:'AAAAAA', bg:'EAF4FF', align:'left', borders:border}), ...Array(COLS-2).fill(cell('',{bg:'EAF4FF'})) ]);
+    merge(row-1, 1, COLS-1);
+  }
+
+  pushEmpty();
+  pushEmpty('FFFFFF');
+
+  // ── 4. 준공현장 섹션 ─────────────────────────────────────
   pushRow([ secTitle('  🏁 준공현장  (' + completedItems.length + '건)', '4A148C'), ...Array(COLS-1).fill(cell('', {bg:'4A148C', borders:borderMed})) ]);
   merge(row-1, 0, COLS-1);
 
@@ -17169,7 +17191,7 @@ function downloadConsultingReport() {
   pushEmpty();
   pushEmpty('FFFFFF');
 
-  // ── 4. 착공예정현장 섹션 ─────────────────────────────────
+  // ── 5. 착공예정현장 섹션 ─────────────────────────────────
   pushRow([ secTitle('  🚧 착공예정현장  (' + upcomingItems.length + '건)', 'E65100'), ...Array(COLS-1).fill(cell('', {bg:'E65100', borders:borderMed})) ]);
   merge(row-1, 0, COLS-1);
 
