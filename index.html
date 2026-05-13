@@ -859,9 +859,10 @@ tr.selected { background: var(--primary-light); }
       </div>
       <!-- 년도 선택 탭 -->
       <div style="display:flex;gap:0.4rem;">
-        <button id="siteReportYearAll" onclick="setSiteReportYear('all')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.2);color:white;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">전체</button>
+        <button id="siteReportYear2526" onclick="setSiteReportYear('2526')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.8);background:rgba(255,255,255,0.3);color:white;border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:700;">25/26년</button>
         <button id="siteReportYear2026" onclick="setSiteReportYear('2026')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2026년</button>
         <button id="siteReportYear2025" onclick="setSiteReportYear('2025')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">2025년</button>
+        <button id="siteReportYearAll" onclick="setSiteReportYear('all')" style="padding:0.3rem 0.9rem;border:1.5px solid rgba(255,255,255,0.3);background:transparent;color:rgba(255,255,255,0.7);border-radius:20px;cursor:pointer;font-size:0.82rem;font-weight:600;">전체</button>
       </div>
     </div>
 
@@ -16425,7 +16426,7 @@ function switchMainListTab(tab) {
     if (tabReport) { tabReport.style.background = '#1A237E'; tabReport.style.color = 'white'; }
     if (sectionReport) sectionReport.style.display = 'block';
     setTimeout(() => {
-      if (window._siteReportYear === undefined) window._siteReportYear = 'all';
+      if (window._siteReportYear === undefined) window._siteReportYear = '2526';
       setSiteReportYear(window._siteReportYear);
     }, 10);
   }
@@ -17062,7 +17063,7 @@ function toggleConsultingPresent(id, checked) {
 function setSiteReportYear(year) {
   window._siteReportYear = year;
   // 버튼 활성 스타일 업데이트
-  ['all','2026','2025'].forEach(y => {
+  ['2526','2026','2025','all'].forEach(y => {
     const btn = document.getElementById('siteReportYear' + (y === 'all' ? 'All' : y));
     if (!btn) return;
     const active = y === year;
@@ -17084,16 +17085,21 @@ function renderSiteReport() {
   const label = document.getElementById('reportDateLabel');
   if (label) label.textContent = reportDate + ' 기준';
 
-  // 선택된 년도 필터 적용
-  const siteReportYear = window._siteReportYear || 'all';
-  const all = siteReportYear === 'all'
-    ? consultingListData
-    : consultingListData.filter(d => d.year === siteReportYear);
+  // 선택된 년도 필터 적용 (기본: 25/26년)
+  const siteReportYear = window._siteReportYear || '2526';
+  let base = consultingListData;
+  if (siteReportYear === '2026') base = consultingListData.filter(d => d.year === '2026');
+  else if (siteReportYear === '2025') base = consultingListData.filter(d => d.year === '2025');
+  else if (siteReportYear === '2526') base = consultingListData.filter(d => d.year === '2025' || d.year === '2026');
+  // 'all' 이면 전체
+
+  const all = base;
   const presentItems   = all.filter(d => !!d.todayPresent);
   const absentItems    = all.filter(d => !d.todayPresent && (!d.endDate || d.endDate > today));
   const ongoingItems   = all.filter(d => d.startDate && d.startDate <= today && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const completedItems = all.filter(d => d.endDate && d.endDate <= today).sort((a,b)=>(b.endDate||'').localeCompare(a.endDate||''));
-  const upcomingItems  = all.filter(d => d.startDate && d.startDate > today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
+  // 착공예정: 실착공일이 미래 OR 실착공일이 비어있는 현장
+  const upcomingItems  = all.filter(d => (!d.startDate || d.startDate > today) && (!d.endDate || d.endDate > today)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''));
   const pRate = item => (item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate + '%' : '-';
 
   // ── 요약 카드 ──────────────────────────────────────────────
