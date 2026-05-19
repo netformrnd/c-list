@@ -17579,7 +17579,7 @@ function downloadConsultingListExcel() {
 
   const today = new Date().toISOString().split('T')[0];
   const reportDate = today.replace(/-/g, '.');
-  const COLS = 20; // A~T
+  const COLS = 21; // A~U
 
   // ── 스타일 헬퍼 ──────────────────────────────────────────
   const bThin = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
@@ -17658,7 +17658,7 @@ function downloadConsultingListExcel() {
     hdr('NO'), hdr('년도'), hdr('구분'), hdr('컨설팅'), hdr('공사현장'), hdr('공사명'),
     hdr('낙찰금액'), hdr('실행금액'), hdr('영업담당'), hdr('업체명'), hdr('업체담당'),
     hdr('하자기간'), hdr('현장소장'), hdr('사진첩'), hdr('계약일'),
-    hdr('실착공일'), hdr('실준공일'), hdr('입금여부'), hdr('입금일'), hdr('비고')
+    hdr('실착공일'), hdr('실준공일'), hdr('공정률'), hdr('입금여부'), hdr('입금일'), hdr('비고')
   ]);
 
   // ── 데이터 ──
@@ -17689,6 +17689,7 @@ function downloadConsultingListExcel() {
         dataC(item.contractDate||'-',  bg),
         dataC(item.startDate||'-',     bg),
         dataC(item.endDate||'-',       bg),
+        mkCell((item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate + '%' : '-', { bold:true, sz:10, fc:'1565C0', bg, ha:'center', bd:bThin }),
         mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paidFc, bg:paidBg, ha:'center', bd:bThin }),
         dataC(item.paidDate||'-',   bg),
         dataL(item.note||'',        bg)
@@ -17706,7 +17707,7 @@ function downloadConsultingListExcel() {
   sumRow[1]  = mkCell(`총 ${filtered.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'center', bd:bMed });
   sumRow[6]  = mkCell(won(totalBid),          { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
   sumRow[7]  = mkCell(won(totalExec),         { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
-  sumRow[17] = mkCell(`완료 ${paidCnt}건`,    { bold:true, sz:10, fc:'A5F3A5', bg:'005F73', ha:'center', bd:bMed });
+  sumRow[18] = mkCell(`완료 ${paidCnt}건`,    { bold:true, sz:10, fc:'A5F3A5', bg:'005F73', ha:'center', bd:bMed });
   push(sumRow);
 
   // ── 시트 생성 ──
@@ -17715,7 +17716,7 @@ function downloadConsultingListExcel() {
     {wch:5}, {wch:7}, {wch:14}, {wch:9}, {wch:22}, {wch:20},
     {wch:16}, {wch:16}, {wch:10}, {wch:18}, {wch:10},
     {wch:10}, {wch:10}, {wch:8}, {wch:12},
-    {wch:12}, {wch:12}, {wch:9}, {wch:12}, {wch:18}
+    {wch:12}, {wch:12}, {wch:8}, {wch:9}, {wch:12}, {wch:18}
   ];
   ws['!rows'] = wsData.map((_,i) => i===0 ? {hpt:32} : i===1 ? {hpt:18} : {hpt:20});
   ws['!merges'] = merges;
