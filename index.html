@@ -17573,109 +17573,332 @@ async function deleteConsultingListItem(id) {
   renderConsultingMain();  // 메인 화면 새로고침
 }
 
-// 엑셀 다운로드
+// 엑셀 다운로드 (스타일 적용)
 function downloadConsultingListExcel() {
-  const wsData = [
-    ['NO', '년도', '구분', '컨설팅', '공사현장', '공사명', '낙찰금액', '실행금액', '영업담당자', '업체명', '업체담당자', '하자기간', '현장소장', '사진첩', '계약일', '실착공일', '실준공일', '입금여부', '입금일', '비고']
-  ];
+  if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error'); return; }
 
-  consultingListData.forEach((item, idx) => {
-    wsData.push([
-      idx + 1,
-      item.year,
-      item.type,
-      item.consulting,
-      item.site,
-      item.project,
-      item.bidAmount,
-      item.execAmount,
-      item.manager,
-      item.company,
-      item.companyManager,
-      item.warranty,
-      item.fieldManager,
-      item.photo,
-      item.contractDate,
-      item.startDate,
-      item.endDate,
-      item.paid ? '완료' : '미입금',
-      item.paidDate || '',
-      item.note
-    ]);
+  const today = new Date().toISOString().split('T')[0];
+  const reportDate = today.replace(/-/g, '.');
+  const COLS = 20; // A~T
+
+  // ── 스타일 헬퍼 ──────────────────────────────────────────
+  const bThin = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
+  const bMed  = { top:{style:'medium',color:{rgb:'005F73'}}, bottom:{style:'medium',color:{rgb:'005F73'}}, left:{style:'medium',color:{rgb:'005F73'}}, right:{style:'medium',color:{rgb:'005F73'}} };
+
+  const mkCell = (v, { bold=false, italic=false, sz=10, fc='333333', bg=null, ha='center', va='center', wrap=true, bd=bThin } = {}) => ({
+    v, t: typeof v === 'number' ? 'n' : 's',
+    s: {
+      font: { bold, italic, sz, color:{ rgb:fc }, name:'맑은 고딕' },
+      fill: { fgColor:{ rgb: bg||'FFFFFF' } },
+      alignment: { horizontal:ha, vertical:va, wrapText:wrap },
+      border: bd
+    }
   });
-  
+  const mkEmpty = (bg='FFFFFF') => mkCell('', { bg, bd:bThin });
+  const hdr = (v, bg='005F73') => mkCell(v, { bold:true, sz:10, fc:'FFFFFF', bg, bd:bMed });
+  const dataC  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'center' });
+  const dataL  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'left' });
+  const dataR  = (v, bg='FFFFFF', fc='333333') => mkCell(typeof v==='number'?v:(v||0), { sz:10, fc, bg, ha:'right', bd:bThin });
+  const won    = (n) => n ? (n).toLocaleString('ko-KR') + '원' : '-';
+
+  // ── 현재 필터 적용 ──
+  const searchText   = (document.getElementById('consultingMainSearch')?.value || '').toLowerCase();
+  const yearFilter   = document.getElementById('consultingMainYearFilter')?.value  || '';
+  const typeFilter   = document.getElementById('consultingMainTypeFilter')?.value  || '';
+  const managerFilter= document.getElementById('consultingMainManagerFilter')?.value || '';
+
+  const getItemPaidStatus = (item) => {
+    if (item.paid) return true;
+    const c = consultingData.find(c => c.listId === item.id) ||
+              consultingData.find(c => c.site === item.site && c.year === item.year && c.bidAmount === item.bidAmount);
+    return c && c.settled === '정산완료';
+  };
+
+  let filtered = consultingListData.filter(item => {
+    if (searchText && !(item.site||'').toLowerCase().includes(searchText) && !(item.project||'').toLowerCase().includes(searchText)) return false;
+    if (yearFilter === '2020-2021') { if (item.year!=='2020' && item.year!=='2021') return false; }
+    else if (yearFilter && item.year !== yearFilter) return false;
+    if (typeFilter    && item.type    !== typeFilter)    return false;
+    if (managerFilter && item.manager !== managerFilter) return false;
+    return true;
+  });
+  filtered.sort((a, b) => {
+    const ap = getItemPaidStatus(a)?1:0, bp = getItemPaidStatus(b)?1:0;
+    if (ap !== bp) return ap - bp;
+    if (b.year !== a.year) return (b.year||'').localeCompare(a.year||'');
+    return (b.id||'').localeCompare(a.id||'');
+  });
+
+  // ── 시트 작성 ────────────────────────────────────────────
+  const wsData = [];
+  const merges = [];
+  let row = 0;
+  const push  = (arr) => { wsData.push(arr); row++; };
+  const merge = (r, cs, ce) => merges.push({ s:{r,c:cs}, e:{r,c:ce} });
+
+  // ── 제목 ──
+  push([
+    mkCell('기술컨설팅  현장관리 리스트', { bold:true, sz:15, fc:'FFFFFF', bg:'00455A', ha:'left', bd:bMed }),
+    ...Array(COLS-2).fill(mkCell('', { bg:'00455A', bd:bMed })),
+    mkCell(reportDate, { sz:10, fc:'A0D8E8', bg:'00455A', ha:'right', bd:bMed })
+  ]);
+  merge(row-1, 0, COLS-2);
+
+  const ylabel = yearFilter === '2020-2021' ? '2020-2021년' : (yearFilter ? yearFilter+'년' : '전체년도');
+  push([
+    mkCell(`㈜넷폼알앤디  기술컨설팅팀  ·  ${ylabel}  ${typeFilter||'전체구분'}  ${managerFilter||'전체담당자'}  ·  총 ${filtered.length}건`, { italic:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'left', bd:bMed }),
+    ...Array(COLS-1).fill(mkCell('', { bg:'005F73', bd:bMed }))
+  ]);
+  merge(row-1, 0, COLS-1);
+
+  push(Array(COLS).fill(mkEmpty('F0F9FB')));
+
+  // ── 헤더 ──
+  push([
+    hdr('NO'), hdr('년도'), hdr('구분'), hdr('컨설팅'), hdr('공사현장'), hdr('공사명'),
+    hdr('낙찰금액'), hdr('실행금액'), hdr('영업담당'), hdr('업체명'), hdr('업체담당'),
+    hdr('하자기간'), hdr('현장소장'), hdr('사진첩'), hdr('계약일'),
+    hdr('실착공일'), hdr('실준공일'), hdr('입금여부'), hdr('입금일'), hdr('비고')
+  ]);
+
+  // ── 데이터 ──
+  if (filtered.length === 0) {
+    push([ mkEmpty('F5F5F5'), mkCell('데이터가 없습니다.', {sz:10, fc:'AAAAAA', bg:'F5F5F5', ha:'left'}), ...Array(COLS-2).fill(mkEmpty('F5F5F5')) ]);
+    merge(row-1, 1, COLS-1);
+  } else {
+    filtered.forEach((item, i) => {
+      const paid  = getItemPaidStatus(item);
+      const bg    = i%2===0 ? 'E8F8FB' : 'FFFFFF';
+      const paidBg = paid ? 'E8F5E9' : 'FFEBEE';
+      const paidFc = paid ? '1B5E20' : 'B71C1C';
+      push([
+        mkCell(i+1,      { sz:9, fc:'888888', bg:'F0F9FB', ha:'center', bd:bThin }),
+        dataC(item.year||'-',  bg),
+        dataC(item.type||'-',  bg),
+        mkCell(item.consulting||'-', { bold:item.consulting==='Y', sz:10, fc:item.consulting==='Y'?'005F73':'888888', bg, ha:'center', bd:bThin }),
+        dataL(item.site||'-',  bg),
+        dataL(item.project||'-', bg),
+        mkCell(item.bidAmount  ? won(item.bidAmount)  : '-', { sz:10, fc:'005F73', bg, ha:'right', bd:bThin }),
+        mkCell(item.execAmount ? won(item.execAmount) : '-', { sz:10, fc:'444444', bg, ha:'right', bd:bThin }),
+        dataC(item.manager||'-',       bg),
+        dataC(item.company||'-',       bg),
+        dataC(item.companyManager||'-',bg),
+        dataC(item.warranty||'-',      bg),
+        dataC(item.fieldManager||'-',  bg),
+        dataC(item.photo||'-',         bg),
+        dataC(item.contractDate||'-',  bg),
+        dataC(item.startDate||'-',     bg),
+        dataC(item.endDate||'-',       bg),
+        mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paidFc, bg:paidBg, ha:'center', bd:bThin }),
+        dataC(item.paidDate||'-',   bg),
+        dataL(item.note||'',        bg)
+      ]);
+    });
+  }
+
+  // ── 합계 행 ──
+  const totalBid  = filtered.reduce((s,d)=>s+(d.bidAmount||0),  0);
+  const totalExec = filtered.reduce((s,d)=>s+(d.execAmount||0), 0);
+  const paidCnt   = filtered.filter(d=>getItemPaidStatus(d)).length;
+  push(Array(COLS).fill(mkEmpty('E0F5F8')));
+  const sumRow = Array(COLS).fill(mkCell('', { bg:'005F73', bd:bMed }));
+  sumRow[0]  = mkCell('합계',                 { bold:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'center', bd:bMed });
+  sumRow[1]  = mkCell(`총 ${filtered.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'center', bd:bMed });
+  sumRow[6]  = mkCell(won(totalBid),          { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
+  sumRow[7]  = mkCell(won(totalExec),         { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
+  sumRow[17] = mkCell(`완료 ${paidCnt}건`,    { bold:true, sz:10, fc:'A5F3A5', bg:'005F73', ha:'center', bd:bMed });
+  push(sumRow);
+
+  // ── 시트 생성 ──
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols'] = [
+    {wch:5}, {wch:7}, {wch:14}, {wch:9}, {wch:22}, {wch:20},
+    {wch:16}, {wch:16}, {wch:10}, {wch:18}, {wch:10},
+    {wch:10}, {wch:10}, {wch:8}, {wch:12},
+    {wch:12}, {wch:12}, {wch:9}, {wch:12}, {wch:18}
+  ];
+  ws['!rows'] = wsData.map((_,i) => i===0 ? {hpt:32} : i===1 ? {hpt:18} : {hpt:20});
+  ws['!merges'] = merges;
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '기술컨설팅');
-  
-  XLSX.writeFile(wb, `기술컨설팅_리스트_${new Date().toISOString().split('T')[0]}.xlsx`);
-  showToast('엑셀 다운로드 완료', 'success');
+  XLSX.utils.book_append_sheet(wb, ws, '기술컨설팅리스트');
+  XLSX.writeFile(wb, `기술컨설팅_리스트_${today.replace(/-/g,'')}.xlsx`);
+  showToast('기술컨설팅 리스트 엑셀 다운로드 완료', 'success');
 }
 
 
 function downloadSettlementExcel() {
+  if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error'); return; }
+
   const data = settlementData.length > 0 ? settlementData : generateSettlementFromCurrentData();
-  
-  // 엑셀 데이터 생성
-  const wsData = [
-    ['NO', '공사종류', '공사현장', '공사금액', '입금여부', '자재비', '노무비', '경비합계', '지출총액', '이익금', '이익률', '실정산금액(15%)', '공사수익(85%)', '영업담당자']
-  ];
-  
-  data.forEach(item => {
-    wsData.push([
-      item.no,
-      item.type,
-      item.site,
-      item.amount,
-      item.status,
-      item.material,
-      item.laborTotal || item.labor,
-      item.expenseTotal,
-      item.totalExpense,
-      item.profit,
-      item.profitRate,
-      item.realSettlement,
-      item.companyProfit,
-      item.manager
-    ]);
+  const today = new Date().toISOString().split('T')[0];
+  const reportDate = today.replace(/-/g, '.');
+
+  // ── 스타일 헬퍼 ──────────────────────────────────────────
+  const bThin = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
+  const bMed  = { top:{style:'medium',color:{rgb:'1A237E'}}, bottom:{style:'medium',color:{rgb:'1A237E'}}, left:{style:'medium',color:{rgb:'1A237E'}}, right:{style:'medium',color:{rgb:'1A237E'}} };
+
+  const mkCell = (v, { bold=false, sz=10, fc='333333', bg=null, ha='center', va='center', bd=bThin } = {}) => ({
+    v, t: typeof v === 'number' ? 'n' : 's',
+    s: {
+      font: { bold, sz, color:{ rgb:fc }, name:'맑은 고딕' },
+      fill: { fgColor:{ rgb: bg||'FFFFFF' } },
+      alignment: { horizontal:ha, vertical:va, wrapText:true },
+      border: bd
+    }
   });
-  
-  // 담당자별 요약 시트
-  const summaryData = [['담당자', '공사건수', '공사금액합계', '이익금합계', '평균이익률', '실정산금액(15%)', '회사수익(85%)']];
-  
+  const mkEmpty = (bg='FFFFFF') => mkCell('', { bg });
+  const hdr    = (v, bg='1565C0') => mkCell(v, { bold:true, sz:10, fc:'FFFFFF', bg, bd:bMed });
+  const dataC  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'center' });
+  const dataL  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'left' });
+  const dataR  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'right' });
+  const won    = (n) => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
+  const pct    = (v) => v ? (Number(v)*100).toFixed(1) + '%' : '-';
+
+  // ── Sheet 1: 정산 상세 내역 (14열) ──────────────────────
+  const COLS1 = 14;
+  const wsData1 = [];
+  const merges1 = [];
+  let row1 = 0;
+  const push1  = (arr) => { wsData1.push(arr); row1++; };
+  const merge1 = (r, cs, ce) => merges1.push({ s:{r,c:cs}, e:{r,c:ce} });
+
+  push1([
+    mkCell('공사 정산 관리 현황', { bold:true, sz:15, fc:'FFFFFF', bg:'1A237E', ha:'left', bd:bMed }),
+    ...Array(COLS1-2).fill(mkCell('', { bg:'1A237E', bd:bMed })),
+    mkCell(reportDate, { sz:10, fc:'B3C5FF', bg:'1A237E', ha:'right', bd:bMed })
+  ]);
+  merge1(row1-1, 0, COLS1-2);
+
+  push1([
+    mkCell(`㈜넷폼알앤디  ·  ${currentYear}년  ·  총 ${data.length}건`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }),
+    ...Array(COLS1-1).fill(mkCell('', { bg:'1565C0', bd:bMed }))
+  ]);
+  merge1(row1-1, 0, COLS1-1);
+  push1(Array(COLS1).fill(mkEmpty('EEF2FF')));
+
+  push1([
+    hdr('NO'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('입금여부'),
+    hdr('자재비'), hdr('노무비'), hdr('경비합계'), hdr('지출총액'),
+    hdr('이익금'), hdr('이익률'), hdr('정산금액(15%)'), hdr('회사수익(85%)'), hdr('영업담당')
+  ]);
+
+  let grandAmt=0, grandMat=0, grandLab=0, grandExp=0, grandTotal=0, grandProfit=0, grandSettle=0, grandComp=0;
+  data.forEach((item, i) => {
+    const bg = i%2===0 ? 'EEF2FF' : 'FFFFFF';
+    const paid = item.status === '완료' || item.status === '정산완료';
+    const profitFc = (item.profit||0) >= 0 ? '1565C0' : 'C62828';
+    push1([
+      mkCell(i+1, { sz:9, fc:'888888', bg:'F5F7FF', ha:'center', bd:bThin }),
+      dataC(item.type||'-',         bg),
+      dataL(item.site||'-',         bg),
+      dataR(won(item.amount),        bg, '1565C0'),
+      mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paid?'1B5E20':'B71C1C', bg:paid?'E8F5E9':'FFEBEE', ha:'center', bd:bThin }),
+      dataR(won(item.material),      bg),
+      dataR(won(item.laborTotal||item.labor), bg),
+      dataR(won(item.expenseTotal),  bg),
+      dataR(won(item.totalExpense),  bg),
+      mkCell(won(item.profit), { sz:10, fc:profitFc, bg, ha:'right', bd:bThin }),
+      mkCell(item.profitRate ? (typeof item.profitRate==='string'?item.profitRate:item.profitRate+'%') : '-', { sz:10, fc:profitFc, bg, ha:'center', bd:bThin }),
+      dataR(won(item.realSettlement), bg, '6A1B9A'),
+      dataR(won(item.companyProfit),  bg, '00695C'),
+      dataC(item.manager||'-',        bg)
+    ]);
+    grandAmt    += item.amount||0;
+    grandMat    += item.material||0;
+    grandLab    += item.laborTotal||item.labor||0;
+    grandExp    += item.expenseTotal||0;
+    grandTotal  += item.totalExpense||0;
+    grandProfit += item.profit||0;
+    grandSettle += item.realSettlement||0;
+    grandComp   += item.companyProfit||0;
+  });
+
+  push1(Array(COLS1).fill(mkEmpty('E8EAF6')));
+  const sumRow1 = Array(COLS1).fill(mkCell('', { bg:'1565C0', bd:bMed }));
+  sumRow1[0]  = mkCell('합계', { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow1[1]  = mkCell(`${data.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow1[3]  = mkCell(won(grandAmt),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[5]  = mkCell(won(grandMat),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[6]  = mkCell(won(grandLab),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[7]  = mkCell(won(grandExp),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[8]  = mkCell(won(grandTotal),  { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[9]  = mkCell(won(grandProfit), { bold:true, sz:10, fc:'FFEE58', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[11] = mkCell(won(grandSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[12] = mkCell(won(grandComp),   { bold:true, sz:10, fc:'80CBC4', bg:'1565C0', ha:'right', bd:bMed });
+  push1(sumRow1);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData1);
+  ws1['!cols'] = [ {wch:5},{wch:10},{wch:26},{wch:16},{wch:9},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:9},{wch:14},{wch:14},{wch:10} ];
+  ws1['!rows'] = wsData1.map((_,i) => i===0?{hpt:32}:i===1?{hpt:18}:{hpt:20});
+  ws1['!merges'] = merges1;
+
+  // ── Sheet 2: 담당자별 요약 (7열) ──────────────────────────
+  const COLS2 = 7;
   const managerSummary = {};
   data.forEach(item => {
-    const manager = item.manager || '기타';
-    if (!managerSummary[manager]) {
-      managerSummary[manager] = { count: 0, amount: 0, profit: 0, realSettlement: 0, companyProfit: 0 };
-    }
-    managerSummary[manager].count++;
-    managerSummary[manager].amount += item.amount || 0;
-    managerSummary[manager].profit += item.profit || 0;
-    managerSummary[manager].realSettlement += item.realSettlement || 0;
-    managerSummary[manager].companyProfit += item.companyProfit || 0;
+    const mgr = item.manager || '기타';
+    if (!managerSummary[mgr]) managerSummary[mgr] = { count:0, amount:0, profit:0, realSettlement:0, companyProfit:0 };
+    managerSummary[mgr].count++;
+    managerSummary[mgr].amount        += item.amount||0;
+    managerSummary[mgr].profit        += item.profit||0;
+    managerSummary[mgr].realSettlement+= item.realSettlement||0;
+    managerSummary[mgr].companyProfit += item.companyProfit||0;
   });
-  
-  Object.entries(managerSummary).forEach(([manager, stats]) => {
-    summaryData.push([
-      manager,
-      stats.count,
-      stats.amount,
-      stats.profit,
-      stats.amount > 0 ? stats.profit / stats.amount : 0,
-      stats.realSettlement,
-      stats.companyProfit
+
+  const wsData2 = [];
+  const merges2 = [];
+  let row2 = 0;
+  const push2  = (arr) => { wsData2.push(arr); row2++; };
+  const merge2 = (r, cs, ce) => merges2.push({ s:{r,c:cs}, e:{r,c:ce} });
+
+  push2([
+    mkCell('담당자별 정산 요약', { bold:true, sz:15, fc:'FFFFFF', bg:'1A237E', ha:'left', bd:bMed }),
+    ...Array(COLS2-2).fill(mkCell('', { bg:'1A237E', bd:bMed })),
+    mkCell(reportDate, { sz:10, fc:'B3C5FF', bg:'1A237E', ha:'right', bd:bMed })
+  ]);
+  merge2(row2-1, 0, COLS2-2);
+  push2(Array(COLS2).fill(mkEmpty('EEF2FF')));
+  push2([ hdr('담당자'), hdr('공사건수'), hdr('공사금액합계'), hdr('이익금합계'), hdr('평균이익률'), hdr('정산금액(15%)'), hdr('회사수익(85%)') ]);
+
+  const sorted = Object.entries(managerSummary).sort((a,b)=>b[1].realSettlement-a[1].realSettlement);
+  sorted.forEach(([mgr, s], i) => {
+    const bg = i%2===0 ? 'EEF2FF' : 'FFFFFF';
+    const profitFc = s.profit >= 0 ? '1565C0' : 'C62828';
+    push2([
+      dataL(mgr, bg, '1A237E'),
+      mkCell(s.count+'건', { sz:10, fc:'333333', bg, ha:'center', bd:bThin }),
+      dataR(won(s.amount), bg, '1565C0'),
+      mkCell(won(s.profit), { sz:10, fc:profitFc, bg, ha:'right', bd:bThin }),
+      mkCell(s.amount>0 ? (s.profit/s.amount*100).toFixed(1)+'%' : '-', { sz:10, fc:profitFc, bg, ha:'center', bd:bThin }),
+      dataR(won(s.realSettlement), bg, '6A1B9A'),
+      dataR(won(s.companyProfit),  bg, '00695C')
     ]);
   });
-  
-  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
-  const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+
+  push2(Array(COLS2).fill(mkEmpty('E8EAF6')));
+  const sumRow2 = Array(COLS2).fill(mkCell('', { bg:'1565C0', bd:bMed }));
+  const totAmt = sorted.reduce((s,[,v])=>s+v.amount,0);
+  const totProfit = sorted.reduce((s,[,v])=>s+v.profit,0);
+  sumRow2[0] = mkCell('합계', { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow2[1] = mkCell(`${data.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow2[2] = mkCell(won(totAmt),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow2[3] = mkCell(won(totProfit), { bold:true, sz:10, fc:'FFEE58', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow2[4] = mkCell(totAmt>0?(totProfit/totAmt*100).toFixed(1)+'%':'-', { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow2[5] = mkCell(won(grandSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow2[6] = mkCell(won(grandComp),   { bold:true, sz:10, fc:'80CBC4', bg:'1565C0', ha:'right', bd:bMed });
+  push2(sumRow2);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(wsData2);
+  ws2['!cols'] = [ {wch:12},{wch:10},{wch:16},{wch:16},{wch:10},{wch:16},{wch:16} ];
+  ws2['!rows'] = wsData2.map((_,i) => i===0?{hpt:32}:{hpt:20});
+  ws2['!merges'] = merges2;
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws1, '정산내역');
   XLSX.utils.book_append_sheet(wb, ws2, '담당자별요약');
-  
-  XLSX.writeFile(wb, `정산관리_${currentYear}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  showToast('정산 엑셀 다운로드 완료', 'success');
+  XLSX.writeFile(wb, `정산관리_${currentYear}_${today.replace(/-/g,'')}.xlsx`);
+  showToast('정산 엑셀 다운로드 완료 (상세+담당자요약 2시트)', 'success');
 }
 
 // ========== 대표 보고서 ==========
