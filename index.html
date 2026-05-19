@@ -1284,6 +1284,7 @@ tr.selected { background: var(--primary-light); }
         <!-- 필터 및 추가 버튼 -->
         <div style="margin-bottom:1rem;display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
           <button class="btn btn-primary btn-sm" onclick="openConsultingAddModal()">➕ 신규 등록</button>
+          <input type="text" id="consultingSearchInput" placeholder="🔍 현장명 검색..." oninput="filterConsultingData()" style="padding:0.5rem 0.75rem;border:1px solid #ddd;border-radius:6px;width:180px;font-size:0.85rem;">
           <select id="consultingYearFilter" class="search-select" onchange="filterConsultingData()">
             <option value="">전체 년도</option>
             <option value="2024">2024년</option>
@@ -16158,19 +16159,21 @@ function populateConsultingManagerFilter() {
 
 // 기술컨설팅 필터링
 function filterConsultingData() {
+  const searchText = (document.getElementById('consultingSearchInput')?.value || '').toLowerCase();
   const yearFilter = document.getElementById('consultingYearFilter').value;
   const typeFilter = document.getElementById('consultingTypeFilter').value;
   const managerFilter = document.getElementById('consultingManagerFilter').value;
   const settledFilter = document.getElementById('consultingSettledFilter').value;
-  
+
   filteredConsultingData = consultingData.filter(item => {
+    if (searchText && !(item.site || '').toLowerCase().includes(searchText) && !(item.project || '').toLowerCase().includes(searchText)) return false;
     if (yearFilter && item.year !== yearFilter) return false;
     if (typeFilter && item.type !== typeFilter) return false;
     if (managerFilter && item.manager !== managerFilter) return false;
     if (settledFilter && item.settled !== settledFilter) return false;
     return true;
   });
-  
+
   renderConsultingTable();
 }
 
@@ -16180,14 +16183,16 @@ async function renderConsultingTable() {
   await loadConsultingData();
   
   // 필터 적용
+  const searchText = (document.getElementById('consultingSearchInput')?.value || '').toLowerCase();
   const yearFilter = document.getElementById('consultingYearFilter').value;
   const typeFilter = document.getElementById('consultingTypeFilter').value;
   const managerFilter = document.getElementById('consultingManagerFilter').value;
   const settledFilter = document.getElementById('consultingSettledFilter').value;
-  
+
   const hideSettled = document.getElementById('consultingHideSettled')?.checked;
   let filtered = consultingData;
   filtered = consultingData.filter(item => {
+    if (searchText && !(item.site || '').toLowerCase().includes(searchText) && !(item.project || '').toLowerCase().includes(searchText)) return false;
     if (yearFilter && item.year !== yearFilter) return false;
     if (typeFilter && item.type !== typeFilter) return false;
     if (managerFilter && item.manager !== managerFilter) return false;
