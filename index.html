@@ -5403,18 +5403,23 @@ async function loadDetailData() {
 }
 
 async function saveDetailDataToStorage() {
+  // localStorage: 사진(base64) 제외하고 저장 (용량 절약)
   try {
-    localStorage.setItem('constructionDetailData', JSON.stringify(detailData));
+    const detailDataNoPhotos = {};
+    Object.entries(detailData).forEach(([key, val]) => {
+      detailDataNoPhotos[key] = { ...val, photos: [] };
+    });
+    localStorage.setItem('constructionDetailData', JSON.stringify(detailDataNoPhotos));
   } catch(e) {
-    console.error('localStorage 저장 실패 (용량 초과 가능):', e);
-    showToast('로컬 저장 실패 - 용량 초과일 수 있습니다.', 'error');
+    console.warn('localStorage 저장 실패 (용량 초과) - Firebase에는 정상 저장됩니다:', e);
   }
-  // Firebase에도 저장
+  // Firebase에 전체 데이터(사진 포함) 저장
   try {
     await fbSaveLarge(FB_COLLECTIONS.constructionDetailData, detailData);
     console.log('Firebase 상세데이터 저장 완료');
   } catch(e) {
     console.error('Firebase 상세데이터 저장 실패:', e);
+    showToast('저장 실패 - 네트워크를 확인해주세요.', 'error');
   }
 }
 
@@ -7361,16 +7366,20 @@ function saveFieldSettlementData() {
     photos: fieldSettlementData.photos || []
   };
   
-  // localStorage + Firebase에 저장
+  // Firebase에 전체 데이터(사진 포함) 저장
+  fbSaveLarge(FB_COLLECTIONS.fieldSettlementByManager, fieldSettlementByManager)
+    .then(() => showToast(`${manager} 소장 정산 데이터가 저장되었습니다.`, 'success'))
+    .catch(e => { console.error('Firebase 저장 실패:', e); showToast('저장 실패 - 네트워크를 확인해주세요.', 'error'); });
+  // localStorage: 사진 제외 (용량 절약)
   try {
-    localStorage.setItem('fieldSettlementByManager', JSON.stringify(fieldSettlementByManager));
-    fbSaveLarge(FB_COLLECTIONS.fieldSettlementByManager, fieldSettlementByManager);
-    showToast(`${manager} 소장 정산 데이터가 저장되었습니다.`, 'success');
+    const noPhotos = {};
+    Object.entries(fieldSettlementByManager).forEach(([k, managers]) => {
+      noPhotos[k] = {};
+      Object.entries(managers).forEach(([m, v]) => { noPhotos[k][m] = { ...v, photos: [] }; });
+    });
+    localStorage.setItem('fieldSettlementByManager', JSON.stringify(noPhotos));
   } catch (e) {
-    console.error('현장소장 정산 데이터 저장 실패:', e);
-    if (e.name === 'QuotaExceededError') {
-      showToast('저장 용량 초과! 사진을 줄여주세요.', 'error');
-    }
+    console.warn('localStorage 저장 실패 (용량 초과) - Firebase에는 정상 저장됩니다:', e);
   }
 }
 
