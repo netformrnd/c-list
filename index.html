@@ -315,6 +315,7 @@ tr.selected { background: var(--primary-light); }
       <span id="sheetsSyncStatus" onclick="manualSheetsSync()" title="Google Sheets 동기화 (클릭)" style="font-size:1.1rem;cursor:pointer;">⚪</span>
       <button class="btn btn-outline" onclick="manualSheetsSync()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="Google Sheets 동기화">🔄 Sheets</button>
       <button class="btn btn-outline" onclick="setResetPassword()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="초기화 비밀번호 설정/변경">🔐</button>
+      <button class="btn btn-outline" onclick="downloadAllBackup()" style="font-size:0.75rem;padding:0.25rem 0.6rem;color:#5c6bc0;border-color:#5c6bc0;font-weight:600;" title="전체 데이터 Firebase 백업 다운로드">💾 백업</button>
       <a href="dashboard.html" target="_blank" class="btn btn-outline" style="color:#00897b;border-color:#00897b;text-decoration:none;" title="정산수익 리포트">📊 리포트</a>
       <button class="btn btn-outline" onclick="clearStorage()" style="color:var(--danger);border-color:var(--danger);" title="비밀번호 필요">⚠️ 초기화</button>
       <button class="btn btn-outline" onclick="exportToExcel()">다운로드</button>
@@ -3374,6 +3375,61 @@ async function fbLoadAll(collection) {
   } catch (e) {
     console.error(`Firebase 전체 로드 실패 [${collection}]:`, e);
     return {};
+  }
+}
+
+// ========== 전체 데이터 백업 다운로드 ==========
+async function downloadAllBackup() {
+  showToast('📦 전체 데이터 백업 중... 잠시만 기다려주세요.', 'info');
+  try {
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      exportedAtKor: new Date().toLocaleString('ko-KR'),
+      version: '1.0',
+      description: '㈜넷폼알앤디 현장관리 전체 백업',
+      data: {}
+    };
+
+    // 진행 상태 표시용
+    const steps = [
+      ['공사현황',          () => fbLoad(FB_COLLECTIONS.constructionData, 'data')],
+      ['공사상세',          () => fbLoadAll(FB_COLLECTIONS.constructionDetailData)],
+      ['현장소장정산',      () => fbLoadAll(FB_COLLECTIONS.fieldSettlementByManager)],
+      ['영업정산',          () => fbLoadAll(FB_COLLECTIONS.salesSettlementByManager)],
+      ['담당자이메일',      () => fbLoad(FB_COLLECTIONS.managerEmails, 'emails')],
+      ['정산상태',          () => fbLoad(FB_COLLECTIONS.settlementStatusData, 'status')],
+      ['기술컨설팅정산',   () => fbLoad(FB_COLLECTIONS.consultingData, 'data')],
+      ['기술컨설팅리스트', () => fbLoad(FB_COLLECTIONS.consultingListData, 'data')],
+    ];
+    const keys = [
+      'constructionData','constructionDetailData','fieldSettlementByManager',
+      'salesSettlementByManager','managerEmails','settlementStatusData',
+      'consultingData','consultingListData'
+    ];
+
+    for (let i = 0; i < steps.length; i++) {
+      const [label, loader] = steps[i];
+      showToast(`📦 백업 중 (${i+1}/${steps.length}): ${label}`, 'info');
+      backup.data[keys[i]] = await loader();
+    }
+
+    // JSON 파일로 다운로드
+    const json = JSON.stringify(backup, null, 2);
+    const blob = new Blob(['﻿' + json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    a.download = `현장관리_전체백업_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`✅ 백업 완료! 현장관리_전체백업_${dateStr}.json`, 'success');
+  } catch (e) {
+    console.error('백업 실패:', e);
+    showToast('❌ 백업 중 오류가 발생했습니다. 네트워크를 확인해주세요.', 'error');
   }
 }
 
