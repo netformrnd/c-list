@@ -4530,8 +4530,8 @@ function syncEditToDetail(item) {
       detail[expectedKey] = payment.expected || '';
       changed = true;
     }
-    if (billKey && payment.bill !== undefined) {
-      detail[billKey] = payment.bill || '';
+    if (billKey && payment.bill) {
+      detail[billKey] = payment.bill;
       changed = true;
     }
   };
@@ -5520,7 +5520,10 @@ async function openDetailModal(idx) {
   document.getElementById('detail_site_input').value = detail.siteInput || item.site || '';
   document.getElementById('detail_project_input').value = detail.projectInput || item.name || '';
   // 공사기간: 총괄표 저장값 우선, 없으면 공사리스트 착공일~준공일 자동 연동
-  const _periodFallback = item.startDate && item.endDate ? `${item.startDate} ~ ${item.endDate}` : (item.startDate || item.endDate || '');
+  // 유효하지 않은 날짜(월>12) 필터링
+  const _isValidDateStr = (d) => { if (!d) return false; const m = d.match(/^\d{4}-(\d{2})-\d{2}$/); return m && parseInt(m[1]) >= 1 && parseInt(m[1]) <= 12; };
+  const _validEnd = _isValidDateStr(item.endDate) ? item.endDate : '';
+  const _periodFallback = item.startDate ? (_validEnd ? `${item.startDate} ~ ${_validEnd}` : (item.startDate || '')) : '';
   document.getElementById('detail_period_input').value = detail.periodInput || _periodFallback;
   document.getElementById('detail_amount_input').value = detail.amountInput !== undefined && detail.amountInput !== null ? fmtInput(detail.amountInput) : fmtInput(item.amount || '');
 
@@ -6707,17 +6710,26 @@ async function saveDetailData() {
     item.amount = 0;
   }
   // 빈 상태에서 저장하지 않은 경우 기존 값 유지
-  // 공사기간 → 착공일/준공일 동기화
+  // 공사기간 → 착공일/준공일 동기화 (YYYY-MM-DD, YYYY년MM월, YYYY.MM 등 다양한 형식 지원)
   if (periodInputValue) {
-    const periodMatch = periodInputValue.match(/(\d{4})[년.\-\/\s]*(\d{1,2})[월.\-\/\s]*~?\s*(\d{4})?[년.\-\/\s]*(\d{1,2})?[월]?/);
-    if (periodMatch) {
-      const startYear = periodMatch[1];
-      const startMonth = periodMatch[2].padStart(2, '0');
-      item.startDate = `${startYear}-${startMonth}-01`;
-      if (periodMatch[4]) {
-        const endYear = periodMatch[3] || startYear;
-        const endMonth = periodMatch[4].padStart(2, '0');
-        item.endDate = `${endYear}-${endMonth}-01`;
+    const pParts = periodInputValue.split('~');
+    const startStr = pParts[0].trim();
+    const startM = startStr.match(/(\d{4})[년.\-\/\s]+(\d{1,2})(?:[.\-\/]\d{1,2})?/);
+    if (startM) {
+      item.startDate = `${startM[1]}-${startM[2].padStart(2,'0')}-01`;
+      if (pParts.length > 1) {
+        const endStr = pParts[1].trim();
+        const endM = endStr.match(/(\d{4})[년.\-\/\s]+(\d{1,2})/);
+        if (endM) {
+          const em = parseInt(endM[2]);
+          if (em >= 1 && em <= 12) item.endDate = `${endM[1]}-${String(em).padStart(2,'0')}-01`;
+        } else {
+          const endM2 = endStr.match(/^(\d{1,2})/);
+          if (endM2) {
+            const em2 = parseInt(endM2[1]);
+            if (em2 >= 1 && em2 <= 12) item.endDate = `${startM[1]}-${String(em2).padStart(2,'0')}-01`;
+          }
+        }
       }
     }
   }
