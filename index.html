@@ -6745,8 +6745,8 @@ async function saveDetailData() {
       const parsedAmt = parseInt(amtValue.replace(/,/g, '')) || 0;
       if (parsedAmt > 0) paymentObj.amt = parsedAmt;
     }
-    // 계산서 발행일 동기화
-    if (billValue !== undefined) {
+    // 계산서 발행일 동기화 (값이 있을 때만 - 빈값으로 기존 데이터 덮어쓰기 방지)
+    if (billValue) {
       paymentObj.bill = billValue;
     }
     // 입금예정일 동기화
