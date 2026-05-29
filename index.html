@@ -3953,6 +3953,16 @@ function getPaymentStatus(p, isCancelled) {
     return '<span class="payment-badge paid">완료</span>';
   }
 
+  // 실수금액이 있고 아직 입금일 없음 → 일부입금 표시
+  {
+    const contractAmt = parseInt(p.amt) || 0;
+    const receivedAmt = parseInt(p.receivedAmt) || 0;
+    if (receivedAmt > 0 && receivedAmt < contractAmt) {
+      const remaining = (contractAmt - receivedAmt).toLocaleString('ko-KR');
+      return `<span class="payment-badge" style="background:#fff8e1;color:#f57c00;font-size:0.7rem;" title="일부입금 / 잔여 ${remaining}원">일부입금</span>`;
+    }
+  }
+
   // 입금예정일이 있고 아직 입금 안 됨
   if (hasExpected && !hasPaid) {
     const today = new Date(); today.setHours(0,0,0,0);
