@@ -316,6 +316,7 @@ tr.selected { background: var(--primary-light); }
       <button class="btn btn-outline" onclick="manualSheetsSync()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="Google Sheets 동기화">🔄 Sheets</button>
       <button class="btn btn-outline" onclick="setResetPassword()" style="font-size:0.75rem;padding:0.25rem 0.5rem;" title="초기화 비밀번호 설정/변경">🔐</button>
       <button class="btn btn-outline" onclick="downloadAllBackup()" style="font-size:0.75rem;padding:0.25rem 0.6rem;color:#5c6bc0;border-color:#5c6bc0;font-weight:600;" title="전체 데이터 Firebase 백업 다운로드">💾 백업</button>
+      <button class="btn btn-outline" onclick="recoverPaymentData()" style="font-size:0.75rem;padding:0.25rem 0.6rem;color:#e65100;border-color:#e65100;font-weight:600;" title="총괄표 데이터로 공사현황 수금정보 복구">🔧 수금복구</button>
       <a href="dashboard.html" target="_blank" class="btn btn-outline" style="color:#00897b;border-color:#00897b;text-decoration:none;" title="정산수익 리포트">📊 리포트</a>
       <button class="btn btn-outline" onclick="clearStorage()" style="color:var(--danger);border-color:var(--danger);" title="비밀번호 필요">⚠️ 초기화</button>
       <button class="btn btn-outline" onclick="exportToExcel()">다운로드</button>
@@ -3375,6 +3376,46 @@ async function fbLoadAll(collection) {
   } catch (e) {
     console.error(`Firebase 전체 로드 실패 [${collection}]:`, e);
     return {};
+  }
+}
+
+// ========== 공사현황 수금데이터 복구 (총괄표 → 공사현황 리스트) ==========
+async function recoverPaymentData() {
+  const data = allData[currentYear] || [];
+  let recoveredCount = 0;
+
+  data.forEach(item => {
+    const key = `${currentYear}_${item.no}`;
+    const det = detailData[key];
+    if (!det) return;
+
+    const tryRecover = (payObj, amtKey, billKey, paidKey, expectedKey) => {
+      // 이미 데이터 있으면 스킵
+      if (payObj && (payObj.amt > 0 || payObj.bill || payObj.paid || payObj.expected || payObj.isRed)) return payObj;
+      const detAmt = parseInt(String(det[amtKey] || '').replace(/,/g, '')) || 0;
+      const detBill = det[billKey] || '';
+      const detPaid = det[paidKey] || '';
+      const detExpected = det[expectedKey] || '';
+      if (!detAmt && !detBill && !detPaid && !detExpected) return payObj;
+      const result = { ...(payObj || {}), amt: detAmt, bill: detBill, paid: detPaid, expected: detExpected };
+      if (detPaid) { result.isRed = false; result.manualPaid = true; }
+      recoveredCount++;
+      return result;
+    };
+
+    item.contract1 = tryRecover(item.contract1, 'contractAmt', 'contractBill', 'contractDate', 'contractExpected');
+    item.interim1  = tryRecover(item.interim1,  'interimAmt',  'interimBill',  'interimDate',  'interimExpected');
+    item.interim2  = tryRecover(item.interim2,  'interim2Amt', 'interim2Bill', 'interim2Date', 'interim2Expected');
+    item.balance1  = tryRecover(item.balance1,  'balanceAmt',  'balanceBill',  'balanceDate',  'balanceExpected');
+  });
+
+  if (recoveredCount > 0) {
+    await saveToStorage(currentYear);
+    renderTable();
+    updateStats();
+    showToast(`✅ ${recoveredCount}건 수금데이터 복구 완료`, 'success');
+  } else {
+    showToast('복구할 데이터가 없습니다. (이미 정상이거나 총괄표 데이터 없음)', 'info');
   }
 }
 
