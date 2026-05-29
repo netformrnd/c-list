@@ -3230,8 +3230,23 @@ async function syncFromSheets() {
       const localMaxTime = localYear.reduce((max, item) => Math.max(max, item.updatedAt || 0), 0);
 
       if (sheetMaxTime > localMaxTime && sheetYear.length > 0) {
-        // Sheets가 더 최신 → Sheets 데이터로 교체
-        allData[yearKey] = sheetYear;
+        // Sheets가 더 최신 → Sheets 데이터로 교체하되 수금정보는 로컬 보존
+        const keepLocalPayment = (sheetP, localP) => {
+          if (!localP) return sheetP;
+          const localHasData = localP.amt > 0 || localP.bill || localP.paid || localP.isRed || localP.expected;
+          return localHasData ? localP : (sheetP || localP);
+        };
+        allData[yearKey] = sheetYear.map(sheetItem => {
+          const localItem = localYear.find(l => String(l.no) === String(sheetItem.no));
+          if (!localItem) return sheetItem;
+          return {
+            ...sheetItem,
+            contract1: keepLocalPayment(sheetItem.contract1, localItem.contract1),
+            interim1:  keepLocalPayment(sheetItem.interim1,  localItem.interim1),
+            interim2:  keepLocalPayment(sheetItem.interim2,  localItem.interim2),
+            balance1:  keepLocalPayment(sheetItem.balance1,  localItem.balance1),
+          };
+        });
         merged = true;
         console.log(`📥 Sheets → 로컬 업데이트: ${yearKey} (Sheets: ${new Date(sheetMaxTime).toLocaleString()})`);
       } else if (localMaxTime > sheetMaxTime && localYear.length > 0) {
