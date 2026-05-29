@@ -3912,8 +3912,8 @@ function renderTable() {
       <td class="text-right font-mono">${fmt(item.amount)}</td>
       <td class="text-right font-mono">${fmt(item.amountTax)}</td>
       <td>${item.contractDate || '-'}</td>
-      <td>${item.startDate || '-'}</td>
-      <td>${item.endDate || '-'}</td>
+      <td>${item.startDate ? (/^\d{4}-(0[1-9]|1[0-2])/.test(item.startDate) ? item.startDate : '-') : '-'}</td>
+      <td>${item.endDate ? (/^\d{4}-(0[1-9]|1[0-2])/.test(item.endDate) ? item.endDate : '-') : '-'}</td>
       <td class="text-center">${cs}</td><td class="text-center">${is}</td><td class="text-center">${bs}</td>
       <td>${item.type ? '<span class="type-badge ' + typeClass + '">' + item.type + '</span>' : '-'}</td>
       <td>${highlightKeyword(item.manager) || '-'}</td><td style="min-width:130px !important;max-width:150px;white-space:normal !important;word-break:break-all;">${highlightKeyword(item.siteManager) || '-'}</td>
