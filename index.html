@@ -3985,15 +3985,18 @@ function renderTable() {
 function getPaymentStatus(p, isCancelled) {
   if (!p) return '<span class="payment-badge unpaid">-</span>';
 
-  // 계약 해지된 경우
-  if (isCancelled) return '<span class="payment-badge" style="background:#e0e0e0;color:#666;">해지</span>';
-
   const hasBill = p.bill && p.bill !== '';
   const hasPaid = p.paid && p.paid !== '' && p.paid !== '미정';
   const hasAmt = p.amt && p.amt > 0;
   const hasExpected = p.expected && p.expected !== '';
   const isRed = p.isRed === true;  // 엑셀에서 빨간색으로 표시된 경우
   const manualPaid = p.manualPaid === true;  // 수동 입금완료 처리
+
+  // 해지 항목: 입금완료된 수금은 "완료" 유지, 나머지는 "해지"
+  if (isCancelled) {
+    if (manualPaid || hasPaid) return '<span class="payment-badge paid">완료</span>';
+    return '<span class="payment-badge" style="background:#e0e0e0;color:#666;">해지</span>';
+  }
 
   // 빨간색 글자 = 미입금 (금액이 있고 아직 입금 안됨) - isRed이면서 예정일 없는 경우
   if (isRed && !hasExpected) return '<span class="payment-badge" style="background:var(--danger-light);color:var(--danger);">미입금</span>';
