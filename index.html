@@ -4119,8 +4119,10 @@ function updateStats() {
     // 해지된 건은 통계에서 제외
     if (isCancelled) return;
 
-    // 청구 대상: 실준공일 지났는데 잔금 계산서 미발행
-    if (item.endDate && item.endDate <= billingTodayStr && !(item.balance1 && item.balance1.bill)) billingCount++;
+    // 청구 대상: 실준공일 지남 + 잔금 미청구(계산서 미발행) + 잔금 미입금
+    const _b1 = item.balance1;
+    const _b1Paid = _b1 && (_b1.manualPaid || (!_b1.isRed && _b1.paid && _b1.paid !== '' && _b1.paid !== '미정'));
+    if (item.endDate && item.endDate <= billingTodayStr && !(_b1 && _b1.bill) && !_b1Paid) billingCount++;
 
     // 입금 완료 체크
     const isPaid = (p) => {
@@ -5491,9 +5493,9 @@ function filterByStatCard(filterType) {
         return (amt2 - paid2) > 0;
       }
 
-      case 'billing': {  // 청구 대상: 실준공일 지남 + 잔금 계산서 미발행
+      case 'billing': {  // 청구 대상: 실준공일 지남 + 잔금 미청구(계산서 미발행) + 잔금 미입금
         const t = new Date().toISOString().split('T')[0];
-        return item.endDate && item.endDate <= t && !(item.balance1 && item.balance1.bill);
+        return item.endDate && item.endDate <= t && !(item.balance1 && item.balance1.bill) && !isPaid(item.balance1);
       }
 
       default:
