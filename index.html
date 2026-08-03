@@ -368,6 +368,13 @@ tr.selected { background: var(--primary-light); }
     </div>
     </div><!-- stats-grid 끝 -->
 
+    <!-- 청구 대상 알림 카드 -->
+    <div class="stat-card" id="statCardBilling" onclick="filterByStatCard('billing')" style="border-left:4px solid #e65100;background:linear-gradient(135deg,#fff 0%,#fff3e0 100%);cursor:pointer;margin-top:0.5rem;">
+      <div class="stat-label">🔔 청구 대상 <span style="font-size:0.65rem;color:#888;">(실준공일 지남 · 잔금 계산서 미발행)</span></div>
+      <div class="stat-value" id="statBillingCount" style="color:#e65100;font-size:1.6rem;">0건</div>
+      <div class="stat-sub" style="font-size:0.72rem;color:#888;">클릭하면 청구 대상 현장만 표시</div>
+    </div>
+
     <!-- 상세 카드 (총미수금 클릭 시 펼침) -->
     <div id="receivableDetailCards" style="display:none;margin-top:0.5rem;">
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
@@ -667,7 +674,14 @@ tr.selected { background: var(--primary-light); }
         <div class="stat-sub" id="consultingMainStatPaidAmount" style="font-size:0.75rem;color:#888;">0원</div>
       </div>
     </div>
-    
+
+    <!-- 청구 대상 알림 카드 -->
+    <div class="stat-card" id="consultingMainCardBilling" onclick="toggleConsultingBilling()" style="border-left:4px solid #e65100;background:linear-gradient(135deg,#fff 0%,#fff3e0 100%);cursor:pointer;margin-bottom:0.5rem;">
+      <div class="stat-label">🔔 청구 대상 <span style="font-size:0.65rem;color:#888;">(실준공일 지남 · 계산서 미발행)</span></div>
+      <div class="stat-value" id="consultingMainStatBilling" style="color:#e65100;font-size:1.4rem;">0건</div>
+      <div class="stat-sub" id="consultingMainBillingHint" style="font-size:0.72rem;color:#888;">클릭하면 청구 대상만 표시</div>
+    </div>
+
     <!-- 필터 및 추가 버튼 -->
     <div class="search-section">
       <div class="search-row">
@@ -833,6 +847,8 @@ tr.selected { background: var(--primary-light); }
             <th style="width:85px;">계약일</th>
             <th style="width:85px;">실착공일</th>
             <th style="width:85px;">실준공일</th>
+            <th style="width:85px;">계산서 발행일</th>
+            <th style="width:90px;">청구금액</th>
             <th style="width:55px;">입금</th>
             <th style="width:55px;">공정률</th>
             <th style="width:55px;">현장투입</th>
@@ -1811,6 +1827,21 @@ tr.selected { background: var(--primary-light); }
               <span>관리담당자 확인</span>
             </label>
             <span id="consultingItemIssueStatus" style="font-size:0.8rem;font-weight:600;color:#999;margin-left:auto;"></span>
+          </div>
+        </div>
+
+        <!-- 청구(세금계산서 발행) -->
+        <div style="background:#fff3e0;border:1px solid #ffe0b2;border-radius:8px;padding:1rem;">
+          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <span style="font-weight:600;color:#e65100;">🧾 청구(세금계산서)</span>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <label style="font-size:0.85rem;color:#666;">계산서 발행일:</label>
+              <input type="date" id="consultingItemBill" style="padding:0.4rem;border:1px solid #ddd;border-radius:4px;">
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <label style="font-size:0.85rem;color:#666;">청구금액:</label>
+              <input type="text" id="consultingItemBillAmount" placeholder="0" inputmode="numeric" style="width:130px;padding:0.4rem;border:1px solid #ddd;border-radius:4px;text-align:right;" oninput="commaInputFormat(this)">
+            </div>
           </div>
         </div>
 
@@ -4051,6 +4082,8 @@ function updateStats() {
   const data = allData[currentYear] || [];
   let pc=0,pa=0,cc=0,ca=0,ic=0,ia=0,bc=0,ba=0;
   let totalContractAmt=0, totalContractCount=0;
+  let billingCount=0;  // 청구 대상: 실준공일 지남 + 잔금 계산서 미발행
+  const billingTodayStr = new Date().toISOString().split('T')[0];
 
   // 미수금 관련 변수
   let unpaidBalanceCount=0, unpaidBalanceAmt=0;  // 잔금 미입금
@@ -4085,6 +4118,9 @@ function updateStats() {
 
     // 해지된 건은 통계에서 제외
     if (isCancelled) return;
+
+    // 청구 대상: 실준공일 지났는데 잔금 계산서 미발행
+    if (item.endDate && item.endDate <= billingTodayStr && !(item.balance1 && item.balance1.bill)) billingCount++;
 
     // 입금 완료 체크
     const isPaid = (p) => {
@@ -4158,6 +4194,8 @@ function updateStats() {
   const totalPaidSum = grandTotal - totalRealReceivable;
   document.getElementById('statPaidAmount').textContent = fmtAmount(totalPaidSum);
   document.getElementById('statPaidCount').innerHTML = pc + '건 완납' + vatLabel;
+  const statBillingEl = document.getElementById('statBillingCount');
+  if (statBillingEl) statBillingEl.textContent = billingCount + '건';
   // === 2행: 단계별 미수금 (합산 = 총 미수금) ===
   // 수금대기(ba) + 계약금단계(ca) + 중도금단계(ia) = totalRealReceivable
   document.getElementById('statBalanceAmount').textContent = fmtAmount(ba);
@@ -5453,6 +5491,11 @@ function filterByStatCard(filterType) {
         return (amt2 - paid2) > 0;
       }
 
+      case 'billing': {  // 청구 대상: 실준공일 지남 + 잔금 계산서 미발행
+        const t = new Date().toISOString().split('T')[0];
+        return item.endDate && item.endDate <= t && !(item.balance1 && item.balance1.bill);
+      }
+
       default:
         return true;
     }
@@ -5464,7 +5507,7 @@ function filterByStatCard(filterType) {
   // 필터 결과 메시지
   const labelMap = {
     'completed': '입금완료', 'contract': '계약금 단계', 'interim': '중도금 단계',
-    'none': '미착수', 'unpaid-balance': '잔금 미입금', 'total-receivable': '총 미수금'
+    'none': '미착수', 'unpaid-balance': '잔금 미입금', 'total-receivable': '총 미수금', 'billing': '청구 대상'
   };
   document.getElementById('searchResult').innerHTML =
     `<strong>${labelMap[filterType]}</strong> ${filteredData.length}건 <span style="cursor:pointer;color:var(--primary);margin-left:8px;" onclick="clearStatCardFilter()">✕ 필터 해제</span>`;
@@ -5487,7 +5530,8 @@ function updateStatCardActiveState() {
     'interim': 'statCardInterim',
     'none': 'statCardNone',
     'unpaid-balance': 'statCardUnpaidBalance',
-    'total-receivable': 'statCardTotalReceivable'
+    'total-receivable': 'statCardTotalReceivable',
+    'billing': 'statCardBilling'
   };
 
   // 모든 카드 비활성화
@@ -16612,6 +16656,11 @@ function populateConsultingMainManagerFilter() {
 }
 
 // 기술컨설팅 메인 화면 필터링
+let consultingBillingOnly = false;  // 청구 대상만 보기 토글
+function toggleConsultingBilling() {
+  consultingBillingOnly = !consultingBillingOnly;
+  renderConsultingMain();
+}
 function filterConsultingMain() {
   renderConsultingMain();
 }
@@ -16638,7 +16687,13 @@ function renderConsultingMain() {
     if (managerFilter && item.manager !== managerFilter) return false;
     return true;
   });
-  
+
+  // 청구 대상: 실준공일 지남 + 계산서 미발행
+  const billTodayStr = new Date().toISOString().split('T')[0];
+  const isConsultBillingTarget = (item) => item.endDate && item.endDate <= billTodayStr && !item.bill;
+  const consultBillingCount = filtered.filter(isConsultBillingTarget).length;
+  if (consultingBillingOnly) filtered = filtered.filter(isConsultBillingTarget);
+
   // 통계 업데이트
   const totalCount = filtered.length;
   const yCount = filtered.filter(d => d.consulting === 'Y').length;
@@ -16674,11 +16729,17 @@ function renderConsultingMain() {
   document.getElementById('consultingMainStatExec').textContent = fmtAmount(totalExec);
   document.getElementById('consultingMainStatPaid').textContent = `${paidCount}건`;
   document.getElementById('consultingMainStatPaidAmount').textContent = fmtAmount(paidAmount);
+  const cbEl = document.getElementById('consultingMainStatBilling');
+  if (cbEl) cbEl.textContent = `${consultBillingCount}건`;
+  const cbCard = document.getElementById('consultingMainCardBilling');
+  if (cbCard) cbCard.style.outline = consultingBillingOnly ? '2px solid #e65100' : 'none';
+  const cbHint = document.getElementById('consultingMainBillingHint');
+  if (cbHint) cbHint.textContent = consultingBillingOnly ? '✔ 청구 대상만 표시 중 (클릭 해제)' : '클릭하면 청구 대상만 표시';
   
   const tbody = document.getElementById('consultingMainTableBody');
   
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="21" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="23" style="text-align:center;padding:2rem;color:#999;">등록된 데이터가 없습니다. [➕ 신규 등록] 버튼을 클릭하여 추가하세요.</td></tr>';
     document.getElementById('consultingMainCount').textContent = '0건';
     return;
   }
@@ -16711,7 +16772,8 @@ function renderConsultingMain() {
         <td style="text-align:center;"><span style="padding:0.15rem 0.4rem;background:${photoBg};border-radius:4px;font-size:0.75rem;">${item.photo || 'X'}</span></td>
         <td style="text-align:center;font-size:0.85rem;">${item.contractDate || '-'}</td>
         <td style="text-align:center;font-size:0.85rem;">${item.startDate || '-'}</td>
-        <td style="text-align:center;font-size:0.85rem;">${item.endDate || '-'}</td>
+        <td style="text-align:center;font-size:0.85rem;color:${item.bill ? '#e65100' : '#ccc'};font-weight:${item.bill ? '600' : '400'};">${item.bill || '-'}</td>
+        <td style="text-align:right;font-family:monospace;color:#e65100;">${item.billAmount ? fmt(item.billAmount) : '-'}</td>
         <td style="text-align:center;">${paidBadge}</td>
         <td style="text-align:center;font-family:monospace;font-weight:600;color:#1565c0;">${item.progressRate !== undefined && item.progressRate !== '' ? item.progressRate + '%' : '-'}</td>
         <td style="text-align:center;">
@@ -17039,6 +17101,8 @@ async function openConsultingItemModal(editId = null) {
   document.getElementById('consultingItemContractDate').value = '';
   document.getElementById('consultingItemStartDate').value = '';
   document.getElementById('consultingItemEndDate').value = '';
+  document.getElementById('consultingItemBill').value = '';
+  document.getElementById('consultingItemBillAmount').value = '';
   document.getElementById('consultingIssueList').innerHTML = '';
   document.getElementById('consultingItemIssueCheck1').checked = false;
   document.getElementById('consultingItemIssueCheck2').checked = false;
@@ -17096,6 +17160,8 @@ async function openConsultingItemModal(editId = null) {
       document.getElementById('consultingItemContractDate').value = item.contractDate || '';
       document.getElementById('consultingItemStartDate').value = item.startDate || '';
       document.getElementById('consultingItemEndDate').value = item.endDate || '';
+      document.getElementById('consultingItemBill').value = item.bill || '';
+      document.getElementById('consultingItemBillAmount').value = fmtInput(item.billAmount);
       // 이슈 목록 렌더링 (issues 배열 우선, 없으면 기존 note 마이그레이션)
       if (item.issues && item.issues.length > 0) {
         renderConsultingIssues(item.issues);
@@ -17173,6 +17239,8 @@ async function saveConsultingItem() {
     contractDate: document.getElementById('consultingItemContractDate').value,
     startDate: document.getElementById('consultingItemStartDate').value,
     endDate: document.getElementById('consultingItemEndDate').value,
+    bill: document.getElementById('consultingItemBill').value,
+    billAmount: parseAmt(document.getElementById('consultingItemBillAmount').value),
     issues: getConsultingIssues(),
     issueCheck1: document.getElementById('consultingItemIssueCheck1').checked,
     issueCheck2: document.getElementById('consultingItemIssueCheck2').checked,
@@ -17737,7 +17805,7 @@ function downloadConsultingListExcel() {
 
   const today = new Date().toISOString().split('T')[0];
   const reportDate = today.replace(/-/g, '.');
-  const COLS = 21; // A~U
+  const COLS = 23; // A~W (계산서발행일·청구금액 추가)
 
   // ── 스타일 헬퍼 ──────────────────────────────────────────
   const bThin = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
@@ -17816,7 +17884,7 @@ function downloadConsultingListExcel() {
     hdr('NO'), hdr('년도'), hdr('구분'), hdr('컨설팅'), hdr('공사현장'), hdr('공사명'),
     hdr('낙찰금액'), hdr('실행금액'), hdr('영업담당'), hdr('업체명'), hdr('업체담당'),
     hdr('하자기간'), hdr('현장소장'), hdr('사진첩'), hdr('계약일'),
-    hdr('실착공일'), hdr('실준공일'), hdr('공정률'), hdr('입금여부'), hdr('입금일'), hdr('비고')
+    hdr('실착공일'), hdr('실준공일'), hdr('계산서발행일'), hdr('청구금액'), hdr('공정률'), hdr('입금여부'), hdr('입금일'), hdr('비고')
   ]);
 
   // ── 데이터 ──
@@ -17847,6 +17915,8 @@ function downloadConsultingListExcel() {
         dataC(item.contractDate||'-',  bg),
         dataC(item.startDate||'-',     bg),
         dataC(item.endDate||'-',       bg),
+        mkCell(item.bill || '-', { sz:10, fc:'E65100', bg, ha:'center', bd:bThin }),
+        mkCell(item.billAmount ? won(item.billAmount) : '-', { sz:10, fc:'E65100', bg, ha:'right', bd:bThin }),
         mkCell((item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate + '%' : '-', { bold:true, sz:10, fc:'1565C0', bg, ha:'center', bd:bThin }),
         mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paidFc, bg:paidBg, ha:'center', bd:bThin }),
         dataC(item.paidDate||'-',   bg),
@@ -17865,7 +17935,9 @@ function downloadConsultingListExcel() {
   sumRow[1]  = mkCell(`총 ${filtered.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'center', bd:bMed });
   sumRow[6]  = mkCell(won(totalBid),          { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
   sumRow[7]  = mkCell(won(totalExec),         { bold:true, sz:10, fc:'FFE082', bg:'005F73', ha:'right',  bd:bMed });
-  sumRow[18] = mkCell(`완료 ${paidCnt}건`,    { bold:true, sz:10, fc:'A5F3A5', bg:'005F73', ha:'center', bd:bMed });
+  const totalBill = filtered.reduce((s,d)=>s+(d.billAmount||0), 0);
+  sumRow[18] = mkCell(totalBill ? won(totalBill) : '-', { bold:true, sz:10, fc:'FFCC80', bg:'005F73', ha:'right',  bd:bMed });
+  sumRow[20] = mkCell(`완료 ${paidCnt}건`,    { bold:true, sz:10, fc:'A5F3A5', bg:'005F73', ha:'center', bd:bMed });
   push(sumRow);
 
   // ── 시트 생성 ──
@@ -17874,7 +17946,7 @@ function downloadConsultingListExcel() {
     {wch:5}, {wch:7}, {wch:14}, {wch:9}, {wch:22}, {wch:20},
     {wch:16}, {wch:16}, {wch:10}, {wch:18}, {wch:10},
     {wch:10}, {wch:10}, {wch:8}, {wch:12},
-    {wch:12}, {wch:12}, {wch:8}, {wch:9}, {wch:12}, {wch:18}
+    {wch:12}, {wch:12}, {wch:13}, {wch:14}, {wch:8}, {wch:9}, {wch:12}, {wch:18}
   ];
   ws['!rows'] = wsData.map((_,i) => i===0 ? {hpt:32} : i===1 ? {hpt:18} : {hpt:20});
   ws['!merges'] = merges;
