@@ -13754,7 +13754,7 @@ function generateSettlementFromCurrentData() {
         realSettlement: realSettlement,
         companyProfit: companyProfit,
         manager: manager,
-        settled: savedSettled || (year === '2025' || year === '2026' ? '미정산' : (detailStatus === 'paid' ? '정산완료' : '미정산')),
+        settled: savedSettled || (year === '2025' || year === '2026' ? (detailStatus === 'paid' ? '미정산' : '진행중') : (detailStatus === 'paid' ? '정산완료' : '미정산')),
         hasDetailData: hasDetailData,  // 총괄표 데이터 유무
         isExcluded: EXCLUDE_MANAGERS.includes(manager) || isExcludedByUser,  // 정산 제외 대상
         excludedByUser: isExcludedByUser  // 사용자가 직접 제외한 경우
