@@ -1378,6 +1378,7 @@ tr.selected { background: var(--primary-light); }
       <button class="btn btn-primary" onclick="openReportModal('본사')">📋 본사 보고서</button>
       <button class="btn" onclick="openReportModal('외주')" style="background:#9c27b0;color:white;">📋 외주 보고서</button>
       <button class="btn btn-success" onclick="downloadSettlementExcel()">📥 엑셀 다운로드</button>
+      <button class="btn" onclick="downloadVerificationExcel()" style="background:#1a237e;color:white;">✅ 정산 검증</button>
       <button class="btn" onclick="openBatchWizard()" style="background:#c62828;color:white;margin-left:auto;font-weight:700;">🔒 일괄정산 실행</button>
     </div>
   </div>
@@ -17958,6 +17959,119 @@ function downloadConsultingListExcel() {
   showToast('기술컨설팅 리스트 엑셀 다운로드 완료', 'success');
 }
 
+
+// ── 정산 검증 엑셀 (실제 입금여부·정산여부 기준) ──
+function downloadVerificationExcel() {
+  if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error'); return; }
+
+  const data = generateSettlementFromCurrentData();  // 항상 최신 실제 데이터
+  const today = new Date().toISOString().split('T')[0];
+  const reportDate = today.replace(/-/g, '.');
+
+  const bThin = { top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}}, left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}} };
+  const bMed  = { top:{style:'medium',color:{rgb:'1A237E'}}, bottom:{style:'medium',color:{rgb:'1A237E'}}, left:{style:'medium',color:{rgb:'1A237E'}}, right:{style:'medium',color:{rgb:'1A237E'}} };
+  const mkCell = (v, { bold=false, sz=10, fc='333333', bg=null, ha='center', va='center', bd=bThin } = {}) => ({ v, t: typeof v === 'number' ? 'n' : 's', s: { font:{ bold, sz, color:{rgb:fc}, name:'맑은 고딕' }, fill:{ fgColor:{rgb: bg||'FFFFFF'} }, alignment:{ horizontal:ha, vertical:va, wrapText:true }, border:bd } });
+  const mkEmpty = (bg='FFFFFF') => mkCell('', { bg });
+  const hdr = (v, bg='1565C0') => mkCell(v, { bold:true, sz:10, fc:'FFFFFF', bg, bd:bMed });
+  const dataC = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'center' });
+  const dataL = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'left' });
+  const dataR = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'right' });
+  const won = (n) => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
+
+  const sorted = [...data].sort((a,b) => String(a.manager||'힣').localeCompare(String(b.manager||'힣')));
+
+  // ── Sheet 1: 정산검증 (9열) ──
+  const COLS = 9;
+  const wsData = []; const merges = []; let row = 0;
+  const push = (a) => { wsData.push(a); row++; };
+  const merge = (r, cs, ce) => merges.push({ s:{r,c:cs}, e:{r,c:ce} });
+
+  push([ mkCell('정산 검증표 (실제 입금·정산 상태)', { bold:true, sz:15, fc:'FFFFFF', bg:'1A237E', ha:'left', bd:bMed }), ...Array(COLS-2).fill(mkCell('', { bg:'1A237E', bd:bMed })), mkCell(reportDate, { sz:10, fc:'B3C5FF', bg:'1A237E', ha:'right', bd:bMed }) ]);
+  merge(row-1, 0, COLS-2);
+  push([ mkCell(`㈜넷폼알앤디  ·  ${currentYear}년  ·  총 ${data.length}건  ·  현장별 실제 입금/정산여부`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('', { bg:'1565C0', bd:bMed })) ]);
+  merge(row-1, 0, COLS-1);
+  push(Array(COLS).fill(mkEmpty('EEF2FF')));
+  push([ hdr('NO'), hdr('영업담당'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('이익금'), hdr('정산금액(15%)'), hdr('입금여부'), hdr('정산여부') ]);
+
+  let gAmt=0, gProfit=0, gSettle=0, unpaidCnt=0, unsettledCnt=0;
+  sorted.forEach((item, i) => {
+    const bg = i%2===0 ? 'EEF2FF' : 'FFFFFF';
+    const paid = item.status === '입금';
+    const paidLabel = paid ? '입금완료' : (item.status === '진행' ? '진행중' : '미입금');
+    const settled = item.settled || '미정산';
+    const sFc = settled==='정산완료' ? '1B5E20' : (settled==='진행중' ? '1565C0' : 'B71C1C');
+    const sBg = settled==='정산완료' ? 'E8F5E9' : (settled==='진행중' ? 'E3F2FD' : 'FFEBEE');
+    const pFc = (item.profit||0) >= 0 ? '1565C0' : 'C62828';
+    push([
+      mkCell(i+1, { sz:9, fc:'888888', bg:'F5F7FF', ha:'center', bd:bThin }),
+      dataC(item.manager||'-', bg),
+      dataC(item.type||'-', bg),
+      dataL(item.site||'-', bg),
+      dataR(won(item.amount), bg, '1565C0'),
+      mkCell(won(item.profit), { sz:10, fc:pFc, bg, ha:'right', bd:bThin }),
+      dataR(won(item.realSettlement), bg, '6A1B9A'),
+      mkCell(paidLabel, { bold:true, sz:10, fc:paid?'1B5E20':(item.status==='진행'?'1565C0':'B71C1C'), bg:paid?'E8F5E9':(item.status==='진행'?'E3F2FD':'FFEBEE'), ha:'center', bd:bThin }),
+      mkCell(settled, { bold:true, sz:10, fc:sFc, bg:sBg, ha:'center', bd:bThin })
+    ]);
+    gAmt+=item.amount||0; gProfit+=item.profit||0; gSettle+=item.realSettlement||0;
+    if (!paid) unpaidCnt++;
+    if (settled !== '정산완료') unsettledCnt++;
+  });
+
+  push(Array(COLS).fill(mkEmpty('E8EAF6')));
+  const sumRow = Array(COLS).fill(mkCell('', { bg:'1565C0', bd:bMed }));
+  sumRow[0] = mkCell('합계', { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow[1] = mkCell(`${data.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow[4] = mkCell(won(gAmt), { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow[5] = mkCell(won(gProfit), { bold:true, sz:10, fc:'FFEE58', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow[6] = mkCell(won(gSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow[7] = mkCell(`미입금 ${unpaidCnt}`, { bold:true, sz:10, fc:'FFCDD2', bg:'1565C0', ha:'center', bd:bMed });
+  sumRow[8] = mkCell(`미정산 ${unsettledCnt}`, { bold:true, sz:10, fc:'FFCDD2', bg:'1565C0', ha:'center', bd:bMed });
+  push(sumRow);
+
+  const ws1 = XLSX.utils.aoa_to_sheet(wsData);
+  ws1['!cols'] = [ {wch:5},{wch:10},{wch:11},{wch:28},{wch:15},{wch:14},{wch:14},{wch:10},{wch:10} ];
+  ws1['!rows'] = wsData.map((_,i)=> i===0?{hpt:32}:i===1?{hpt:18}:{hpt:20});
+  ws1['!merges'] = merges;
+
+  // ── Sheet 2: 담당자별 요약 ──
+  const mgrSum = {};
+  data.forEach(item => {
+    const m = item.manager || '기타';
+    if (!mgrSum[m]) mgrSum[m] = { count:0, amount:0, settle:0, done:0, notdone:0, unpaid:0 };
+    mgrSum[m].count++;
+    mgrSum[m].amount += item.amount||0;
+    mgrSum[m].settle += item.realSettlement||0;
+    if ((item.settled||'미정산') === '정산완료') mgrSum[m].done++; else mgrSum[m].notdone++;
+    if (item.status !== '입금') mgrSum[m].unpaid++;
+  });
+  const C2 = 7;
+  const wsData2 = []; const merges2 = [];
+  const push2 = (a)=>{ wsData2.push(a); };
+  push2([ mkCell('담당자별 정산 현황', { bold:true, sz:14, fc:'FFFFFF', bg:'1A237E', ha:'left', bd:bMed }), ...Array(C2-1).fill(mkCell('', { bg:'1A237E', bd:bMed })) ]);
+  merges2.push({ s:{r:0,c:0}, e:{r:0,c:C2-1} });
+  push2(Array(C2).fill(mkEmpty('EEF2FF')));
+  push2([ hdr('영업담당'), hdr('건수'), hdr('공사금액합'), hdr('정산금액합'), hdr('정산완료'), hdr('미정산'), hdr('미입금') ]);
+  Object.keys(mgrSum).sort().forEach((m, i) => {
+    const s = mgrSum[m]; const bg = i%2===0 ? 'EEF2FF':'FFFFFF';
+    push2([
+      dataC(m, bg), dataC(s.count+'건', bg),
+      dataR(won(s.amount), bg), dataR(won(s.settle), bg, '6A1B9A'),
+      mkCell(s.done+'건', { sz:10, fc:'1B5E20', bg, ha:'center', bd:bThin }),
+      mkCell(s.notdone+'건', { bold:s.notdone>0, sz:10, fc:s.notdone>0?'B71C1C':'888888', bg, ha:'center', bd:bThin }),
+      mkCell(s.unpaid+'건', { sz:10, fc:s.unpaid>0?'B71C1C':'888888', bg, ha:'center', bd:bThin })
+    ]);
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet(wsData2);
+  ws2['!cols'] = [ {wch:12},{wch:8},{wch:16},{wch:16},{wch:9},{wch:9},{wch:9} ];
+  ws2['!merges'] = merges2;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, '정산검증');
+  XLSX.utils.book_append_sheet(wb, ws2, '담당자별요약');
+  XLSX.writeFile(wb, `정산검증_${currentYear}_${today.replace(/-/g,'')}.xlsx`);
+  showToast('정산 검증 엑셀 다운로드 완료', 'success');
+}
 
 function downloadSettlementExcel() {
   if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error'); return; }
