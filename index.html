@@ -13670,9 +13670,11 @@ function generateSettlementFromCurrentData() {
         totalExpense = amount - profit;
       }
       
-      // 회사경비: 공사금액의 10% (영업정산 시 이익금에서 차감. 이익금 자체는 매출-지출 그대로 유지)
+      // 회사경비(영업정산): 공사금액의 10%. 지출총액에 포함 → 이익금에서 차감 (LIST 구조와 동일)
       const companyExpense = Math.round(amount * 0.1);
-      const realSettlement = (profit - companyExpense) * 0.15;
+      totalExpense += companyExpense;
+      profit = profit - companyExpense;
+      const realSettlement = profit * 0.15;
       const companyProfit = profit - realSettlement;
       
       // 입금 상태 확인 함수
