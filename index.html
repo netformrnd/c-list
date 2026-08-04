@@ -14204,6 +14204,10 @@ async function loadConsultingData() {
         item.companyProfit = item.profit - item.settlement;
       }
     });
+
+    // ★ 정산 담당자를 현장 리스트(consultingListData) 기준으로 보정
+    // loadConsultingData가 재호출되면 Firebase의 stale 담당자로 덮어써지므로, 로드 직후 매번 보정
+    reconcileConsultingManagers();
   } catch(e) {
     console.error('기술컨설팅 데이터 로드 실패:', e);
     consultingData = [];
