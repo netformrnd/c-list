@@ -14225,7 +14225,8 @@ async function openConfirmationModal() {
   
   // 기술컨설팅 데이터 로드
   await loadConsultingData();
-  
+  reconcileConsultingManagers();  // 정산 담당자를 현장 리스트 기준으로 자동 보정 (오매칭 방지)
+
   // 기본 탭 설정
   currentConfirmationType = 'construction';
   switchConfirmationTab('construction');
@@ -16395,7 +16396,8 @@ function filterConsultingData() {
 async function renderConsultingTable() {
   // 최신 데이터 로드
   await loadConsultingData();
-  
+  reconcileConsultingManagers();  // 정산 담당자를 현장 리스트 기준으로 보정
+
   // 필터 적용
   const searchText = (document.getElementById('consultingSearchInput')?.value || '').toLowerCase();
   const yearFilter = document.getElementById('consultingYearFilter').value;
@@ -16940,6 +16942,21 @@ function updateConsultingManagerStats() {
 }
 
 // 기술컨설팅 리스트 데이터 로드
+// 정산 데이터(consultingData)의 담당자를 현장 리스트(consultingListData) 기준으로 자동 보정
+// (리스트에서 담당자를 바꿨는데 정산 복사본이 옛 담당자로 남는 문제 방지)
+function reconcileConsultingManagers() {
+  if (!Array.isArray(consultingData) || !consultingData.length || !Array.isArray(consultingListData) || !consultingListData.length) return 0;
+  const listById = {};
+  consultingListData.forEach(l => { if (l && l.id) listById[l.id] = l; });
+  let fixed = 0;
+  consultingData.forEach(c => {
+    const L = (c && c.listId) ? listById[c.listId] : null;
+    if (L && L.manager && c.manager !== L.manager) { c.manager = L.manager; fixed++; }
+  });
+  if (fixed) console.log('정산 담당자 ' + fixed + '건을 현장 리스트 기준으로 보정');
+  return fixed;
+}
+
 async function loadConsultingListData() {
   try {
     const fbData = await fbLoad(FB_COLLECTIONS.consultingListData, 'data');
@@ -16947,6 +16964,7 @@ async function loadConsultingListData() {
       consultingListData = fbData.items;
       localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
       console.log('Firebase에서 컨설팅 리스트 로드 완료');
+      reconcileConsultingManagers();
       return;
     }
   } catch(e) {
@@ -16956,6 +16974,7 @@ async function loadConsultingListData() {
     const saved = localStorage.getItem('consultingListData');
     if (saved) {
       consultingListData = JSON.parse(saved);
+      reconcileConsultingManagers();
       // ★ Firebase 로드 실패 시 로컬 캐시로 폴백만 (Firebase 덮어쓰기 금지 - 다른 사용자 데이터 손실 방지)
     }
   } catch(e) {
