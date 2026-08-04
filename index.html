@@ -1860,6 +1860,15 @@ tr.selected { background: var(--primary-light); }
             </div>
           </div>
         </div>
+
+        <!-- 수동 확정 실정산금액 (자동 15% 무시하고 이 금액으로 확정) -->
+        <div style="background:#ede7f6;border:1px solid #d1c4e9;border-radius:8px;padding:1rem;">
+          <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+            <span style="font-weight:600;color:#5e35b1;">🎯 확정 실정산금액(수동)</span>
+            <input type="text" id="consultingItemManualSettlement" placeholder="비우면 자동(이익금×15%)" inputmode="numeric" style="width:200px;padding:0.4rem;border:1px solid #ddd;border-radius:4px;text-align:right;" oninput="commaInputFormat(this)">
+            <span style="font-size:0.78rem;color:#7e57c2;">※ 값 입력 시 이 금액으로 실정산 확정 (특이사항용). 비우면 자동계산.</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer" style="display:flex;justify-content:space-between;">
@@ -13548,6 +13557,25 @@ function generateSettlementFromCurrentData() {
     }
   }
 
+  // ★ 한준엽 공사 특이사항: 아래 3건을 정산완료로 (미설정 시에만, 현장명 매칭으로 실제 no 사용)
+  // ※ 확인서 NO와 엑셀 NO가 달라 하드코딩 대신 현장명으로 매칭
+  try {
+    const _sd = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+    const _norm = s => String(s || '').replace(/\s/g, '');
+    const _ct = ['성수신성아파트', '창전현대홈타운아파트', '나주1차대방노블랜드'];
+    let _ch = false;
+    (allData['2025'] || []).forEach(it => {
+      if (it && it.manager === '한준엽' && _ct.some(t => _norm(it.site).includes(_norm(t)))) {
+        const k = `25_${it.no}`;
+        if (_sd[k] === undefined) { _sd[k] = '정산완료'; _ch = true; console.log('[특이사항] 공사 정산완료:', it.site, k); }
+      }
+    });
+    if (_ch) {
+      localStorage.setItem('settlementStatusData', JSON.stringify(_sd));
+      try { fbSave(FB_COLLECTIONS.settlementStatusData, 'status', _sd); } catch(e) {}
+    }
+  } catch(e) { console.error('공사 특이사항 반영 실패:', e); }
+
   // 연도별 데이터 건수 로그 (디버깅용)
   const years = ['2024', '2025', '2026'];
   years.forEach(y => {
@@ -14209,11 +14237,61 @@ async function loadConsultingData() {
     // ★ 정산 담당자를 현장 리스트(consultingListData) 기준으로 보정
     // loadConsultingData가 재호출되면 Firebase의 stale 담당자로 덮어써지므로, 로드 직후 매번 보정
     reconcileConsultingManagers();
+
+    // ★ 한준엽 특이사항 데이터 (미설정 시 1회 반영, 이후 사용자 편집 보존)
+    applyConsultingManualAdjustments();
+
     // ★ 정산여부 자동 판정: 입금완료→미정산, 미입금→진행중 (2025/2026, '정산완료' 보존)
     applyConsultingSettledRule();
+
+    // ★ 확정 실정산금액(수동) 반영: manualSettlement>0이면 자동 15% 대신 이 금액 사용
+    consultingData.forEach(item => {
+      if (item && Number(item.manualSettlement) > 0) {
+        item.settlement = Number(item.manualSettlement);
+        item.companyProfit = (item.profit || 0) - item.settlement;
+      }
+    });
   } catch(e) {
     console.error('기술컨설팅 데이터 로드 실패:', e);
     consultingData = [];
+  }
+}
+
+// 한준엽 컨설팅 특이사항: 탑마을타워빌 확정 실정산 500만 + 토당금강kcc 신규(500만)
+// ※ "미설정 시에만" 반영 → 최초 1회 적용 후 사용자가 편집 가능
+function applyConsultingManualAdjustments() {
+  if (!Array.isArray(consultingData)) return;
+  const norm = s => String(s || '').replace(/\s/g, '');
+  let changed = false;
+
+  // 1) 탑마을타워빌 (기술컨설팅, 2025, 한준엽): 확정 실정산 500만 (미설정 시)
+  consultingData.forEach(c => {
+    if (c && c.year === '2025' && c.manager === '한준엽' && norm(c.site).includes('탑마을타워빌')) {
+      if (c.manualSettlement === undefined || c.manualSettlement === null || c.manualSettlement === '') {
+        c.manualSettlement = 5000000;
+        changed = true;
+      }
+    }
+  });
+
+  // 2) 토당금강kcc (신규, 2026, 한준엽, 색채산업개발): 확정 실정산 500만
+  const TODAM_ID = 'manual_todamkeumgang_kcc_2026';
+  if (!consultingData.some(c => c && c.id === TODAM_ID)) {
+    consultingData.push({
+      id: TODAM_ID, site: '토당금강kcc아파트', company: '색채산업개발',
+      year: '2026', manager: '한준엽', type: '일반',
+      bidAmount: 0, execAmount: 0, companyExp: 0, otherExp: 0, totalExpense: 0,
+      profit: 0, profitRate: '0.0',
+      manualSettlement: 5000000, settlement: 5000000, companyProfit: 0,
+      settled: '미정산'
+    });
+    changed = true;
+  }
+
+  if (changed) {
+    localStorage.setItem('consultingData', JSON.stringify(consultingData));
+    try { fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData }); } catch(e) { console.error('특이사항 저장 실패:', e); }
+    console.log('컨설팅 특이사항(한준엽) 반영 완료');
   }
 }
 
@@ -16530,14 +16608,19 @@ async function renderConsultingTable() {
       if (listItem && listItem.company) item.company = listItem.company;
     }
 
-    // 회사경비가 없으면 낙찰금액의 10% 자동 설정 + 재계산
-    if (!item.companyExp && item.bidAmount > 0) {
+    // 회사경비가 없으면 낙찰금액의 10% 자동 설정 + 재계산 (단, 수동 확정 실정산 항목은 제외)
+    if (!item.companyExp && item.bidAmount > 0 && !(Number(item.manualSettlement) > 0)) {
       item.companyExp = Math.round(item.bidAmount * 0.1);
       item.totalExpense = (item.execAmount || 0) + item.companyExp + (item.otherExp || 0);
       item.profit = (item.bidAmount || 0) - item.totalExpense;
       item.profitRate = item.bidAmount > 0 ? (item.profit / item.bidAmount * 100).toFixed(1) : '0.0';
       item.settlement = item.profit > 0 ? Math.round(item.profit * 0.15) : 0;
       item.companyProfit = item.profit - item.settlement;
+    }
+    // 수동 확정 실정산 반영 (렌더 시에도 보장)
+    if (Number(item.manualSettlement) > 0) {
+      item.settlement = Number(item.manualSettlement);
+      item.companyProfit = (item.profit || 0) - item.settlement;
     }
     if (!item.company && item.site) {
       const listItem = consultingListData.find(d => d.site === item.site && d.year === item.year);
@@ -17049,6 +17132,7 @@ function applyConsultingSettledRule() {
   let changed = 0;
   consultingData.forEach(c => {
     if (!c) return;
+    if (Number(c.manualSettlement) > 0) return;           // 수동 확정 실정산 항목은 정산여부 자동판정 제외
     // 2024년: 마감 연도 → 정산완료로 처리 (미정산/진행중 리스트에서 제외)
     if (c.year === '2024') {
       if (c.settled !== '정산완료') { c.settled = '정산완료'; changed++; }
@@ -17249,6 +17333,7 @@ async function openConsultingItemModal(editId = null) {
   document.getElementById('consultingItemPaidDate').value = '';
   document.getElementById('consultingItemPaidDate').disabled = true;
   document.getElementById('consultingItemProgressRate').value = '';
+  document.getElementById('consultingItemManualSettlement').value = '';
   document.getElementById('consultingItemTodayPresent').checked = false;
 
   // 담당자 목록
@@ -17314,6 +17399,7 @@ async function openConsultingItemModal(editId = null) {
       document.getElementById('consultingItemPaidDate').disabled = !item.paid;
       document.getElementById('consultingItemPaidDate').value = item.paidDate || '';
       document.getElementById('consultingItemProgressRate').value = (item.progressRate !== undefined && item.progressRate !== '') ? item.progressRate : '';
+      document.getElementById('consultingItemManualSettlement').value = (item.manualSettlement !== undefined && item.manualSettlement !== null && item.manualSettlement !== '' && Number(item.manualSettlement) > 0) ? fmtInput(item.manualSettlement) : '';
       document.getElementById('consultingItemTodayPresent').checked = !!item.todayPresent;
       document.getElementById('consultingItemModalTitle').textContent = '📋 기술컨설팅 현장 수정';
       document.getElementById('consultingItemDeleteBtn').style.display = 'inline-block';
@@ -17385,6 +17471,7 @@ async function saveConsultingItem() {
     paid: document.getElementById('consultingItemPaid').checked,
     paidDate: document.getElementById('consultingItemPaidDate').value,
     progressRate: (() => { const v = parseInt(document.getElementById('consultingItemProgressRate').value); return isNaN(v) ? '' : Math.min(100, Math.max(0, v)); })(),
+    manualSettlement: parseAmt(document.getElementById('consultingItemManualSettlement').value),
     todayPresent: document.getElementById('consultingItemTodayPresent').checked
   };
 
