@@ -14210,7 +14210,7 @@ async function loadConsultingData() {
         item.totalExpense = totalExpense;
         item.profit = (item.bidAmount || 0) - totalExpense;
         item.profitRate = item.bidAmount > 0 ? (item.profit / item.bidAmount * 100).toFixed(1) : '0.0';
-        item.settlement = item.profit > 0 ? Math.round(item.profit * 0.15) : 0;
+        item.settlement = Math.round(item.profit * 0.15);
         item.companyProfit = item.profit - item.settlement;
       }
     });
@@ -14224,6 +14224,14 @@ async function loadConsultingData() {
 
     // ★ 정산여부 자동 판정: 입금완료→미정산, 미입금→진행중 (2025/2026, '정산완료' 보존)
     applyConsultingSettledRule();
+
+    // ★ 마이너스 이익 컨설팅도 실정산 표시 (공사와 동일): 기존 0으로 저장된 값 보정
+    consultingData.forEach(item => {
+      if (item && !(Number(item.manualSettlement) > 0) && Number(item.profit) < 0) {
+        item.settlement = Math.round(Number(item.profit) * 0.15);
+        item.companyProfit = Number(item.profit) - item.settlement;
+      }
+    });
 
     // ★ 확정 실정산금액(수동) 반영: manualSettlement>0이면 자동 15% 대신 이 금액 사용
     consultingData.forEach(item => {
@@ -16053,7 +16061,7 @@ async function saveConsultingData() {
   const totalExpense = execAmount + companyExp + otherExp;
   const profit = bidAmount - totalExpense;
   const profitRate = bidAmount > 0 ? (profit / bidAmount * 100) : 0;
-  const settlement = profit > 0 ? Math.round(profit * 0.15) : 0;
+  const settlement = Math.round(profit * 0.15);
   const companyProfit = profit - settlement;
   
   // 최신 데이터 로드
@@ -16552,7 +16560,7 @@ function calcConsultingPreview() {
   const totalExpense = execAmount + companyExp + otherExp;
   const profit = bidAmount - totalExpense;
   const profitRate = bidAmount > 0 ? (profit / bidAmount * 100) : 0;
-  const settlement = profit > 0 ? Math.round(profit * 0.15) : 0;
+  const settlement = Math.round(profit * 0.15);
   
   const fmtP = v => v === 0 ? '0' : fmt(v);
   document.getElementById('consultingPreviewExpense').textContent = fmtP(totalExpense);
@@ -16658,7 +16666,7 @@ async function renderConsultingTable() {
       item.totalExpense = (item.execAmount || 0) + item.companyExp + (item.otherExp || 0);
       item.profit = (item.bidAmount || 0) - item.totalExpense;
       item.profitRate = item.bidAmount > 0 ? (item.profit / item.bidAmount * 100).toFixed(1) : '0.0';
-      item.settlement = item.profit > 0 ? Math.round(item.profit * 0.15) : 0;
+      item.settlement = Math.round(item.profit * 0.15);
       item.companyProfit = item.profit - item.settlement;
     }
     // 수동 확정 실정산 반영 (렌더 시에도 보장)
@@ -18011,7 +18019,7 @@ async function syncConsultingToSettlement(item) {
       existing.totalExpense = existing.execAmount + (existing.companyExp || 0) + (existing.otherExp || 0);
       existing.profit = existing.bidAmount - existing.totalExpense;
       existing.profitRate = existing.bidAmount > 0 ? (existing.profit / existing.bidAmount * 100).toFixed(1) : '0.0';
-      existing.settlement = existing.profit > 0 ? Math.round(existing.profit * 0.15) : 0;
+      existing.settlement = Math.round(existing.profit * 0.15);
       existing.companyProfit = existing.profit - existing.settlement;
     }
 
@@ -18038,7 +18046,7 @@ async function syncConsultingToSettlement(item) {
     settlementItem.totalExpense = settlementItem.execAmount + settlementItem.companyExp;
     settlementItem.profit = settlementItem.bidAmount - settlementItem.totalExpense;
     settlementItem.profitRate = settlementItem.bidAmount > 0 ? (settlementItem.profit / settlementItem.bidAmount * 100).toFixed(1) : '0.0';
-    settlementItem.settlement = settlementItem.profit > 0 ? Math.round(settlementItem.profit * 0.15) : 0;
+    settlementItem.settlement = Math.round(settlementItem.profit * 0.15);
     settlementItem.companyProfit = settlementItem.profit - settlementItem.settlement;
     
     consultingData.push(settlementItem);
