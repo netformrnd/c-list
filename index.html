@@ -14469,10 +14469,11 @@ function renderConstructionConfirmationPreview() {
     material: acc.material + (i.material || 0),
     labor: acc.labor + (i.laborTotal || i.labor || 0),
     expense: acc.expense + (i.expenseTotal || 0),
+    companyExp: acc.companyExp + (i.companyExpense || 0),
     profit: acc.profit + (i.profit || 0),
     settlement: acc.settlement + (i.realSettlement || 0)
-  }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
-  totals24.cost = totals24.material + totals24.labor + totals24.expense;
+  }), { amount: 0, material: 0, labor: 0, expense: 0, companyExp: 0, profit: 0, settlement: 0 });
+  totals24.cost = totals24.material + totals24.labor + totals24.expense + totals24.companyExp;
   totals24.profitRate = totals24.amount > 0 ? ((totals24.profit / totals24.amount) * 100).toFixed(1) : '0.0';
   
   // 25년 합계
@@ -14481,10 +14482,11 @@ function renderConstructionConfirmationPreview() {
     material: acc.material + (i.material || 0),
     labor: acc.labor + (i.laborTotal || i.labor || 0),
     expense: acc.expense + (i.expenseTotal || 0),
+    companyExp: acc.companyExp + (i.companyExpense || 0),
     profit: acc.profit + (i.profit || 0),
     settlement: acc.settlement + (i.realSettlement || 0)
-  }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
-  totals25.cost = totals25.material + totals25.labor + totals25.expense;
+  }), { amount: 0, material: 0, labor: 0, expense: 0, companyExp: 0, profit: 0, settlement: 0 });
+  totals25.cost = totals25.material + totals25.labor + totals25.expense + totals25.companyExp;
   totals25.profitRate = totals25.amount > 0 ? ((totals25.profit / totals25.amount) * 100).toFixed(1) : '0.0';
 
   // 26년 합계
@@ -14493,10 +14495,11 @@ function renderConstructionConfirmationPreview() {
     material: acc.material + (i.material || 0),
     labor: acc.labor + (i.laborTotal || i.labor || 0),
     expense: acc.expense + (i.expenseTotal || 0),
+    companyExp: acc.companyExp + (i.companyExpense || 0),
     profit: acc.profit + (i.profit || 0),
     settlement: acc.settlement + (i.realSettlement || 0)
-  }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
-  totals26.cost = totals26.material + totals26.labor + totals26.expense;
+  }), { amount: 0, material: 0, labor: 0, expense: 0, companyExp: 0, profit: 0, settlement: 0 });
+  totals26.cost = totals26.material + totals26.labor + totals26.expense + totals26.companyExp;
   totals26.profitRate = totals26.amount > 0 ? ((totals26.profit / totals26.amount) * 100).toFixed(1) : '0.0';
 
   // 테이블 헤더 생성 함수
@@ -14508,6 +14511,7 @@ function renderConstructionConfirmationPreview() {
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">자재비</th>
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">노무비</th>
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">경비</th>
+      <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">회사경비</th>
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">지출합계</th>
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:right;white-space:nowrap;">이익금</th>
       <th style="padding:0.4rem;border:1px solid #ddd;text-align:center;white-space:nowrap;">이익률</th>
@@ -14517,7 +14521,8 @@ function renderConstructionConfirmationPreview() {
   
   // 테이블 행 생성 함수
   const createTableRow = (item) => {
-    const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0);
+    const companyExp = item.companyExpense || 0;
+    const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0) + companyExp;
     const profitRate = item.profitRate ? (item.profitRate * 100).toFixed(1) : (item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0');
     const noDetailMark = !item.hasDetailData ? '<span title="총괄표 미등록" style="color:#e53935;margin-left:2px;">🔴</span>' : '';
     const excludedMark = item.excludedByUser ? '<span title="정산제외" style="color:#ff9800;margin-left:2px;">🚫</span>' : '';
@@ -14530,6 +14535,7 @@ function renderConstructionConfirmationPreview() {
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.material)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.laborTotal || item.labor)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.expenseTotal)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#8e24aa;">${fmt(companyExp)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(cost)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${(item.profit || 0) >= 0 ? '#2e7d32' : '#c62828'};font-weight:600;">${fmt(item.profit)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${profitRate}%</td>
@@ -14546,6 +14552,7 @@ function renderConstructionConfirmationPreview() {
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.material)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.labor)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.expense)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#8e24aa;">${fmt(totals.companyExp)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(totals.cost)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${totals.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totals.profit)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(totals.profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${totals.profitRate}%</td>
@@ -15150,10 +15157,11 @@ function generateConfirmationHTML(forPDF = false) {
       material: acc.material + (i.material || 0),
       labor: acc.labor + (i.laborTotal || i.labor || 0),
       expense: acc.expense + (i.expenseTotal || 0),
+      companyExp: acc.companyExp + (i.companyExpense || 0),
       profit: acc.profit + (i.profit || 0),
       settlement: acc.settlement + (i.realSettlement || 0)
-    }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
-    totals.cost = totals.material + totals.labor + totals.expense;
+    }), { amount: 0, material: 0, labor: 0, expense: 0, companyExp: 0, profit: 0, settlement: 0 });
+    totals.cost = totals.material + totals.labor + totals.expense + totals.companyExp;
     totals.profitRate = totals.amount > 0 ? ((totals.profit / totals.amount) * 100).toFixed(1) : '0.0';
     return totals;
   };
@@ -15164,7 +15172,8 @@ function generateConfirmationHTML(forPDF = false) {
 
   // 테이블 행 생성 함수
   const createRow = (item) => {
-    const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0);
+    const companyExp = item.companyExpense || 0;
+    const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0) + companyExp;
     const profitRate = item.profitRate ? (item.profitRate * 100).toFixed(1) : (item.amount > 0 ? ((item.profit / item.amount) * 100).toFixed(1) : '0.0');
     return `
       <tr>
@@ -15174,6 +15183,7 @@ function generateConfirmationHTML(forPDF = false) {
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.material)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.laborTotal || item.labor)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(item.expenseTotal)}</td>
+        <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#8e24aa;">${fmt(companyExp)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(cost)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${(item.profit||0) >= 0 ? '#2e7d32' : '#c62828'};font-weight:600;">${fmt(item.profit)}</td>
         <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${profitRate}%</td>
@@ -15190,6 +15200,7 @@ function generateConfirmationHTML(forPDF = false) {
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.material)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.labor)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;">${fmt(totals.expense)}</td>
+      <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#8e24aa;">${fmt(totals.companyExp)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:#e65100;">${fmt(totals.cost)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:right;font-family:monospace;font-size:0.75rem;color:${totals.profit >= 0 ? '#2e7d32' : '#c62828'};">${fmt(totals.profit)}</td>
       <td style="padding:0.4rem;border:1px solid #ddd;text-align:center;font-size:0.75rem;color:${parseFloat(totals.profitRate) >= 0 ? '#2e7d32' : '#c62828'};">${totals.profitRate}%</td>
@@ -15241,6 +15252,7 @@ function generateConfirmationHTML(forPDF = false) {
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">자재비</th>
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">노무비</th>
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">경비</th>
+      <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">회사경비</th>
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">지출합계</th>
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:right;font-size:0.7rem;">이익금</th>
       <th style="padding:0.4rem;border:1px solid #1565c0;text-align:center;font-size:0.7rem;">이익률</th>
