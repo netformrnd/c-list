@@ -15222,31 +15222,40 @@ function generateConfirmationHTML(forPDF = false) {
   return html;
 }
 
-function downloadConfirmationPDF() {
+async function downloadConfirmationPDF() {
   const managerFilter = document.getElementById('confirmationManagerSelect')?.value || '';
   const managerName = managerFilter || '전체담당자';
-  
+
+  // 팝업은 클릭 제스처 내에서 먼저 열어야 차단되지 않음 (await 후 열면 브라우저가 막음)
+  const printWindow = window.open('', '_blank');
+
   let html = '';
   let title = '';
-  
+
+  // ※ generateIntegrated/Consulting~HTML은 async → 반드시 await (안 하면 [object Promise] 출력)
   if (currentConfirmationType === 'consulting') {
-    html = generateConsultingConfirmationHTML();
+    html = await generateConsultingConfirmationHTML();
     title = `기술컨설팅_확인서_${managerName}`;
   } else if (currentConfirmationType === 'integrated') {
-    html = generateIntegratedConfirmationHTML();
+    html = await generateIntegratedConfirmationHTML();
     title = `통합_확인서_${managerName}`;
   } else {
-    html = generateConfirmationHTML(true);
+    html = await generateConfirmationHTML(true);
     title = `공사정산_확인서_${managerName}`;
   }
-  
+
   if (!html) {
     showToast('출력할 데이터가 없습니다.', 'error');
+    if (printWindow) printWindow.close();
     return;
   }
-  
+
+  if (!printWindow) {
+    showToast('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.', 'error');
+    return;
+  }
+
   // 인쇄 창으로 PDF 저장
-  const printWindow = window.open('', '_blank');
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
