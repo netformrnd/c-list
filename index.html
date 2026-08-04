@@ -1251,6 +1251,7 @@ tr.selected { background: var(--primary-light); }
               <th style="width:90px;">지출총액</th>
               <th style="width:90px;">이익금</th>
               <th style="width:50px;">이익률</th>
+              <th style="width:80px;">회사경비<br>(10%)</th>
               <th style="width:90px;">정산금액<br>(15%)</th>
               <th style="width:90px;">회사수익<br>(85%)</th>
               <th style="width:55px;">담당자</th>
@@ -12409,7 +12410,7 @@ function renderSettlementTable() {
   let html = '';
   let totals = {
     amount: 0, material: 0, laborTotal: 0, expenseTotal: 0, totalExpense: 0,
-    profit: 0, realSettlement: 0, companyProfit: 0, count: 0
+    companyExpense: 0, profit: 0, realSettlement: 0, companyProfit: 0, count: 0
   };
   // 본사/외주별 소계
   let hqTotals = { count: 0, amount: 0, profit: 0, realSettlement: 0 };
@@ -12460,6 +12461,7 @@ function renderSettlementTable() {
       <td>${fmt(item.totalExpense)}</td>
       <td class="${profitClass}">${fmt(item.profit)}</td>
       <td class="${profitClass}">${item.profitRate ? (item.profitRate * 100).toFixed(1) + '%' : '-'}</td>
+      <td style="color:#c62828;">${fmt(item.companyExpense)}</td>
       <td style="color:#1565c0;font-weight:700;background:#e3f2fd;">${fmt(item.realSettlement)}</td>
       <td style="color:#2e7d32;font-weight:600;">${fmt(item.companyProfit)}</td>
       <td style="font-size:0.72rem;">${item.manager || '-'}</td>
@@ -12471,6 +12473,7 @@ function renderSettlementTable() {
     totals.laborTotal += item.laborTotal || item.labor || 0;
     totals.expenseTotal += item.expenseTotal || 0;
     totals.totalExpense += item.totalExpense || 0;
+    totals.companyExpense += item.companyExpense || 0;
     totals.profit += item.profit || 0;
     totals.realSettlement += item.realSettlement || 0;
     totals.companyProfit += item.companyProfit || 0;
@@ -12490,7 +12493,7 @@ function renderSettlementTable() {
     }
   });
   
-  document.getElementById('settlementTableBody').innerHTML = html || '<tr><td colspan="18" style="text-align:center;color:var(--gray-400);padding:2rem;">데이터가 없습니다. 정산리스트를 업로드하세요.</td></tr>';
+  document.getElementById('settlementTableBody').innerHTML = html || '<tr><td colspan="19" style="text-align:center;color:var(--gray-400);padding:2rem;">데이터가 없습니다. 정산리스트를 업로드하세요.</td></tr>';
   
   // 합계 행
   const avgProfitRate = totals.amount > 0 ? (totals.profit / totals.amount * 100).toFixed(1) : 0;
@@ -12501,6 +12504,7 @@ function renderSettlementTable() {
       <td colspan="6">-</td>
       <td class="${hqTotals.profit >= 0 ? 'profit-positive' : 'profit-negative'}">${fmt(hqTotals.profit)}</td>
       <td>-</td>
+      <td>-</td>
       <td style="color:var(--primary);font-weight:700;">${fmt(hqTotals.realSettlement)}</td>
       <td colspan="3">-</td>
     </tr>
@@ -12509,6 +12513,7 @@ function renderSettlementTable() {
       <td>${fmt(extTotals.amount)}</td>
       <td colspan="6">-</td>
       <td class="${extTotals.profit >= 0 ? 'profit-positive' : 'profit-negative'}">${fmt(extTotals.profit)}</td>
+      <td>-</td>
       <td>-</td>
       <td style="color:#9c27b0;font-weight:700;">${fmt(extTotals.realSettlement)}</td>
       <td colspan="3">-</td>
@@ -12524,6 +12529,7 @@ function renderSettlementTable() {
       <td>${fmt(totals.totalExpense)}</td>
       <td class="${totals.profit >= 0 ? 'profit-positive' : 'profit-negative'}">${fmt(totals.profit)}</td>
       <td>${avgProfitRate}%</td>
+      <td style="color:#c62828;">${fmt(totals.companyExpense)}</td>
       <td style="color:var(--primary);font-weight:700;">${fmt(totals.realSettlement)}</td>
       <td>${fmt(totals.companyProfit)}</td>
       <td>-</td>
@@ -13664,8 +13670,10 @@ function generateSettlementFromCurrentData() {
         totalExpense = amount - profit;
       }
       
-      const realSettlement = profit * 0.15;
-      const companyProfit = profit * 0.85;
+      // 회사경비: 공사금액의 10% (영업정산 시 이익금에서 차감. 이익금 자체는 매출-지출 그대로 유지)
+      const companyExpense = Math.round(amount * 0.1);
+      const realSettlement = (profit - companyExpense) * 0.15;
+      const companyProfit = profit - realSettlement;
       
       // 입금 상태 확인 함수
       const checkPaid = (p) => {
@@ -13749,6 +13757,7 @@ function generateSettlementFromCurrentData() {
         laborTotal: labor,
         expenseTotal: otherExpense,
         totalExpense: totalExpense,
+        companyExpense: companyExpense,
         profit: profit,
         profitRate: amount > 0 ? profit / amount : 0,
         realSettlement: realSettlement,
@@ -18102,7 +18111,7 @@ function downloadSettlementExcel() {
   const pct    = (v) => v ? (Number(v)*100).toFixed(1) + '%' : '-';
 
   // ── Sheet 1: 정산 상세 내역 (14열) ──────────────────────
-  const COLS1 = 14;
+  const COLS1 = 15;
   const wsData1 = [];
   const merges1 = [];
   let row1 = 0;
@@ -18126,13 +18135,13 @@ function downloadSettlementExcel() {
   push1([
     hdr('NO'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('입금여부'),
     hdr('자재비'), hdr('노무비'), hdr('경비합계'), hdr('지출총액'),
-    hdr('이익금'), hdr('이익률'), hdr('정산금액(15%)'), hdr('회사수익(85%)'), hdr('영업담당')
+    hdr('이익금'), hdr('이익률'), hdr('회사경비(10%)'), hdr('정산금액(15%)'), hdr('회사수익(85%)'), hdr('영업담당')
   ]);
 
-  let grandAmt=0, grandMat=0, grandLab=0, grandExp=0, grandTotal=0, grandProfit=0, grandSettle=0, grandComp=0;
+  let grandAmt=0, grandMat=0, grandLab=0, grandExp=0, grandTotal=0, grandProfit=0, grandSettle=0, grandComp=0, grandCompExp=0;
   data.forEach((item, i) => {
     const bg = i%2===0 ? 'EEF2FF' : 'FFFFFF';
-    const paid = item.status === '완료' || item.status === '정산완료';
+    const paid = item.status === '입금';
     const profitFc = (item.profit||0) >= 0 ? '1565C0' : 'C62828';
     push1([
       mkCell(i+1, { sz:9, fc:'888888', bg:'F5F7FF', ha:'center', bd:bThin }),
@@ -18146,6 +18155,7 @@ function downloadSettlementExcel() {
       dataR(won(item.totalExpense),  bg),
       mkCell(won(item.profit), { sz:10, fc:profitFc, bg, ha:'right', bd:bThin }),
       mkCell(item.profitRate ? (typeof item.profitRate==='string'?item.profitRate:item.profitRate+'%') : '-', { sz:10, fc:profitFc, bg, ha:'center', bd:bThin }),
+      dataR(won(item.companyExpense), bg, 'C62828'),
       dataR(won(item.realSettlement), bg, '6A1B9A'),
       dataR(won(item.companyProfit),  bg, '00695C'),
       dataC(item.manager||'-',        bg)
@@ -18158,6 +18168,7 @@ function downloadSettlementExcel() {
     grandProfit += item.profit||0;
     grandSettle += item.realSettlement||0;
     grandComp   += item.companyProfit||0;
+    grandCompExp+= item.companyExpense||0;
   });
 
   push1(Array(COLS1).fill(mkEmpty('E8EAF6')));
@@ -18170,12 +18181,13 @@ function downloadSettlementExcel() {
   sumRow1[7]  = mkCell(won(grandExp),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
   sumRow1[8]  = mkCell(won(grandTotal),  { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
   sumRow1[9]  = mkCell(won(grandProfit), { bold:true, sz:10, fc:'FFEE58', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[11] = mkCell(won(grandSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[12] = mkCell(won(grandComp),   { bold:true, sz:10, fc:'80CBC4', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[11] = mkCell(won(grandCompExp), { bold:true, sz:10, fc:'FFAB91', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[12] = mkCell(won(grandSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
+  sumRow1[13] = mkCell(won(grandComp),   { bold:true, sz:10, fc:'80CBC4', bg:'1565C0', ha:'right', bd:bMed });
   push1(sumRow1);
 
   const ws1 = XLSX.utils.aoa_to_sheet(wsData1);
-  ws1['!cols'] = [ {wch:5},{wch:10},{wch:26},{wch:16},{wch:9},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:9},{wch:14},{wch:14},{wch:10} ];
+  ws1['!cols'] = [ {wch:5},{wch:10},{wch:26},{wch:16},{wch:9},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:9},{wch:14},{wch:14},{wch:14},{wch:10} ];
   ws1['!rows'] = wsData1.map((_,i) => i===0?{hpt:32}:i===1?{hpt:18}:{hpt:20});
   ws1['!merges'] = merges1;
 
