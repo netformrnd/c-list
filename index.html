@@ -1934,6 +1934,7 @@ tr.selected { background: var(--primary-light); }
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeConfirmationModal()">닫기</button>
+      <button class="btn" onclick="markConfirmationAsSettled()" style="background:#2e7d32;color:white;">✅ 표시 현장 정산완료</button>
       <button class="btn btn-primary" onclick="downloadConfirmationPDF()">📥 PDF 다운로드</button>
       <button class="btn btn-success" onclick="sendConfirmationEmail()">📧 이메일 발송</button>
     </div>
@@ -15302,6 +15303,71 @@ async function downloadConfirmationPDF() {
   
   showToast('PDF 저장: 인쇄 창에서 "PDF로 저장"을 선택하세요. (가로 방향 권장)', 'info');
   setTimeout(() => printWindow.print(), 300);
+}
+
+// 확인서에 표시된(필터된) 현장을 모두 '정산완료'로 처리 (담당자별 일괄)
+async function markConfirmationAsSettled() {
+  const managerFilter = document.getElementById('confirmationManagerSelect')?.value || '';
+  if (!managerFilter) {
+    showToast('담당자를 먼저 선택하세요. (전체 담당자 일괄 처리는 지원하지 않습니다)', 'error');
+    return;
+  }
+  const yearFilter = document.getElementById('confirmationYearSelect')?.value || '';
+  const settledFilter = document.getElementById('confirmationSettledSelect')?.value || '';
+
+  let consTargets = [];    // 공사정산 대상
+  let consultTargets = []; // 기술컨설팅 대상
+
+  // 공사정산 (construction 또는 integrated 탭)
+  if (currentConfirmationType !== 'consulting') {
+    const { data } = getFilteredConfirmationData();
+    consTargets = data.filter(item => item.settled !== '정산완료');
+  }
+  // 기술컨설팅 (consulting 또는 integrated 탭)
+  if (currentConfirmationType === 'consulting' || currentConfirmationType === 'integrated') {
+    await loadConsultingData();
+    consultTargets = consultingData.filter(item => {
+      if (item.manager !== managerFilter) return false;
+      if (yearFilter && yearFilter !== '2024+2025' && item.year !== yearFilter) return false;
+      if (yearFilter === '2024+2025' && !(item.year === '2024' ? item.settled !== '정산완료' : item.year === '2025')) return false;
+      if (settledFilter && item.settled !== settledFilter) return false;
+      return item.settled !== '정산완료';
+    });
+  }
+
+  const total = consTargets.length + consultTargets.length;
+  if (total === 0) {
+    showToast('정산완료로 바꿀 항목이 없습니다. (이미 전부 정산완료)', 'info');
+    return;
+  }
+
+  const ok = confirm(`${managerFilter} 담당자의 표시된 현장 ${total}건을 모두 '정산완료'로 처리합니다.\n(공사 ${consTargets.length}건 / 컨설팅 ${consultTargets.length}건)\n\n계속하시겠습니까?\n※ 되돌리려면 각 항목 드롭다운에서 다시 변경하면 됩니다.`);
+  if (!ok) return;
+
+  // 공사정산 저장 (settlementStatusData: year_no 키)
+  if (consTargets.length) {
+    const statusData = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
+    consTargets.forEach(item => {
+      statusData[`${item.year}_${item.no}`] = '정산완료';
+      const mem = settlementData.find(d => String(d.year) === String(item.year) && String(d.no) === String(item.no));
+      if (mem) mem.settled = '정산완료';
+    });
+    localStorage.setItem('settlementStatusData', JSON.stringify(statusData));
+    try { await fbSave(FB_COLLECTIONS.settlementStatusData, 'status', statusData); } catch(e) { console.error('정산상태 저장 실패:', e); }
+  }
+  // 컨설팅 저장 (consultingData.settled)
+  if (consultTargets.length) {
+    consultTargets.forEach(item => { item.settled = '정산완료'; });
+    localStorage.setItem('consultingData', JSON.stringify(consultingData));
+    try { await fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData }); } catch(e) { console.error('컨설팅 저장 실패:', e); }
+  }
+
+  showToast(`${managerFilter} 담당자 ${total}건을 정산완료로 처리했습니다.`, 'success');
+
+  // 미리보기 재렌더
+  if (currentConfirmationType === 'consulting') await renderConsultingConfirmationPreview();
+  else if (currentConfirmationType === 'integrated') await renderIntegratedConfirmationPreview();
+  else renderConstructionConfirmationPreview();
 }
 
 // 기술컨설팅 확인서 HTML 생성
