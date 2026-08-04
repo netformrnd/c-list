@@ -13557,25 +13557,6 @@ function generateSettlementFromCurrentData() {
     }
   }
 
-  // ★ 한준엽 공사 특이사항: 아래 3건을 정산완료로 (미설정 시에만, 현장명 매칭으로 실제 no 사용)
-  // ※ 확인서 NO와 엑셀 NO가 달라 하드코딩 대신 현장명으로 매칭
-  try {
-    const _sd = JSON.parse(localStorage.getItem('settlementStatusData') || '{}');
-    const _norm = s => String(s || '').replace(/\s/g, '');
-    const _ct = ['성수신성아파트', '창전현대홈타운아파트', '나주1차대방노블랜드'];
-    let _ch = false;
-    (allData['2025'] || []).forEach(it => {
-      if (it && it.manager === '한준엽' && _ct.some(t => _norm(it.site).includes(_norm(t)))) {
-        const k = `25_${it.no}`;
-        if (_sd[k] === undefined) { _sd[k] = '정산완료'; _ch = true; console.log('[특이사항] 공사 정산완료:', it.site, k); }
-      }
-    });
-    if (_ch) {
-      localStorage.setItem('settlementStatusData', JSON.stringify(_sd));
-      try { fbSave(FB_COLLECTIONS.settlementStatusData, 'status', _sd); } catch(e) {}
-    }
-  } catch(e) { console.error('공사 특이사항 반영 실패:', e); }
-
   // 연도별 데이터 건수 로그 (디버깅용)
   const years = ['2024', '2025', '2026'];
   years.forEach(y => {
@@ -14264,11 +14245,15 @@ function applyConsultingManualAdjustments() {
   const norm = s => String(s || '').replace(/\s/g, '');
   let changed = false;
 
-  // 1) 탑마을타워빌 (기술컨설팅, 2025, 한준엽): 확정 실정산 500만 (미설정 시)
+  // 1) 탑마을타워빌 (기술컨설팅, 2025, 한준엽): 낙찰금액만 남기고 지출/이익 비움 + 확정 실정산 500만
+  //    _specialAdjusted 플래그로 1회만 적용 → 이후 사용자가 앱에서 자유롭게 수정 가능
   consultingData.forEach(c => {
     if (c && c.year === '2025' && c.manager === '한준엽' && norm(c.site).includes('탑마을타워빌')) {
-      if (c.manualSettlement === undefined || c.manualSettlement === null || c.manualSettlement === '') {
+      if (!c._specialAdjusted) {
+        c.execAmount = 0; c.companyExp = 0; c.otherExp = 0; c.totalExpense = 0;
+        c.profit = 0; c.profitRate = '0.0';
         c.manualSettlement = 5000000;
+        c._specialAdjusted = true;
         changed = true;
       }
     }
@@ -14473,9 +14458,10 @@ function renderConstructionConfirmationPreview() {
   const today = new Date();
   const reportDate = `${today.getFullYear()}년 ${today.getMonth()+1}월 ${today.getDate()}일`;
   
-  // 24년/25년 분리
+  // 24년/25년/26년 분리
   const data24 = data.filter(item => String(item.year).includes('24'));
   const data25 = data.filter(item => String(item.year).includes('25'));
+  const data26 = data.filter(item => String(item.year).includes('26'));
   
   // 24년 합계
   const totals24 = data24.reduce((acc, i) => ({
@@ -14500,7 +14486,19 @@ function renderConstructionConfirmationPreview() {
   }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
   totals25.cost = totals25.material + totals25.labor + totals25.expense;
   totals25.profitRate = totals25.amount > 0 ? ((totals25.profit / totals25.amount) * 100).toFixed(1) : '0.0';
-  
+
+  // 26년 합계
+  const totals26 = data26.reduce((acc, i) => ({
+    amount: acc.amount + (i.amount || 0),
+    material: acc.material + (i.material || 0),
+    labor: acc.labor + (i.laborTotal || i.labor || 0),
+    expense: acc.expense + (i.expenseTotal || 0),
+    profit: acc.profit + (i.profit || 0),
+    settlement: acc.settlement + (i.realSettlement || 0)
+  }), { amount: 0, material: 0, labor: 0, expense: 0, profit: 0, settlement: 0 });
+  totals26.cost = totals26.material + totals26.labor + totals26.expense;
+  totals26.profitRate = totals26.amount > 0 ? ((totals26.profit / totals26.amount) * 100).toFixed(1) : '0.0';
+
   // 테이블 헤더 생성 함수
   const createTableHeader = (bgColor) => `
     <tr style="background:${bgColor};">
@@ -14628,7 +14626,21 @@ function renderConstructionConfirmationPreview() {
       </table>
     `;
   }
-  
+
+  // 26년 데이터
+  if (data26.length > 0) {
+    html += `
+      <h4 style="margin:0.5rem 0;color:#2e7d32;font-size:0.9rem;">📅 2026년 (${data26.length}건)</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+        <thead>${createTableHeader('#c8e6c9')}</thead>
+        <tbody>
+          ${data26.map(item => createTableRow(item)).join('')}
+          ${createSubtotalRow('2026년 소계', totals26, '#e8f5e9')}
+        </tbody>
+      </table>
+    `;
+  }
+
   html += `
       </div>
       
@@ -15129,7 +15141,8 @@ function generateConfirmationHTML(forPDF = false) {
   
   const data24 = data.filter(item => String(item.year).includes('24'));
   const data25 = data.filter(item => String(item.year).includes('25'));
-  
+  const data26 = data.filter(item => String(item.year).includes('26'));
+
   // 년도별 합계
   const calcYearTotals = (yearData) => {
     const totals = yearData.reduce((acc, i) => ({
@@ -15147,7 +15160,8 @@ function generateConfirmationHTML(forPDF = false) {
   
   const totals24 = calcYearTotals(data24);
   const totals25 = calcYearTotals(data25);
-  
+  const totals26 = calcYearTotals(data26);
+
   // 테이블 행 생성 함수
   const createRow = (item) => {
     const cost = (item.material || 0) + (item.laborTotal || item.labor || 0) + (item.expenseTotal || 0);
@@ -15269,7 +15283,25 @@ function generateConfirmationHTML(forPDF = false) {
       </div>
     `;
   }
-  
+
+  // 26년 데이터
+  if (data26.length > 0) {
+    html += `
+      <div style="margin-bottom:1rem;">
+        <h3 style="font-size:0.9rem;margin-bottom:0.5rem;color:#2e7d32;padding:0.4rem;background:#e8f5e9;border-radius:4px;">
+          📅 2026년 (${data26.length}건)
+        </h3>
+        <table style="width:100%;border-collapse:collapse;font-size:0.75rem;">
+          <thead>${tableHeader.replace(/#1976d2/g, '#43a047').replace(/#1565c0/g, '#2e7d32')}</thead>
+          <tbody>
+            ${data26.map(item => createRow(item)).join('')}
+            ${createSubtotalRow('2026년 소계', totals26)}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
   // 총액 및 회신 요청
   html += `
       <div style="background:#1976d2;color:white;padding:1rem;border-radius:8px;margin-bottom:1rem;text-align:center;">
