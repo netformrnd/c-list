@@ -14208,6 +14208,8 @@ async function loadConsultingData() {
     // ★ 정산 담당자를 현장 리스트(consultingListData) 기준으로 보정
     // loadConsultingData가 재호출되면 Firebase의 stale 담당자로 덮어써지므로, 로드 직후 매번 보정
     reconcileConsultingManagers();
+    // ★ 정산여부 자동 판정: 입금완료→미정산, 미입금→진행중 (2025/2026, '정산완료' 보존)
+    applyConsultingSettledRule();
   } catch(e) {
     console.error('기술컨설팅 데이터 로드 실패:', e);
     consultingData = [];
@@ -16961,6 +16963,26 @@ function reconcileConsultingManagers() {
   });
   if (fixed) console.log('정산 담당자 ' + fixed + '건을 현장 리스트 기준으로 보정');
   return fixed;
+}
+
+// 컨설팅 정산여부 자동 규칙: 입금완료→미정산, 미입금→진행중 (2025/2026만, '정산완료'는 보존)
+// ※ 공정률 무관 — 입금 여부만 기준 (사용자 확정 규칙)
+function applyConsultingSettledRule() {
+  if (!Array.isArray(consultingData) || !consultingData.length) return 0;
+  const listById = {};
+  if (Array.isArray(consultingListData)) consultingListData.forEach(l => { if (l && l.id) listById[l.id] = l; });
+  let changed = 0;
+  consultingData.forEach(c => {
+    if (!c) return;
+    if (c.year !== '2025' && c.year !== '2026') return;  // 과거 연도 보존
+    if (c.settled === '정산완료') return;                 // 확정 건 보존
+    const L = c.listId ? listById[c.listId] : null;
+    const paid = L ? !!L.paid : !!c.paid;                 // 입금 여부: 리스트 우선
+    const target = paid ? '미정산' : '진행중';
+    if (c.settled !== target) { c.settled = target; changed++; }
+  });
+  if (changed) console.log('컨설팅 정산여부 ' + changed + '건 자동 판정(입금 기준)');
+  return changed;
 }
 
 async function loadConsultingListData() {
