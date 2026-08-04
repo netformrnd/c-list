@@ -16983,7 +16983,12 @@ function applyConsultingSettledRule() {
   let changed = 0;
   consultingData.forEach(c => {
     if (!c) return;
-    if (c.year !== '2025' && c.year !== '2026') return;  // 과거 연도 보존
+    // 2024년: 마감 연도 → 정산완료로 처리 (미정산/진행중 리스트에서 제외)
+    if (c.year === '2024') {
+      if (c.settled !== '정산완료') { c.settled = '정산완료'; changed++; }
+      return;
+    }
+    if (c.year !== '2025' && c.year !== '2026') return;  // 그 외 과거 연도 보존
     if (c.settled === '정산완료') return;                 // 확정 건 보존
     const L = c.listId ? listById[c.listId] : null;
     const paid = L ? !!L.paid : !!c.paid;                 // 입금 여부: 리스트 우선
