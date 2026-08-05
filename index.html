@@ -1883,6 +1883,7 @@ tr.selected { background: var(--primary-light); }
     <div class="modal-footer" style="display:flex;justify-content:space-between;">
       <button class="btn btn-sm" id="consultingItemDeleteBtn" onclick="confirmDeleteConsultingItem()" style="background:#f44336;color:white;display:none;">🗑️ 삭제</button>
       <div style="display:flex;gap:0.5rem;margin-left:auto;">
+        <button class="btn" id="consultingItemSalesBtn" onclick="printConsultingSalesSettlement(document.getElementById('consultingItemEditId').value)" style="background:#00897b;color:white;display:none;">🖨️ 영업담당자용</button>
         <button class="btn btn-outline" onclick="closeConsultingItemModal()">취소</button>
         <button class="btn btn-primary" onclick="saveConsultingItem()">💾 저장</button>
       </div>
@@ -17486,9 +17487,11 @@ async function openConsultingItemModal(editId = null) {
       document.getElementById('consultingItemTodayPresent').checked = !!item.todayPresent;
       document.getElementById('consultingItemModalTitle').textContent = '📋 기술컨설팅 현장 수정';
       document.getElementById('consultingItemDeleteBtn').style.display = 'inline-block';
+      document.getElementById('consultingItemSalesBtn').style.display = 'inline-block';
     }
   } else {
     document.getElementById('consultingItemDeleteBtn').style.display = 'none';
+    document.getElementById('consultingItemSalesBtn').style.display = 'none';
   }
 }
 
@@ -18089,6 +18092,110 @@ async function syncConsultingToSettlement(item) {
   }
 
   saveConsultingDataToStorage();
+}
+
+// 기술컨설팅 영업담당자용 최종정산서 인쇄 (현장별)
+function printConsultingSalesSettlement(listId) {
+  if (!listId) { showToast('저장된 현장에서만 정산서를 볼 수 있습니다. 먼저 저장해주세요.', 'error'); return; }
+  const L = consultingListData.find(d => d.id === listId);
+  if (!L) { showToast('현장 정보를 찾을 수 없습니다.', 'error'); return; }
+  // 연결된 정산 데이터(계산된 이익/실정산 등)
+  const c = consultingData.find(d => d.listId === listId)
+         || consultingData.find(d => d.site === L.site && d.bidAmount === L.bidAmount)
+         || {};
+
+  const bidAmount = Number(L.bidAmount || c.bidAmount || 0);
+  const execAmount = Number(L.execAmount || c.execAmount || 0);
+  const companyExp = Number((c.companyExp != null) ? c.companyExp : Math.round(bidAmount * 0.1));
+  const otherExp = Number(c.otherExp || 0);
+  const totalExpense = execAmount + companyExp + otherExp;
+  const profit = (c.profit != null) ? Number(c.profit) : (bidAmount - totalExpense);
+  const manual = Number(c.manualSettlement) > 0 ? Number(c.manualSettlement) : null;
+  const excluded = !!c.excluded;
+  let settlement = excluded ? 0 : (manual != null ? manual : Math.round(profit * 0.15));
+  const companyProfit = profit - settlement;
+  const profitRate = bidAmount > 0 ? (profit / bidAmount * 100).toFixed(1) : '0.0';
+
+  // 이슈/메모
+  let issueText = '';
+  const issues = (L.issues && L.issues.length) ? L.issues : (L.note ? [{date:'', content:L.note}] : []);
+  issues.forEach(is => { if (is && is.content) issueText += `<div>• ${is.date ? '['+is.date+'] ' : ''}${is.content}</div>`; });
+
+  const won = v => Number(v || 0).toLocaleString('ko-KR');
+  const today = new Date().toLocaleDateString('ko-KR');
+
+  const html = `
+    <!DOCTYPE html><html><head><meta charset="UTF-8"><title>기술컨설팅 정산서</title>
+    <style>
+      @page { size: A4 portrait; margin: 15mm; }
+      * { margin:0; padding:0; box-sizing:border-box; color:#000; }
+      body { font-family:'Malgun Gothic',sans-serif; font-size:12px; padding:20px; }
+      h1 { text-align:center; font-size:22px; margin-bottom:6px; }
+      .subtitle { text-align:center; font-size:14px; color:#333; margin-bottom:18px; font-weight:600; }
+      .header-section { display:flex; justify-content:space-between; margin-bottom:16px; padding:12px; background:#f9f9f9; border:1px solid #ddd; border-radius:5px; }
+      .header-left, .header-right { font-size:12px; line-height:1.7; }
+      .label { color:#333; } .value { font-weight:700; margin-left:5px; }
+      .section-title { font-size:13px; font-weight:700; margin:14px 0 8px; padding-bottom:5px; border-bottom:2px solid #333; }
+      table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+      th, td { border:1px solid #333; padding:8px 10px; font-size:11px; }
+      th { background:#e8e8e8; font-weight:700; text-align:center; }
+      .text-right { text-align:right; } .text-center { text-align:center; }
+      .total-row { background:#ddd; font-weight:700; }
+      .summary-box { margin-top:16px; padding:15px; background:#f5f5f5; border:2px solid #333; border-radius:5px; }
+      .summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; text-align:center; }
+      .summary-item .label { font-size:11px; color:#333; margin-bottom:5px; display:block; }
+      .summary-item .value { font-size:18px; font-weight:700; }
+      .memo-box { margin-top:12px; padding:10px; background:#f9f9f9; border:1px solid #ddd; border-radius:5px; font-size:11px; }
+      .footer { margin-top:24px; text-align:center; font-size:10px; color:#666; border-top:1px solid #ddd; padding-top:12px; }
+      .excluded-tag { color:#c62828; font-weight:700; }
+      @media print { body { margin:0; padding:15px; } }
+    </style></head><body>
+      <h1>기술컨설팅 정산서</h1>
+      <div class="subtitle">[ 영업담당자용 ]${excluded ? ' <span class="excluded-tag">※ 정산제외 현장</span>' : ''}</div>
+      <div class="header-section">
+        <div class="header-left">
+          <div><span class="label">현장명:</span> <span class="value">${L.site || '-'}</span></div>
+          <div><span class="label">공사명:</span> <span class="value">${L.project || '-'}</span></div>
+          <div><span class="label">업체:</span> <span class="value">${L.company || '-'}</span></div>
+        </div>
+        <div class="header-right">
+          <div><span class="label">영업담당자:</span> <span class="value" style="color:#00695c;font-size:14px;">${L.manager || '-'}</span></div>
+          <div><span class="label">계약일:</span> <span class="value">${L.contractDate || '-'}</span> &nbsp; <span class="label">준공일:</span> <span class="value">${L.endDate || '-'}</span></div>
+          <div><span class="label">계산서발행일:</span> <span class="value">${L.bill || '-'}</span> &nbsp; <span class="label">입금일:</span> <span class="value">${L.paidDate || '-'}</span></div>
+          <div><span class="label">작성일:</span> <span class="value">${today}</span></div>
+        </div>
+      </div>
+
+      <div class="section-title">정산 내역</div>
+      <table>
+        <tr><th style="width:40%;">항목</th><th>금액</th></tr>
+        <tr><td>낙찰금액</td><td class="text-right">${won(bidAmount)}</td></tr>
+        <tr><td>실행금액</td><td class="text-right">${won(execAmount)}</td></tr>
+        <tr><td>회사경비 (영업정산 10%)</td><td class="text-right">${won(companyExp)}</td></tr>
+        <tr><td>기타비용</td><td class="text-right">${won(otherExp)}</td></tr>
+        <tr class="total-row"><td>지출합계</td><td class="text-right">${won(totalExpense)}</td></tr>
+        <tr><td>이익금 (이익률 ${profitRate}%)</td><td class="text-right">${won(profit)}</td></tr>
+      </table>
+
+      <div class="summary-box">
+        <div class="summary-grid">
+          <div class="summary-item"><span class="label">이익금</span><span class="value">${won(profit)}</span></div>
+          <div class="summary-item"><span class="label">실정산금액${manual != null ? ' (확정)' : ''}</span><span class="value" style="color:#00695c;">${won(settlement)}</span></div>
+          <div class="summary-item"><span class="label">회사수익</span><span class="value">${won(companyProfit)}</span></div>
+        </div>
+      </div>
+
+      ${issueText ? `<div class="memo-box"><b>이슈/비고</b><br>${issueText}</div>` : ''}
+
+      <div class="footer">㈜석민이앤씨 · 본 정산서는 영업담당자용입니다. · 작성일 ${today}</div>
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { showToast('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요.', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+  showToast('정산서: 인쇄 창에서 "PDF로 저장" 또는 인쇄하세요.', 'info');
+  setTimeout(() => w.print(), 300);
 }
 
 // 삭제
