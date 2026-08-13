@@ -17033,6 +17033,7 @@ function renderConsultingMain() {
         <td style="text-align:center;"><span style="padding:0.15rem 0.4rem;background:${photoBg};border-radius:4px;font-size:0.75rem;">${item.photo || 'X'}</span></td>
         <td style="text-align:center;font-size:0.85rem;">${item.contractDate || '-'}</td>
         <td style="text-align:center;font-size:0.85rem;">${item.startDate || '-'}</td>
+        <td style="text-align:center;font-size:0.85rem;">${item.endDate || '-'}</td>
         <td style="text-align:center;font-size:0.85rem;color:${item.bill ? '#e65100' : '#ccc'};font-weight:${item.bill ? '600' : '400'};">${item.bill || '-'}</td>
         <td style="text-align:right;font-family:monospace;color:#e65100;">${item.billAmount ? fmt(item.billAmount) : '-'}</td>
         <td style="text-align:center;">${paidBadge}</td>
