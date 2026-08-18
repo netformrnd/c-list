@@ -14225,6 +14225,42 @@ async function loadConsultingData() {
       }
     });
 
+    // ★ 리스트(기술컨설팅)에 있는데 정산데이터(정산관리)에 없는 현장 자동 생성
+    // 신규 현장이 정산관리에 안 뜨는 문제 방지 (동기화 누락 대비 안전망)
+    if (Array.isArray(consultingListData) && consultingListData.length) {
+      const _normS = s => String(s || '').replace(/\s/g, '');
+      const _haveListId = new Set(consultingData.map(c => c && c.listId).filter(Boolean));
+      let _bf = false;
+      consultingListData.forEach(L => {
+        if (!L || !L.id) return;
+        if (_haveListId.has(L.id)) return;
+        // listId 없이 현장명+년도+낙찰금액이 같은 항목이 이미 있으면 listId만 연결
+        const dup = consultingData.find(c => c && _normS(c.site) === _normS(L.site) && String(c.year) === String(L.year) && Number(c.bidAmount || 0) === Number(L.bidAmount || 0));
+        if (dup) { if (!dup.listId) dup.listId = L.id; return; }
+        // 정산 항목 신규 생성
+        const bid = Number(L.bidAmount || 0), exec = Number(L.execAmount || 0);
+        const compExp = Math.round(bid * 0.1);
+        const totalExp = exec + compExp;
+        const profit = bid - totalExp;
+        const settlement = Math.round(profit * 0.15);
+        consultingData.push({
+          id: `${L.id}_s`, listId: L.id, year: L.year, type: L.type, site: L.site,
+          project: L.project, company: L.company, bidAmount: bid, execAmount: exec,
+          companyExp: compExp, otherExp: 0, totalExpense: totalExp,
+          profit: profit, profitRate: bid > 0 ? (profit / bid * 100).toFixed(1) : '0.0',
+          settlement: settlement, companyProfit: profit - settlement,
+          manager: L.manager, settled: '미정산',
+          excluded: L.excluded, manualSettlement: Number(L.manualSettlement) > 0 ? L.manualSettlement : undefined
+        });
+        _bf = true;
+        console.log('[정산관리 보정] 누락 현장 생성:', L.site);
+      });
+      if (_bf) {
+        localStorage.setItem('consultingData', JSON.stringify(consultingData));
+        try { fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData }); } catch(e) {}
+      }
+    }
+
     // ★ 정산 담당자를 현장 리스트(consultingListData) 기준으로 보정
     // loadConsultingData가 재호출되면 Firebase의 stale 담당자로 덮어써지므로, 로드 직후 매번 보정
     reconcileConsultingManagers();
