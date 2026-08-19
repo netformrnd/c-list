@@ -18555,9 +18555,21 @@ function downloadSettlementExcel() {
   const dataR  = (v, bg='FFFFFF', fc='333333') => mkCell(v, { sz:10, fc, bg, ha:'right' });
   const won    = (n) => n ? Number(n).toLocaleString('ko-KR') + '원' : '-';
   const pct    = (v) => v ? (Number(v)*100).toFixed(1) + '%' : '-';
+  // 숫자 셀 / 수식 셀 (계산 연결용) — '원' 없이 순수 숫자라 엑셀 수식이 그대로 계산됨
+  const FMT_WON = '#,##0';
+  const FMT_PCT = '0.0%';
+  const mkNum = (v, { bg='FFFFFF', fc='333333', bold=false, sz=10, bd=bThin, fmt=FMT_WON } = {}) => ({
+    v: Number(v)||0, t:'n',
+    s:{ font:{ bold, sz, color:{rgb:fc}, name:'맑은 고딕' }, fill:{ fgColor:{rgb:bg} }, alignment:{ horizontal:'right', vertical:'center' }, border:bd, numFmt:fmt }
+  });
+  const mkFx = (f, { bg='FFFFFF', fc='333333', bold=false, sz=10, bd=bThin, fmt=FMT_WON } = {}) => ({
+    f, t:'n',
+    s:{ font:{ bold, sz, color:{rgb:fc}, name:'맑은 고딕' }, fill:{ fgColor:{rgb:bg} }, alignment:{ horizontal:'right', vertical:'center' }, border:bd, numFmt:fmt }
+  });
+  const settledStyle = (s) => s==='정산완료' ? { fc:'1B5E20', bg:'E8F5E9' } : s==='진행중' ? { fc:'1565C0', bg:'E3F2FD' } : { fc:'E65100', bg:'FFF3E0' };
 
-  // ── Sheet 1: 정산 상세 내역 (14열) ──────────────────────
-  const COLS1 = 15;
+  // ── Sheet 1: 정산 상세 내역 (16열, 파생값은 엑셀 수식) ──────────────────────
+  const COLS1 = 16;
   const wsData1 = [];
   const merges1 = [];
   let row1 = 0;
@@ -18579,61 +18591,66 @@ function downloadSettlementExcel() {
   push1(Array(COLS1).fill(mkEmpty('EEF2FF')));
 
   push1([
-    hdr('NO'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('입금여부'),
+    hdr('NO'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('입금여부'), hdr('정산여부'),
     hdr('자재비'), hdr('노무비'), hdr('경비합계'), hdr('지출총액'),
     hdr('이익금'), hdr('이익률'), hdr('회사경비(10%)'), hdr('정산금액(15%)'), hdr('회사수익(85%)'), hdr('영업담당')
   ]);
 
-  let grandAmt=0, grandMat=0, grandLab=0, grandExp=0, grandTotal=0, grandProfit=0, grandSettle=0, grandComp=0, grandCompExp=0;
+  let grandSettle=0, grandComp=0;  // Sheet2(담당자별 요약)에서 사용
+  const FIRST_ROW = row1 + 1;      // 첫 데이터 행 (엑셀 1-indexed)
+  // 열: A NO,B 구분,C 현장,D 공사금액,E 입금여부,F 정산여부,G 자재,H 노무,I 경비,J 지출총액,K 이익금,L 이익률,M 회사경비,N 정산금액,O 회사수익,P 담당
   data.forEach((item, i) => {
+    const R = row1 + 1;  // 이 데이터 행의 엑셀 행번호
     const bg = i%2===0 ? 'EEF2FF' : 'FFFFFF';
     const paid = item.status === '입금';
+    const settled = item.settled || '미정산';
+    const ss = settledStyle(settled);
     const profitFc = (item.profit||0) >= 0 ? '1565C0' : 'C62828';
     push1([
       mkCell(i+1, { sz:9, fc:'888888', bg:'F5F7FF', ha:'center', bd:bThin }),
-      dataC(item.type||'-',         bg),
-      dataL(item.site||'-',         bg),
-      dataR(won(item.amount),        bg, '1565C0'),
-      mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paid?'1B5E20':'B71C1C', bg:paid?'E8F5E9':'FFEBEE', ha:'center', bd:bThin }),
-      dataR(won(item.material),      bg),
-      dataR(won(item.laborTotal||item.labor), bg),
-      dataR(won(item.expenseTotal),  bg),
-      dataR(won(item.totalExpense),  bg),
-      mkCell(won(item.profit), { sz:10, fc:profitFc, bg, ha:'right', bd:bThin }),
-      mkCell(item.profitRate ? (typeof item.profitRate==='string'?item.profitRate:item.profitRate+'%') : '-', { sz:10, fc:profitFc, bg, ha:'center', bd:bThin }),
-      dataR(won(item.companyExpense), bg, 'C62828'),
-      dataR(won(item.realSettlement), bg, '6A1B9A'),
-      dataR(won(item.companyProfit),  bg, '00695C'),
-      dataC(item.manager||'-',        bg)
+      dataC(item.type||'-', bg),
+      dataL(item.site||'-', bg),
+      mkNum(item.amount, { bg, fc:'1565C0' }),                                              // D 공사금액(값)
+      mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paid?'1B5E20':'B71C1C', bg:paid?'E8F5E9':'FFEBEE', ha:'center', bd:bThin }), // E 입금여부
+      mkCell(settled, { bold:true, sz:10, fc:ss.fc, bg:ss.bg, ha:'center', bd:bThin }),      // F 정산여부
+      mkNum(item.material, { bg }),                                                          // G 자재비(값)
+      mkNum(item.laborTotal||item.labor, { bg }),                                            // H 노무비(값)
+      mkNum(item.expenseTotal, { bg }),                                                      // I 경비합계(값)
+      mkFx(`G${R}+H${R}+I${R}+M${R}`, { bg }),                                               // J 지출총액=자재+노무+경비+회사경비
+      mkFx(`D${R}-J${R}`, { bg, fc:profitFc }),                                              // K 이익금=공사금액-지출총액
+      mkFx(`IF(D${R}=0,0,K${R}/D${R})`, { bg, fc:profitFc, fmt:FMT_PCT }),                   // L 이익률=이익금/공사금액
+      mkFx(`D${R}*0.1`, { bg, fc:'C62828' }),                                                // M 회사경비=공사금액*10%
+      mkFx(`K${R}*0.15`, { bg, fc:'6A1B9A' }),                                               // N 정산금액=이익금*15%
+      mkFx(`K${R}-N${R}`, { bg, fc:'00695C' }),                                              // O 회사수익=이익금-정산금액
+      dataC(item.manager||'-', bg)                                                           // P 영업담당
     ]);
-    grandAmt    += item.amount||0;
-    grandMat    += item.material||0;
-    grandLab    += item.laborTotal||item.labor||0;
-    grandExp    += item.expenseTotal||0;
-    grandTotal  += item.totalExpense||0;
-    grandProfit += item.profit||0;
     grandSettle += item.realSettlement||0;
     grandComp   += item.companyProfit||0;
-    grandCompExp+= item.companyExpense||0;
   });
+  const LAST_ROW = row1;  // 마지막 데이터 행 (엑셀 1-indexed)
 
   push1(Array(COLS1).fill(mkEmpty('E8EAF6')));
+  const SUM_ROW = row1 + 1;  // 합계 행
   const sumRow1 = Array(COLS1).fill(mkCell('', { bg:'1565C0', bd:bMed }));
+  const sumFx = (f, fc) => mkFx(f, { bold:true, sz:10, fc, bg:'1565C0', bd:bMed });
   sumRow1[0]  = mkCell('합계', { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
   sumRow1[1]  = mkCell(`${data.length}건`, { bold:true, sz:10, fc:'FFFFFF', bg:'1565C0', ha:'center', bd:bMed });
-  sumRow1[3]  = mkCell(won(grandAmt),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[5]  = mkCell(won(grandMat),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[6]  = mkCell(won(grandLab),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[7]  = mkCell(won(grandExp),    { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[8]  = mkCell(won(grandTotal),  { bold:true, sz:10, fc:'FFE082', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[9]  = mkCell(won(grandProfit), { bold:true, sz:10, fc:'FFEE58', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[11] = mkCell(won(grandCompExp), { bold:true, sz:10, fc:'FFAB91', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[12] = mkCell(won(grandSettle), { bold:true, sz:10, fc:'CE93D8', bg:'1565C0', ha:'right', bd:bMed });
-  sumRow1[13] = mkCell(won(grandComp),   { bold:true, sz:10, fc:'80CBC4', bg:'1565C0', ha:'right', bd:bMed });
+  if (data.length > 0) {
+    sumRow1[3]  = sumFx(`SUM(D${FIRST_ROW}:D${LAST_ROW})`, 'FFE082');   // 공사금액
+    sumRow1[6]  = sumFx(`SUM(G${FIRST_ROW}:G${LAST_ROW})`, 'FFE082');   // 자재
+    sumRow1[7]  = sumFx(`SUM(H${FIRST_ROW}:H${LAST_ROW})`, 'FFE082');   // 노무
+    sumRow1[8]  = sumFx(`SUM(I${FIRST_ROW}:I${LAST_ROW})`, 'FFE082');   // 경비
+    sumRow1[9]  = sumFx(`SUM(J${FIRST_ROW}:J${LAST_ROW})`, 'FFE082');   // 지출총액
+    sumRow1[10] = sumFx(`SUM(K${FIRST_ROW}:K${LAST_ROW})`, 'FFEE58');   // 이익금
+    sumRow1[11] = mkFx(`IF(D${SUM_ROW}=0,0,K${SUM_ROW}/D${SUM_ROW})`, { bold:true, sz:10, fc:'FFE082', bg:'1565C0', bd:bMed, fmt:FMT_PCT }); // 이익률
+    sumRow1[12] = sumFx(`SUM(M${FIRST_ROW}:M${LAST_ROW})`, 'FFAB91');   // 회사경비
+    sumRow1[13] = sumFx(`SUM(N${FIRST_ROW}:N${LAST_ROW})`, 'CE93D8');   // 정산금액
+    sumRow1[14] = sumFx(`SUM(O${FIRST_ROW}:O${LAST_ROW})`, '80CBC4');   // 회사수익
+  }
   push1(sumRow1);
 
   const ws1 = XLSX.utils.aoa_to_sheet(wsData1);
-  ws1['!cols'] = [ {wch:5},{wch:10},{wch:26},{wch:16},{wch:9},{wch:14},{wch:14},{wch:12},{wch:14},{wch:14},{wch:9},{wch:14},{wch:14},{wch:14},{wch:10} ];
+  ws1['!cols'] = [ {wch:5},{wch:10},{wch:26},{wch:14},{wch:9},{wch:9},{wch:13},{wch:13},{wch:12},{wch:14},{wch:14},{wch:9},{wch:13},{wch:13},{wch:14},{wch:10} ];
   ws1['!rows'] = wsData1.map((_,i) => i===0?{hpt:32}:i===1?{hpt:18}:{hpt:20});
   ws1['!merges'] = merges1;
 
