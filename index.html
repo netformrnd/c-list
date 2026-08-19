@@ -3543,9 +3543,9 @@ async function downloadAllBackup() {
 }
 
 // ========== localStorage 래퍼 (Firebase 동기화) ==========
-function saveConsultingDataToStorage() {
+async function saveConsultingDataToStorage() {
   localStorage.setItem('consultingData', JSON.stringify(consultingData));
-  fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
+  await fbSave(FB_COLLECTIONS.consultingData, 'data', { items: consultingData });
 }
 function saveConsultingListDataToStorage() {
   localStorage.setItem('consultingListData', JSON.stringify(consultingListData));
@@ -16831,11 +16831,11 @@ function updateConsultingStats(data) {
 }
 
 // 정산 상태 변경
-function updateConsultingSettled(id, status) {
+async function updateConsultingSettled(id, status) {
   const item = consultingData.find(d => d.id === id);
   if (item) {
     item.settled = status;
-    saveConsultingDataToStorage();
+    await saveConsultingDataToStorage();  // 저장 완료를 기다린 뒤 재로딩 (경쟁 조건 방지)
     renderConsultingTable();
   }
 }
