@@ -18456,18 +18456,18 @@ function downloadConsultingSettlementExcel() {
   const mkFx  = (f, { bg='FFFFFF', fc='333333', bold=false, fmt=FMT_WON, bd=bThin } = {}) => ({ f, t:'n', s:{ font:{ bold, sz:10, color:{rgb:fc}, name:'맑은 고딕' }, fill:{ fgColor:{rgb:bg} }, alignment:{ horizontal:'right', vertical:'center' }, border:bd, numFmt:fmt } });
   const settledStyle = (s) => s==='정산완료' ? { fc:'1B5E20', bg:'E8F5E9' } : s==='진행중' ? { fc:'1565C0', bg:'E3F2FD' } : { fc:'E65100', bg:'FFF3E0' };
 
-  const COLS = 17;
+  const COLS = 18;
   const ws = []; let row = 0; const merges = [];
   const push = a => { ws.push(a); row++; };
   const merge = (r,cs,ce) => merges.push({ s:{r,c:cs}, e:{r,c:ce} });
 
   push([ mkCell('기술컨설팅 정산 관리 현황', { bold:true, sz:15, fc:'FFFFFF', bg:'00695C', ha:'left', bd:bMed }), ...Array(COLS-2).fill(mkCell('',{bg:'00695C',bd:bMed})), mkCell(reportDate, { sz:10, fc:'B2DFDB', bg:'00695C', ha:'right', bd:bMed }) ]);
   merge(row-1, 0, COLS-2);
-  push([ mkCell(`㈜넷폼알앤디 · 총 ${data.length}건`, { sz:10, fc:'FFFFFF', bg:'00897B', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('',{bg:'00897B',bd:bMed})) ]);
+  push([ mkCell(`㈜넷폼알앤디 · 총 ${data.length}건  (이익금·정산금액은 앱(보고서) 값과 동일)`, { sz:10, fc:'FFFFFF', bg:'00897B', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('',{bg:'00897B',bd:bMed})) ]);
   merge(row-1, 0, COLS-1);
   push(Array(COLS).fill(mkEmpty('E0F2F1')));
-  // 열: A NO,B 년도,C 구분,D 현장,E 담당,F 업체,G 낙찰,H 실행,I 회사경비,J 기타,K 지출총액,L 이익금,M 이익률,N 정산금액,O 회사수익,P 입금,Q 정산여부
-  push([ hdr('NO'),hdr('년도'),hdr('구분'),hdr('현장'),hdr('영업담당'),hdr('업체'),hdr('낙찰금액'),hdr('실행금액'),hdr('회사경비(10%)'),hdr('기타비용'),hdr('지출총액'),hdr('이익금'),hdr('이익률'),hdr('정산금액(15%)'),hdr('회사수익'),hdr('입금여부'),hdr('정산여부') ]);
+  // 열: A NO,B 년도,C 구분,D 현장,E 담당,F 업체,G 낙찰,H 실행,I 회사경비,J 기타,K 조정,L 지출총액,M 이익금,N 이익률,O 정산금액,P 회사수익,Q 입금,R 정산여부
+  push([ hdr('NO'),hdr('년도'),hdr('구분'),hdr('현장'),hdr('영업담당'),hdr('업체'),hdr('낙찰금액'),hdr('실행금액'),hdr('회사경비'),hdr('기타비용'),hdr('조정'),hdr('지출총액'),hdr('이익금'),hdr('이익률'),hdr('정산금액(15%)'),hdr('회사수익'),hdr('입금여부'),hdr('정산여부') ]);
 
   const FIRST = row + 1;
   data.forEach((item, i) => {
@@ -18478,12 +18478,9 @@ function downloadConsultingSettlementExcel() {
     const listItem = consultingListData.find(l => l && l.id === item.listId);
     const paid = listItem ? !!listItem.paid : !!item.paid;
     const profitFc = (item.profit||0) >= 0 ? '00897B' : 'C62828';
-    const excluded = !!item.excluded;
-    const manual = Number(item.manualSettlement) > 0;
-    let nCell;
-    if (excluded) nCell = mkNum(0, { bg, fc:'6A1B9A' });
-    else if (manual) nCell = mkNum(item.manualSettlement, { bg, fc:'6A1B9A' });
-    else nCell = mkFx(`L${R}*0.15`, { bg, fc:'6A1B9A' });
+    // 조정 = 저장 지출총액 − (실행+회사경비+기타). 앱의 숨은/누적 지출을 드러내 이익금이 보고서와 일치하게 함
+    const exec = Number(item.execAmount)||0, cexp = Number(item.companyExp)||0, oexp = Number(item.otherExp)||0;
+    const adj = Math.round((Number(item.totalExpense)||0) - (exec + cexp + oexp));
     push([
       mkCell(i+1, { sz:9, fc:'888888', bg:'F1F8F7', ha:'center', bd:bThin }),
       dataC(item.year||'-', bg),
@@ -18492,16 +18489,17 @@ function downloadConsultingSettlementExcel() {
       dataC(item.manager||'-', bg),
       dataL(item.company||'-', bg),
       mkNum(item.bidAmount, { bg, fc:'00897B' }),          // G 낙찰금액(값)
-      mkNum(item.execAmount, { bg }),                      // H 실행금액(값)
-      mkFx(`G${R}*0.1`, { bg, fc:'C62828' }),              // I 회사경비=낙찰*10%
-      mkNum(item.otherExp, { bg }),                        // J 기타비용(값)
-      mkFx(`H${R}+I${R}+J${R}`, { bg }),                   // K 지출총액=실행+회사경비+기타
-      mkFx(`G${R}-K${R}`, { bg, fc:profitFc }),            // L 이익금=낙찰-지출총액
-      mkFx(`IF(G${R}=0,0,L${R}/G${R})`, { bg, fc:profitFc, fmt:FMT_PCT }), // M 이익률
-      nCell,                                               // N 정산금액(=이익금*15% / 확정 / 제외0)
-      mkFx(`L${R}-N${R}`, { bg, fc:'00695C' }),            // O 회사수익=이익금-정산금액
-      mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paid?'1B5E20':'B71C1C', bg:paid?'E8F5E9':'FFEBEE', ha:'center', bd:bThin }), // P 입금여부
-      mkCell(settled, { bold:true, sz:10, fc:ss.fc, bg:ss.bg, ha:'center', bd:bThin }) // Q 정산여부
+      mkNum(exec, { bg }),                                 // H 실행금액(값)
+      mkNum(cexp, { bg, fc:'C62828' }),                    // I 회사경비(값=앱 저장)
+      mkNum(oexp, { bg }),                                 // J 기타비용(값)
+      mkNum(adj, { bg, fc:'9E9E9E' }),                     // K 조정(앱 저장 지출총액과의 차이)
+      mkFx(`H${R}+I${R}+J${R}+K${R}`, { bg }),             // L 지출총액=실행+회사경비+기타+조정 (=앱 저장)
+      mkFx(`G${R}-L${R}`, { bg, fc:profitFc }),            // M 이익금=낙찰-지출총액 (=보고서 이익금)
+      mkFx(`IF(G${R}=0,0,M${R}/G${R})`, { bg, fc:profitFc, fmt:FMT_PCT }), // N 이익률
+      mkNum(item.settlement, { bg, fc:'6A1B9A' }),         // O 정산금액(값=앱 저장, 확정/제외 반영)
+      mkFx(`M${R}-O${R}`, { bg, fc:'00695C' }),            // P 회사수익=이익금-정산금액
+      mkCell(paid?'완료':'미입금', { bold:true, sz:10, fc:paid?'1B5E20':'B71C1C', bg:paid?'E8F5E9':'FFEBEE', ha:'center', bd:bThin }), // Q 입금여부
+      mkCell(settled, { bold:true, sz:10, fc:ss.fc, bg:ss.bg, ha:'center', bd:bThin }) // R 정산여부
     ]);
   });
   const LAST = row;
@@ -18516,15 +18514,16 @@ function downloadConsultingSettlementExcel() {
   sr[7]  = sumFx(`SUM(H${FIRST}:H${LAST})`, 'FFE082');
   sr[8]  = sumFx(`SUM(I${FIRST}:I${LAST})`, 'FFAB91');
   sr[9]  = sumFx(`SUM(J${FIRST}:J${LAST})`, 'FFE082');
-  sr[10] = sumFx(`SUM(K${FIRST}:K${LAST})`, 'FFE082');
-  sr[11] = sumFx(`SUM(L${FIRST}:L${LAST})`, 'FFEE58');
-  sr[12] = mkFx(`IF(G${SUM}=0,0,L${SUM}/G${SUM})`, { bold:true, fc:'FFE082', bg:'00897B', fmt:FMT_PCT });
-  sr[13] = sumFx(`SUM(N${FIRST}:N${LAST})`, 'CE93D8');
-  sr[14] = sumFx(`SUM(O${FIRST}:O${LAST})`, '80CBC4');
+  sr[10] = sumFx(`SUM(K${FIRST}:K${LAST})`, 'E0E0E0');
+  sr[11] = sumFx(`SUM(L${FIRST}:L${LAST})`, 'FFE082');
+  sr[12] = sumFx(`SUM(M${FIRST}:M${LAST})`, 'FFEE58');
+  sr[13] = mkFx(`IF(G${SUM}=0,0,M${SUM}/G${SUM})`, { bold:true, fc:'FFE082', bg:'00897B', fmt:FMT_PCT });
+  sr[14] = sumFx(`SUM(O${FIRST}:O${LAST})`, 'CE93D8');
+  sr[15] = sumFx(`SUM(P${FIRST}:P${LAST})`, '80CBC4');
   push(sr);
 
   const sheet = XLSX.utils.aoa_to_sheet(ws);
-  sheet['!cols'] = [ {wch:5},{wch:6},{wch:9},{wch:24},{wch:9},{wch:16},{wch:14},{wch:14},{wch:13},{wch:12},{wch:14},{wch:14},{wch:9},{wch:14},{wch:14},{wch:9},{wch:9} ];
+  sheet['!cols'] = [ {wch:5},{wch:6},{wch:9},{wch:24},{wch:9},{wch:16},{wch:13},{wch:13},{wch:12},{wch:11},{wch:12},{wch:14},{wch:14},{wch:8},{wch:14},{wch:14},{wch:8},{wch:8} ];
   sheet['!merges'] = merges;
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet, '컨설팅정산');
