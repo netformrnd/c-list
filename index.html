@@ -18416,8 +18416,12 @@ function downloadConsultingListExcel() {
 }
 
 // ── 기술컨설팅 정산관리 엑셀 (정산여부 + 계산식 연결) ──
-function downloadConsultingSettlementExcel() {
+async function downloadConsultingSettlementExcel() {
   if (typeof XLSX === 'undefined') { showToast('엑셀 라이브러리가 로드되지 않았습니다.', 'error'); return; }
+
+  // ★ 최신 데이터 재로딩 — 정산여부를 현재 입금상태 기준으로 재판정 (입금완료→미정산)
+  // (재로딩 안 하면 입금 갱신 후 정산여부가 옛 값(진행중)으로 남아 입금여부와 엇갈림)
+  await loadConsultingData();
 
   // 정산관리 필터 적용 (renderConsultingTable과 동일)
   const searchText = (document.getElementById('consultingSearchInput')?.value || '').toLowerCase();
