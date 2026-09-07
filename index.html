@@ -16198,11 +16198,11 @@ async function saveConsultingData() {
     console.log('신규 데이터 추가');
   }
   
-  saveConsultingDataToStorage();
+  await saveConsultingDataToStorage();  // ★ 저장(fbSave) 완료를 기다린 뒤 재렌더 (경쟁조건 방지: 저장 전 재로딩으로 수정값 덮어쓰기 방지)
 
   showToast('저장되었습니다.', 'success');
   closeConsultingAddModal();
-  renderConsultingTable();
+  await renderConsultingTable();
 }
 
 // 정산관리 → 컨설팅리스트 동기화
