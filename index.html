@@ -1332,7 +1332,7 @@ tr.selected { background: var(--primary-light); }
           </label>
           <div style="margin-left:auto;font-size:0.85rem;color:var(--gray-500);display:flex;align-items:center;gap:0.5rem;">
             <span id="consultingFilterResult"></span>
-            <span style="font-size:0.7rem;color:#2e7d32;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 6px;font-weight:700;">빌드 v0908-저장수정</span>
+            <span style="font-size:0.7rem;color:#2e7d32;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 6px;font-weight:700;">빌드 v0908b-저장수정</span>
           </div>
         </div>
 
@@ -3026,6 +3026,9 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+// ★ undefined 필드가 있어도 저장이 통째로 거부되지 않도록 (undefined는 자동 생략)
+// 이게 없으면 "DocumentReference.set() ... Unsupported field value: undefined" 로 저장 전체가 실패함
+try { db.settings({ ignoreUndefinedProperties: true }); } catch(e) { console.warn('Firestore settings 적용 실패:', e); }
 
 // Firestore 컬렉션명
 const FB_COLLECTIONS = {
@@ -14246,13 +14249,13 @@ async function loadConsultingData() {
         const profit = bid - totalExp;
         const settlement = Math.round(profit * 0.15);
         consultingData.push({
-          id: `${L.id}_s`, listId: L.id, year: L.year, type: L.type, site: L.site,
-          project: L.project, company: L.company, bidAmount: bid, execAmount: exec,
+          id: `${L.id}_s`, listId: L.id, year: L.year || '', type: L.type || '일반', site: L.site || '',
+          project: L.project || '', company: L.company || '', bidAmount: bid, execAmount: exec,
           companyExp: compExp, otherExp: 0, totalExpense: totalExp,
           profit: profit, profitRate: bid > 0 ? (profit / bid * 100).toFixed(1) : '0.0',
           settlement: settlement, companyProfit: profit - settlement,
-          manager: L.manager, settled: '미정산',
-          excluded: L.excluded, manualSettlement: Number(L.manualSettlement) > 0 ? L.manualSettlement : undefined
+          manager: L.manager || '', settled: '미정산',
+          excluded: !!L.excluded, manualSettlement: Number(L.manualSettlement) > 0 ? L.manualSettlement : 0
         });
         _bf = true;
         console.log('[정산관리 보정] 누락 현장 생성:', L.site);
