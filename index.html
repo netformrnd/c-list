@@ -1330,8 +1330,9 @@ tr.selected { background: var(--primary-light); }
             <input type="checkbox" id="consultingHideSettled" onchange="renderConsultingTable()" style="accent-color:#00897b;">
             ✅ 완료된 정산 숨기기
           </label>
-          <div style="margin-left:auto;font-size:0.85rem;color:var(--gray-500);">
+          <div style="margin-left:auto;font-size:0.85rem;color:var(--gray-500);display:flex;align-items:center;gap:0.5rem;">
             <span id="consultingFilterResult"></span>
+            <span style="font-size:0.7rem;color:#2e7d32;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:4px;padding:1px 6px;font-weight:700;">빌드 v0908-저장수정</span>
           </div>
         </div>
 
@@ -16202,7 +16203,7 @@ async function saveConsultingData() {
 
   showToast('저장되었습니다.', 'success');
   closeConsultingAddModal();
-  await renderConsultingTable();
+  await renderConsultingTable(true);  // ★ 저장 직후엔 메모리(수정값)로 렌더 — 서버 재로딩 생략
 }
 
 // 정산관리 → 컨설팅리스트 동기화
@@ -16673,9 +16674,9 @@ function filterConsultingData() {
 }
 
 // 기술컨설팅 테이블 렌더링
-async function renderConsultingTable() {
-  // 최신 데이터 로드
-  await loadConsultingData();
+async function renderConsultingTable(skipReload) {
+  // 최신 데이터 로드 (단, 저장 직후엔 메모리값이 이미 최신이므로 재로딩 생략 → read-after-write 경쟁조건 원천 차단)
+  if (!skipReload) await loadConsultingData();
   reconcileConsultingManagers();  // 정산 담당자를 현장 리스트 기준으로 보정
 
   // 필터 적용
