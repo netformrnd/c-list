@@ -3500,7 +3500,7 @@ async function downloadAllBackup() {
       exportedAt: new Date().toISOString(),
       exportedAtKor: new Date().toLocaleString('ko-KR'),
       version: '1.0',
-      description: '㈜넷폼알앤디 현장관리 전체 백업',
+      description: '㈜넷폼 현장관리 전체 백업',
       data: {}
     };
 
@@ -17901,7 +17901,7 @@ function downloadConsultingReport() {
     cell(reportDate, { fontSize:10, fontColor:'B3C5FF', bg:'1A237E', align:'right', borders:borderMed }) ]);
   merge(row-1, 0, COLS-2);
 
-  pushRow([ cell('㈜넷폼알앤디  기술컨설팅팀', { italic:true, fontSize:10, fontColor:'FFFFFF', bg:'283593', align:'left', borders:borderMed }),
+  pushRow([ cell('㈜넷폼  기술컨설팅팀', { italic:true, fontSize:10, fontColor:'FFFFFF', bg:'283593', align:'left', borders:borderMed }),
     ...Array(COLS-1).fill(cell('', { bg:'283593', borders:borderMed })) ]);
   merge(row-1, 0, COLS-1);
 
@@ -18334,7 +18334,7 @@ function downloadConsultingListExcel() {
 
   const ylabel = yearFilter === '2020-2021' ? '2020-2021년' : (yearFilter ? yearFilter+'년' : '전체년도');
   push([
-    mkCell(`㈜넷폼알앤디  기술컨설팅팀  ·  ${ylabel}  ${typeFilter||'전체구분'}  ${managerFilter||'전체담당자'}  ·  총 ${filtered.length}건`, { italic:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'left', bd:bMed }),
+    mkCell(`㈜넷폼  기술컨설팅팀  ·  ${ylabel}  ${typeFilter||'전체구분'}  ${managerFilter||'전체담당자'}  ·  총 ${filtered.length}건`, { italic:true, sz:10, fc:'FFFFFF', bg:'005F73', ha:'left', bd:bMed }),
     ...Array(COLS-1).fill(mkCell('', { bg:'005F73', bd:bMed }))
   ]);
   merge(row-1, 0, COLS-1);
@@ -18471,7 +18471,7 @@ async function downloadConsultingSettlementExcel() {
 
   push([ mkCell('기술컨설팅 정산 관리 현황', { bold:true, sz:15, fc:'FFFFFF', bg:'00695C', ha:'left', bd:bMed }), ...Array(COLS-2).fill(mkCell('',{bg:'00695C',bd:bMed})), mkCell(reportDate, { sz:10, fc:'B2DFDB', bg:'00695C', ha:'right', bd:bMed }) ]);
   merge(row-1, 0, COLS-2);
-  push([ mkCell(`㈜넷폼알앤디 · 총 ${data.length}건  (이익금·정산금액은 앱(보고서) 값과 동일)`, { sz:10, fc:'FFFFFF', bg:'00897B', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('',{bg:'00897B',bd:bMed})) ]);
+  push([ mkCell(`㈜넷폼 · 총 ${data.length}건  (이익금·정산금액은 앱(보고서) 값과 동일)`, { sz:10, fc:'FFFFFF', bg:'00897B', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('',{bg:'00897B',bd:bMed})) ]);
   merge(row-1, 0, COLS-1);
   push(Array(COLS).fill(mkEmpty('E0F2F1')));
   // 열: A NO,B 년도,C 구분,D 현장,E 담당,F 업체,G 낙찰,H 실행,I 회사경비,J 기타,K 조정,L 지출총액,M 이익금,N 이익률,O 정산금액,P 회사수익,Q 입금,R 정산여부
@@ -18567,7 +18567,7 @@ function downloadVerificationExcel() {
 
   push([ mkCell('정산 검증표 (실제 입금·정산 상태)', { bold:true, sz:15, fc:'FFFFFF', bg:'1A237E', ha:'left', bd:bMed }), ...Array(COLS-2).fill(mkCell('', { bg:'1A237E', bd:bMed })), mkCell(reportDate, { sz:10, fc:'B3C5FF', bg:'1A237E', ha:'right', bd:bMed }) ]);
   merge(row-1, 0, COLS-2);
-  push([ mkCell(`㈜넷폼알앤디  ·  ${currentYear}년  ·  총 ${data.length}건  ·  현장별 실제 입금/정산여부`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('', { bg:'1565C0', bd:bMed })) ]);
+  push([ mkCell(`㈜넷폼  ·  ${currentYear}년  ·  총 ${data.length}건  ·  현장별 실제 입금/정산여부`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }), ...Array(COLS-1).fill(mkCell('', { bg:'1565C0', bd:bMed })) ]);
   merge(row-1, 0, COLS-1);
   push(Array(COLS).fill(mkEmpty('EEF2FF')));
   push([ hdr('NO'), hdr('영업담당'), hdr('구분'), hdr('공사현장'), hdr('공사금액'), hdr('이익금'), hdr('정산금액(15%)'), hdr('입금여부'), hdr('정산여부') ]);
@@ -18708,7 +18708,7 @@ function downloadSettlementExcel() {
   merge1(row1-1, 0, COLS1-2);
 
   push1([
-    mkCell(`㈜넷폼알앤디  ·  ${currentYear}년  ·  총 ${data.length}건`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }),
+    mkCell(`㈜넷폼  ·  ${currentYear}년  ·  총 ${data.length}건`, { sz:10, fc:'FFFFFF', bg:'1565C0', ha:'left', bd:bMed }),
     ...Array(COLS1-1).fill(mkCell('', { bg:'1565C0', bd:bMed }))
   ]);
   merge1(row1-1, 0, COLS1-1);
